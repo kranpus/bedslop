@@ -56,7 +56,7 @@ Key decisions:
 | Tool | 5 types, tier presets, damage, durability, speed, enchantability, repair item; durability loss via generated script | ✅ |
 | Armor | 4 pieces, icons, worn layers (attachables), protection, durability multiplier, repair | ✅ |
 | Food | Hunger, saturation, eat/drink, leftover item, effects with chance (script) | ✅ |
-| Living entity | Humanoid / quadruped presets with walk + look animations, or Blockbench import (`.bbmodel` with embedded texture and animations, or `.geo.json` + `.animation.json`), with automatic walk/look from bone names and a manual "what plays when" editor (walking, idle, attacking, hurt, in water, on fire, dying, custom Molang; loop or once; speed; match walking speed; body-part mapping); passive / neutral / hostile AI; drops; spawn egg; natural spawning by biome tag, light, herd size | ✅ |
+| Living entity | Humanoid / quadruped presets with walk + look animations, or Blockbench import: quick `.bbmodel` conversion (model, texture, animations) or manual files used exactly as exported (`.geo.json`, `.animation.json`, `.animation_controllers.json`, each viewable/editable), with automatic walk/look from bone names and a manual "what plays when" editor (walking, idle, attacking, hurt, in water, on fire, dying, custom Molang; loop or once; speed; match walking speed; body-part mapping); passive / neutral / hostile AI; drops; spawn egg; natural spawning by biome tag, light, herd size | ✅ |
 | Recipe | Shaped (paint-on grid), shapeless, furnace/blast/smoker/campfire, stonecutter, smithing | ✅ |
 | Loot table | Pools, weighted entries, counts, live % per entry | ✅ |
 | Feature (ore) | Vein size, frequency, height range with visual bar, dimension, replace list | ✅ |
@@ -145,6 +145,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.1.3**: Manual model files for custom mobs: upload Blockbench's own `.geo.json`, `.animation.json` and `.animation_controllers.json`; they're written to the pack unchanged and unmodified animations are referenced directly. Uploaded controllers can be switched on in the animation list, and animations they already play aren't double-played. `.bbmodel` conversion fixes: blank scale axes no longer collapse to 0; before/after keyframes, step keyframes, override, blend weight, start/loop delay and time update are kept. Warning when a texture's shape doesn't match the model.
 
 - **0.1.2**: Manual animation assignment for custom mobs: choose each animation's trigger, loop or play-once (via generated animation controllers), speed, and walk-speed sync. Pick which bones the generated walk and head look move, with swing amount and direction.
 

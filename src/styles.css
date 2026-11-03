@@ -422,3 +422,6 @@ table.parity { border-collapse: collapse; width: 100%; font-size: 13px; }
 .anim-summary li.off { opacity: 0.6; }
 .logic-card.muted-card { opacity: 0.65; }
 .rig .row > .field { flex: 1; min-width: 220px; max-width: 360px; }
+
+.file-slot { display: flex; flex-direction: column; gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); }
+.file-slot textarea { min-height: 220px; }

@@ -185,6 +185,10 @@ export interface EntityElement extends BaseElement {
   model: "humanoid" | "quadruped" | "custom";
   customGeometry: string;
   customAnimations: string;
+  /** How the custom model was added: converted from a .bbmodel, or Blockbench's exported files used as-is. */
+  modelSource?: "bbmodel" | "files";
+  /** Animation controllers file exported from Blockbench, used as-is. */
+  customControllers?: string;
   animationMode?: "auto" | "manual";
   animationSlots?: AnimationSlot[];
   autoRig?: AutoRig;

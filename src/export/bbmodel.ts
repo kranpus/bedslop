@@ -160,6 +160,13 @@ export function convertBbmodel(text: string, fallbackName = "model"): BbConversi
     if (a.loop === "loop") out.loop = true;
     else if (a.loop === "hold") out.loop = "hold_on_last_frame";
     if (a.length) out.animation_length = a.length;
+    // Animation-level settings Blockbench keeps in the project file.
+    const extra = a as unknown as Record<string, unknown>;
+    if (extra.override) out.override_previous_animation = true;
+    for (const [from, to] of [["anim_time_update", "anim_time_update"], ["blend_weight", "blend_weight"], ["start_delay", "start_delay"], ["loop_delay", "loop_delay"]]) {
+      const v = extra[from];
+      if (v !== undefined && v !== "" && v !== null) out[to] = typeof v === "string" && Number.isFinite(Number(v)) ? Number(v) : v;
+    }
     const boneAnims: Record<string, Record<string, Record<string, unknown>>> = {};
     for (const [uuid, animator] of Object.entries(a.animators ?? {})) {
       if (animator.type && animator.type !== "bone") continue;
@@ -167,14 +174,22 @@ export function convertBbmodel(text: string, fallbackName = "model"): BbConversi
       if (!bone) continue;
       for (const k of animator.keyframes ?? []) {
         if (!["rotation", "position", "scale"].includes(k.channel)) continue;
-        const p = k.data_points?.[0] ?? {};
+        // Empty axes mean "unchanged": 0 for rotation/position, 1 for scale.
+        const empty = k.channel === "scale" ? 1 : 0;
         const val = (x: unknown) => {
+          if (x === undefined || x === null || String(x).trim() === "") return empty;
           const n = Number(x);
-          return x === undefined || x === "" ? 0 : Number.isFinite(n) ? n : String(x);
+          return Number.isFinite(n) ? n : String(x).trim();
         };
-        const v = [val(p.x), val(p.y), val(p.z)];
+        const point = (p: Record<string, string | number> | undefined) => [val(p?.x), val(p?.y), val(p?.z)];
+        const pre = point(k.data_points?.[0]);
+        const post = k.data_points && k.data_points.length > 1 ? point(k.data_points[1]) : null;
         const ch = (boneAnims[bone] ??= {})[k.channel] ??= {};
-        ch[String(round(k.time))] = k.interpolation === "catmullrom" ? { post: v, lerp_mode: "catmullrom" } : v;
+        let frame: unknown = pre;
+        if (post) frame = { pre, post, ...(k.interpolation === "catmullrom" ? { lerp_mode: "catmullrom" } : {}) };
+        else if (k.interpolation === "catmullrom") frame = { post: pre, lerp_mode: "catmullrom" };
+        else if (k.interpolation === "step") frame = { pre, post: pre, lerp_mode: "step" };
+        ch[String(round(k.time))] = frame;
       }
     }
     if (Object.keys(boneAnims).length) {

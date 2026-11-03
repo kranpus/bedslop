@@ -5,7 +5,7 @@ import { TexturePicker } from "../TexturePicker";
 import { useState } from "react";
 import { convertBbmodel, isBbmodel } from "../../export/bbmodel";
 import { geometryIdentifier } from "../../export/context";
-import { AUTO_LOOK, AUTO_WALK, RIG_ROLES, WHEN, activeSlots, animationLabel, defaultSlots, listAnimations, listBones, resolveRig } from "../../export/entityAnimations";
+import { AUTO_LOOK, AUTO_WALK, RIG_ROLES, WHEN, activeSlots, animationLabel, defaultSlots, listAnimations, listBones, listControllers, resolveRig } from "../../export/entityAnimations";
 import { useStore } from "../../store/store";
 import type { Patch } from "./types";
 
@@ -101,64 +101,130 @@ export function EntityEditor({ el, patch }: { el: EntityElement; patch: Patch<En
   );
 }
 
-/** Import a Blockbench mob: .bbmodel (model + texture + animations) or .geo.json / .animation.json. */
+/** Add a Blockbench mob: quick .bbmodel conversion, or Blockbench's exported files used exactly as-is. */
 function BlockbenchImport({ el, patch }: { el: EntityElement; patch: Patch<EntityElement> }) {
   const addTexture = useStore((s) => s.addTexture);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const source = el.modelSource ?? "bbmodel";
   const geoId = geometryIdentifier(el.customGeometry);
-  let animCount = 0;
-  try { animCount = Object.keys(JSON.parse(el.customAnimations).animations ?? {}).length; } catch { /* none */ }
+  const animCount = listAnimations(el.customAnimations).length;
 
-  const importFiles = async (files: File[]) => {
-    const p: Partial<EntityElement> = {};
-    const notes: string[] = [];
+  const importBbmodel = async (f: File) => {
     try {
-      for (const f of files) {
-        const text = await f.text();
-        if (isBbmodel(text)) {
-          const c = convertBbmodel(text, el.name);
-          p.customGeometry = c.geometry;
-          if (c.animations) p.customAnimations = c.animations;
-          if (c.texture) p.texture = addTexture({ ...c.texture, kind: "entity" }).id;
-          notes.push(`Imported ${f.name}: model${c.texture ? ", texture" : ""}${c.animations ? ", animations" : ""}.`, ...c.notes);
-        } else {
-          const data = JSON.parse(text);
-          if (data["minecraft:geometry"] || Object.keys(data).some((k) => k.startsWith("geometry."))) {
-            p.customGeometry = text;
-            notes.push(`Imported model ${f.name}.`);
-          } else if (data.animations) {
-            p.customAnimations = text;
-            notes.push(`Imported animations ${f.name}.`);
-          } else {
-            throw new Error(`${f.name} isn't a Blockbench model or animation file.`);
-          }
-        }
-      }
-      patch({ ...p, model: "custom" });
-      if (!p.texture && !el.texture) notes.push("Now upload the texture you painted for this model.");
-      setMessage({ ok: true, text: notes.join(" ") });
+      const text = await f.text();
+      if (!isBbmodel(text)) throw new Error(`${f.name} isn't a Blockbench project. For exported .geo.json or .animation.json files, use "Manual files".`);
+      const c = convertBbmodel(text, el.name);
+      const p: Partial<EntityElement> = { model: "custom", modelSource: "bbmodel", customGeometry: c.geometry, customAnimations: c.animations, customControllers: "" };
+      if (c.texture) p.texture = addTexture({ ...c.texture, kind: "entity" }).id;
+      patch(p);
+      setMessage({ ok: true, text: [`Imported ${f.name}: model${c.texture ? ", texture" : ""}${c.animations ? ", animations" : ""}.`, ...c.notes].join(" ") });
     } catch (err) {
       setMessage({ ok: false, text: err instanceof Error ? err.message : "That file couldn't be read." });
     }
   };
+  const bbInput = (
+    <label className={`btn small${el.model === "custom" && !geoId ? " primary" : ""}`}>
+      Import .bbmodel…
+      <input type="file" accept=".bbmodel,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) importBbmodel(f); }} />
+    </label>
+  );
+
+  if (el.model !== "custom") {
+    return (
+      <div className="bb-import">
+        <div className="row between">
+          <div className="stack tight">
+            <strong>Made this mob in Blockbench?</strong>
+            <span className="field-help">Import the .bbmodel, or add the files Blockbench exports yourself.</span>
+          </div>
+          <div className="row">
+            {bbInput}
+            <button type="button" className="btn small" onClick={() => patch({ model: "custom", modelSource: "files" })}>Add files manually</button>
+          </div>
+        </div>
+        {message && <p className={message.ok ? "ok-text" : "warn-text"} role="status">{message.text}</p>}
+      </div>
+    );
+  }
 
   return (
-    <div className={`bb-import${el.model === "custom" ? " on" : ""}`}>
+    <div className="bb-import on">
+      <Segmented value={source} onChange={(modelSource) => { setMessage(null); patch({ modelSource }); }} options={[
+        { value: "bbmodel", label: "Quick import (.bbmodel)" },
+        { value: "files", label: "Manual files (exact Blockbench export)" },
+      ]} />
+      {source === "bbmodel" ? (
+        <>
+          <div className="row between">
+            <span className="field-help">
+              {geoId ? <>Using <span className="mono">{geoId}</span>{animCount ? `, ${animCount} animation${animCount > 1 ? "s" : ""}` : ""}. The app converts the project file for you.</> : "Pick your Blockbench project file. Its model, texture and animations come with it."}
+            </span>
+            {bbInput}
+          </div>
+          <p className="field-help">If poses or animations look different from Blockbench, use Manual files instead.</p>
+        </>
+      ) : (
+        <>
+          <p className="field-help">These files go into the add-on exactly as you upload them, so they match Blockbench exactly.</p>
+          <JsonFileSlot label="Model" required value={el.customGeometry} onChange={(customGeometry) => patch({ customGeometry }, "geo")}
+            how="Blockbench: File → Export → Export Bedrock Geometry (.geo.json)"
+            check={(t) => {
+              const id = geometryIdentifier(t);
+              if (!id) return null;
+              const d = JSON.parse(t)["minecraft:geometry"]?.[0];
+              return `${id} · ${d?.bones?.length ?? 0} bones${d?.description ? ` · texture ${d.description.texture_width}×${d.description.texture_height}` : ""}`;
+            }} />
+          <JsonFileSlot label="Animations" value={el.customAnimations} onChange={(customAnimations) => patch({ customAnimations }, "anim")}
+            how="Blockbench: Animate tab → Animation menu → Export Animations (.animation.json)"
+            check={(t) => {
+              const list = listAnimations(t);
+              return list.length ? `${list.length} animation${list.length > 1 ? "s" : ""}: ${list.map((a) => a.short).join(", ")}` : null;
+            }} />
+          <JsonFileSlot label="Animation controllers" value={el.customControllers ?? ""} onChange={(customControllers) => patch({ customControllers }, "ctrl")}
+            how="Optional. Blockbench: Animate tab → Animation Controllers → Export (.animation_controllers.json). Controllers can refer to your animations by their last name part, e.g. walk."
+            check={(t) => {
+              const list = listControllers(t);
+              return list.length ? `${list.length} controller${list.length > 1 ? "s" : ""}: ${list.map((c) => c.split(".").pop()).join(", ")}` : null;
+            }} />
+          <p className="field-help">Upload the texture with the Texture picker above.</p>
+        </>
+      )}
+      {message && <p className={message.ok ? "ok-text" : "warn-text"} role="status">{message.text}</p>}
+    </div>
+  );
+}
+
+/** One JSON file: upload, check, view/edit, remove. */
+function JsonFileSlot({ label, value, onChange, how, check, required }: {
+  label: string; value: string; onChange: (v: string) => void; how: string; check: (text: string) => string | null; required?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  let status: { ok: boolean; text: string };
+  if (!value.trim()) status = { ok: !required, text: required ? "Required" : "None" };
+  else {
+    let parsed = true;
+    try { JSON.parse(value); } catch { parsed = false; }
+    const summary = parsed ? check(value) : null;
+    status = summary ? { ok: true, text: summary } : { ok: false, text: parsed ? "This doesn't look like the right kind of file." : "This isn't valid JSON." };
+  }
+  return (
+    <div className="file-slot">
       <div className="row between">
         <div className="stack tight">
-          <strong>{el.model === "custom" ? "Blockbench model" : "Made this mob in Blockbench?"}</strong>
-          <span className="field-help">
-            {el.model === "custom"
-              ? geoId ? <>Using <span className="mono">{geoId}</span>{animCount ? `, ${animCount} animation${animCount > 1 ? "s" : ""}` : ", automatic walk and head movement"}.</> : "No model imported yet. The mob won't export correctly until you import one."
-              : "Import your .bbmodel file. Its shape, texture and animations come with it."}
-          </span>
+          <strong>{label}</strong>
+          <span className={status.ok ? "muted small mono" : "warn-text"}>{status.text}</span>
+          <span className="field-help">{how}</span>
         </div>
-        <label className={`btn small${el.model === "custom" && !geoId ? " primary" : ""}`}>
-          Import from Blockbench…
-          <input type="file" multiple accept=".bbmodel,.json" hidden onChange={(e) => { const fs = Array.from(e.target.files ?? []); e.target.value = ""; if (fs.length) importFiles(fs); }} />
-        </label>
+        <div className="row">
+          <label className="btn small">
+            {value ? "Replace…" : "Upload…"}
+            <input type="file" accept=".json" hidden onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onChange(await f.text()); }} />
+          </label>
+          {value && <button type="button" className="btn small ghost" onClick={() => setEditing(!editing)} aria-expanded={editing}>{editing ? "Hide JSON" : "View / edit"}</button>}
+          {value && <button type="button" className="btn small ghost" onClick={() => { onChange(""); setEditing(false); }}>Remove</button>}
+        </div>
       </div>
-      {message && <p className={message.ok ? "ok-text" : "warn-text"} role="status">{message.text}</p>}
+      {editing && <textarea className="code" rows={14} spellCheck={false} value={value} onChange={(e) => onChange(e.target.value)} aria-label={`${label} JSON`} />}
     </div>
   );
 }
@@ -171,7 +237,8 @@ function AnimationSection({ el, patch }: { el: EntityElement; patch: Patch<Entit
   const slots = activeSlots(el);
   const imported = listAnimations(el.customAnimations);
   const bones = listBones(el.customGeometry);
-  const choices = [...imported.map((a) => ({ value: a.id, label: a.short })), { value: AUTO_WALK, label: animationLabel(AUTO_WALK) }, { value: AUTO_LOOK, label: animationLabel(AUTO_LOOK) }];
+  const ctrls = listControllers(el.customControllers);
+  const choices = [...imported.map((a) => ({ value: a.id, label: a.short })), ...ctrls.map((c) => ({ value: c, label: animationLabel(c) })), { value: AUTO_WALK, label: animationLabel(AUTO_WALK) }, { value: AUTO_LOOK, label: animationLabel(AUTO_LOOK) }];
 
   const setSlots = (animationSlots: AnimationSlot[], key?: string) => patch({ animationMode: "manual", animationSlots }, key);
   const setSlot = (i: number, p: Partial<AnimationSlot>, key?: string) => setSlots(slots.map((s, k) => (k === i ? { ...s, ...p } : s)), key);
@@ -215,6 +282,7 @@ function AnimationSection({ el, patch }: { el: EntityElement; patch: Patch<Entit
         <div className="logic-list">
           {slots.map((s, i) => {
             const auto = s.animation === AUTO_WALK || s.animation === AUTO_LOOK;
+            const isCtrl = s.animation.startsWith("controller.");
             return (
               <div className={`logic-card${s.when === "never" ? " muted-card" : ""}`} key={s.id}>
                 <div className="logic-head">
@@ -222,6 +290,7 @@ function AnimationSection({ el, patch }: { el: EntityElement; patch: Patch<Entit
                   <select value={s.animation} onChange={(e) => setSlot(i, { animation: e.target.value })} aria-label="Animation">
                     {!choices.some((c) => c.value === s.animation) && <option value={s.animation}>{animationLabel(s.animation)} (missing)</option>}
                     {imported.length > 0 && <optgroup label="From your animation file">{imported.map((a) => <option key={a.id} value={a.id}>{a.short}</option>)}</optgroup>}
+                    {ctrls.length > 0 && <optgroup label="Your animation controllers">{ctrls.map((c) => <option key={c} value={c}>{animationLabel(c)}</option>)}</optgroup>}
                     <optgroup label="Generated"><option value={AUTO_WALK}>{animationLabel(AUTO_WALK)}</option><option value={AUTO_LOOK}>{animationLabel(AUTO_LOOK)}</option></optgroup>
                   </select>
                   <span className="spacer" />
@@ -236,12 +305,12 @@ function AnimationSection({ el, patch }: { el: EntityElement; patch: Patch<Entit
                       <input className="mono" value={s.condition} onChange={(e) => setSlot(i, { condition: e.target.value }, `cond-${s.id}`)} placeholder="query.is_on_ground" />
                     </Field>
                   )}
-                  {!auto && (
+                  {!auto && !isCtrl && (
                     <Select label="Repeat" value={s.mode} onChange={(mode) => setSlot(i, { mode })}
                       options={[{ value: "loop", label: "Loops while active" }, { value: "once", label: "Plays once each time" }]} />
                   )}
-                  {s.animation !== AUTO_LOOK && <Num label={auto ? "Step speed" : "Speed"} step={0.1} min={0.1} value={s.speed} onChange={(speed) => setSlot(i, { speed }, `speed-${s.id}`)} suffix="×" />}
-                  {!auto && <Toggle label="Match walking speed" value={s.matchMovement} onChange={(matchMovement) => setSlot(i, { matchMovement })} help="Steps follow how far the mob moves, so feet don't slide." />}
+                  {s.animation !== AUTO_LOOK && !isCtrl && <Num label={auto ? "Step speed" : "Speed"} step={0.1} min={0.1} value={s.speed} onChange={(speed) => setSlot(i, { speed }, `speed-${s.id}`)} suffix="×" />}
+                  {!auto && !isCtrl && <Toggle label="Match walking speed" value={s.matchMovement} onChange={(matchMovement) => setSlot(i, { matchMovement })} help="Steps follow how far the mob moves, so feet don't slide." />}
                 </div>
               </div>
             );

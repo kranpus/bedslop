@@ -51,6 +51,46 @@ export function listAnimations(animJson: string): ImportedAnimation[] {
   }
 }
 
+export function listControllers(json: string | undefined): string[] {
+  if (!json?.trim()) return [];
+  try {
+    return Object.keys(JSON.parse(json).animation_controllers ?? {});
+  } catch {
+    return [];
+  }
+}
+
+/** Animation short names that uploaded controllers play themselves. */
+export function controlledNames(json: string | undefined): Set<string> {
+  const names = new Set<string>();
+  if (!json?.trim()) return names;
+  try {
+    for (const c of Object.values(JSON.parse(json).animation_controllers ?? {}) as { states?: Record<string, { animations?: unknown[] }> }[]) {
+      for (const st of Object.values(c.states ?? {})) {
+        for (const a of st.animations ?? []) {
+          if (typeof a === "string") names.add(a);
+          else if (a && typeof a === "object") Object.keys(a).forEach((k) => names.add(k));
+        }
+      }
+    }
+  } catch { /* unreadable: nothing controlled */ }
+  return names;
+}
+
+/** Short names for uploaded animations/controllers, so uploaded controllers can find them by name. */
+export function shortNames(ids: string[]): Map<string, string> {
+  const used = new Set<string>();
+  const out = new Map<string, string>();
+  for (const id of ids) {
+    const base = (id.split(".").pop() || "anim").toLowerCase().replace(/[^a-z0-9_]/g, "_");
+    let name = /^slot\d/.test(base) ? `${base}_` : base, i = 2;
+    while (used.has(name)) name = `${base}_${i++}`;
+    used.add(name);
+    out.set(id, name);
+  }
+  return out;
+}
+
 /** Detects head/arms/legs by bone name; explicit choices in `rig.bones` win. */
 export function resolveRig(bones: string[], rig?: AutoRig): Partial<Record<RigRole, string>> {
   const norm = (n: string) => n.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -92,13 +132,21 @@ const slot = (animation: string, when: AnimWhen, mode: "loop" | "once"): Animati
 });
 
 /** The automatic assignment, also used to pre-fill manual mode. */
-export function defaultSlots(e: Pick<EntityElement, "customGeometry" | "customAnimations" | "autoRig">): AnimationSlot[] {
-  const slots = listAnimations(e.customAnimations).map((a) => {
+export function defaultSlots(e: Pick<EntityElement, "customGeometry" | "customAnimations" | "customControllers" | "autoRig">): AnimationSlot[] {
+  const imported = listAnimations(e.customAnimations);
+  const names = shortNames(imported.map((a) => a.id));
+  const controlled = controlledNames(e.customControllers);
+  const slots = imported.map((a) => {
+    // Already played by an uploaded controller: leave it to the controller.
+    if (controlled.has(names.get(a.id)!)) return slot(a.id, "never", a.loop ? "loop" : "once");
     const g = guessWhen(a.short, a.loop);
-    return slot(a.id, g.when, g.mode);
+    // Keep each animation's own loop setting so it plays exactly as authored.
+    return slot(a.id, g.when, a.loop ? "loop" : "once");
   });
+  for (const c of listControllers(e.customControllers)) slots.push(slot(c, "always", "loop"));
   const rig = resolveRig(listBones(e.customGeometry), e.autoRig);
-  if (!slots.some((s) => s.when === "moving") && (rig.leftLeg || rig.rightLeg || rig.leftArm || rig.rightArm)) slots.push(slot(AUTO_WALK, "moving", "loop"));
+  const hasControllers = listControllers(e.customControllers).length > 0;
+  if (!hasControllers && !slots.some((s) => s.when === "moving") && (rig.leftLeg || rig.rightLeg || rig.leftArm || rig.rightArm)) slots.push(slot(AUTO_WALK, "moving", "loop"));
   if (!slots.some((s) => /look/i.test(s.animation) && s.when !== "never") && rig.head) slots.push(slot(AUTO_LOOK, "always", "loop"));
   return slots;
 }
@@ -110,6 +158,7 @@ export function activeSlots(e: EntityElement): AnimationSlot[] {
 export function animationLabel(id: string) {
   if (id === AUTO_WALK) return "Generated walk (swings arms and legs)";
   if (id === AUTO_LOOK) return "Generated head look (follows players)";
+  if (id.startsWith("controller.")) return `${id.split(".").pop()} (controller)`;
   return id.split(".").pop() ?? id;
 }
 
@@ -143,10 +192,28 @@ export function buildAnimations(ns: string, e: EntityElement): BuiltAnimations {
   const defs: Record<string, unknown> = {};
   const controllers: Record<string, unknown> = {};
 
+  // Register every uploaded animation and controller under a short name; they're written to the pack unchanged.
+  const ctrlIds = listControllers(e.customControllers);
+  const names = shortNames([...imported.keys(), ...ctrlIds]);
+  for (const [id, short] of names) out.animations[short] = id;
+
   activeSlots(e).forEach((s, i) => {
     if (s.when === "never") return;
     const speed = Number(s.speed) > 0 ? Number(s.speed) : 1;
+    const molang = s.when === "custom" ? s.condition.trim() : WHEN.find((w) => w.value === s.when)!.molang;
+    if (s.when === "custom" && !molang) out.problems.push(`slot ${i + 1} uses a custom rule but the rule is empty, so it plays all the time.`);
+
+    // Uploaded controller: just switch it on (optionally under a condition).
+    if (s.animation.startsWith("controller.")) {
+      const short = names.get(s.animation);
+      if (!short) return out.problems.push(`controller "${animationLabel(s.animation)}" isn't in the uploaded controllers file any more.`);
+      out.animate.push(molang ? { [short]: molang } : short);
+      return;
+    }
+
     let def: Record<string, unknown> | null;
+    let short = `slot${i}`;
+    let reuse = false;
     if (s.animation === AUTO_WALK) {
       def = autoWalkDef(rig, e.autoRig, speed);
       if (!def) return out.problems.push("the generated walk needs at least one arm or leg bone. Pick them under Body parts.");
@@ -156,41 +223,47 @@ export function buildAnimations(ns: string, e: EntityElement): BuiltAnimations {
     } else {
       const a = imported.get(s.animation);
       if (!a) return out.problems.push(`animation "${animationLabel(s.animation)}" isn't in the imported animation file any more.`);
+      // Unchanged settings: play the uploaded animation exactly as authored.
+      reuse = speed === 1 && !s.matchMovement && (s.mode === "loop") === a.loop;
+      if (reuse) short = names.get(a.id)!;
       def = structuredClone(a.def);
       if (s.matchMovement) def.anim_time_update = `query.modified_distance_moved * ${round(0.4 * speed)}`;
       else if (speed !== 1) def.anim_time_update = `query.anim_time + query.delta_time * ${round(speed)}`;
     }
+    if (reuse) {
+      addSlot(short, s, molang, i);
+      return;
+    }
     if (s.mode === "loop") def.loop = true;
-    else delete def.loop;
-
-    const short = `slot${i}`;
+    else if (def.loop === true) delete def.loop;
     const id = `animation.${ns}.${e.name}.${short}`;
     defs[id] = def;
     out.animations[short] = id;
-    const molang = s.when === "custom" ? s.condition.trim() : WHEN.find((w) => w.value === s.when)!.molang;
-    if (s.when === "custom" && !molang) out.problems.push(`slot ${i + 1} uses a custom rule but the rule is empty, so it plays all the time.`);
+    addSlot(short, s, molang, i);
+  });
 
+  function addSlot(short: string, s: AnimationSlot, molang: string, i: number) {
     if (s.mode === "loop") {
       out.animate.push(molang ? { [short]: molang } : short);
-    } else {
-      // One-shot animations need a controller so they restart each time the condition becomes true.
-      const ctrlId = `controller.animation.${ns}.${e.name}.${short}`;
-      const cond = molang || "1.0";
-      controllers[ctrlId] = {
-        initial_state: "default",
-        states: {
-          default: { transitions: [{ play: cond }] },
-          play: {
-            animations: [short],
-            blend_transition: 0.1,
-            transitions: [{ default: molang ? `query.all_animations_finished && !(${molang})` : "0.0" }],
-          },
-        },
-      };
-      out.animations[`${short}_ctrl`] = ctrlId;
-      out.animate.push(`${short}_ctrl`);
+      return;
     }
-  });
+    // One-shot animations need a controller so they restart each time the condition becomes true.
+    const ctrlId = `controller.animation.${ns}.${e.name}.slot${i}`;
+    const cond = molang || "1.0";
+    controllers[ctrlId] = {
+      initial_state: "default",
+      states: {
+        default: { transitions: [{ play: cond }] },
+        play: {
+          animations: [short],
+          blend_transition: 0.1,
+          transitions: [{ default: molang ? `query.all_animations_finished && !(${molang})` : "0.0" }],
+        },
+      },
+    };
+    out.animations[`slot${i}_ctrl`] = ctrlId;
+    out.animate.push(`slot${i}_ctrl`);
+  }
 
   if (Object.keys(defs).length) out.animationFile = { format_version: "1.8.0", animations: defs };
   if (Object.keys(controllers).length) out.controllerFile = { format_version: "1.10.0", animation_controllers: controllers };

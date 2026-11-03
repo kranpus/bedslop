@@ -81,6 +81,23 @@ describe("convertBbmodel", () => {
     expect(anim.bones.head.rotation["1"]).toEqual({ post: ["math.sin(q.anim_time * 90) * 5", 0, 0], lerp_mode: "catmullrom" });
   });
 
+  it("keeps unchanged scale axes at 1, before/after keyframes and animation settings", () => {
+    const withAnim = {
+      ...bb,
+      animations: [{
+        name: "hit", loop: "hold", length: 1, override: true, start_delay: "0.2", blend_weight: "q.life_time > 1",
+        animators: { "g-body": { name: "body", type: "bone", keyframes: [
+          { channel: "scale", time: 0, data_points: [{ x: "", y: "1.2", z: "" }] },
+          { channel: "rotation", time: 0.5, data_points: [{ x: 0, y: 0, z: 0 }, { x: 30, y: 0, z: 0 }] },
+        ] } },
+      }],
+    };
+    const a = JSON.parse(convertBbmodel(JSON.stringify(withAnim)).animations).animations["animation.ghoul.hit"];
+    expect(a).toMatchObject({ loop: "hold_on_last_frame", override_previous_animation: true, start_delay: 0.2, blend_weight: "q.life_time > 1" });
+    expect(a.bones.body.scale["0"]).toEqual([1, 1.2, 1]);
+    expect(a.bones.body.rotation["0.5"]).toEqual({ pre: [0, 0, 0], post: [30, 0, 0] });
+  });
+
   it("rejects Java block models with a helpful message", () => {
     expect(() => convertBbmodel(JSON.stringify({ ...bb, meta: { model_format: "java_block" } }))).toThrow(/Bedrock Entity/);
   });
@@ -158,8 +175,10 @@ describe("manual animation assignment", () => {
 
   it("automatic mode guesses by name", () => {
     const { client } = out(make().p);
+    // Unchanged animations are used as uploaded, under their own names.
     // "walk" plays while moving; "stride" and the generated look play all the time; "claw" is off.
-    expect(client.scripts.animate).toEqual(["slot0", { slot2: "query.is_moving" }, "slot3"]);
+    expect(client.scripts.animate).toEqual(["stride", { walk: "query.is_moving" }, "slot3"]);
+    expect(client.animations).toMatchObject({ stride: "animation.ghoul.stride", claw: "animation.ghoul.claw", walk: "animation.ghoul.walk" });
   });
 
   it("uses the slots exactly as assigned, with once-only animations on a controller", () => {
@@ -176,13 +195,30 @@ describe("manual animation assignment", () => {
     expect(warnings.filter((w) => w.level === "error")).toEqual([]);
     expect(client.scripts.animate).toEqual([{ slot0: "query.is_moving" }, "slot1_ctrl", { slot3: "query.is_sneaking" }, { slot4: "!query.is_moving" }]);
     expect(anims["animation.mobs.ghoul.slot0"].anim_time_update).toBe("query.modified_distance_moved * 0.4");
-    expect(anims["animation.mobs.ghoul.slot1"].loop).toBeUndefined();
+    // "claw" keeps its own settings, so the controller plays the uploaded animation itself.
+    expect(anims["animation.mobs.ghoul.slot1"]).toBeUndefined();
     expect(anims["animation.mobs.ghoul.slot2"]).toBeUndefined();
     expect(anims["animation.mobs.ghoul.slot4"].anim_time_update).toBe("query.anim_time + query.delta_time * 0.5");
     const ctrl = ctrls["controller.animation.mobs.ghoul.slot1"];
     expect(ctrl.states.default.transitions).toEqual([{ play: "variable.attack_time > 0" }]);
-    expect(ctrl.states.play.animations).toEqual(["slot1"]);
+    expect(ctrl.states.play.animations).toEqual(["claw"]);
     expect(client.animations.slot1_ctrl).toBe("controller.animation.mobs.ghoul.slot1");
+  });
+
+  it("writes uploaded animation and controller files unchanged and switches controllers on", () => {
+    const { p, mob } = make();
+    const controllers = JSON.stringify({
+      format_version: "1.10.0",
+      animation_controllers: { "controller.animation.ghoul.move": { initial_state: "idle", states: { idle: { animations: ["stride"], transitions: [{ walking: "query.is_moving" }] }, walking: { animations: ["walk"], transitions: [{ idle: "!query.is_moving" }] } } } },
+    });
+    mob.customControllers = controllers;
+    const { files } = generateAddon(p);
+    expect(files.get("RP/animations/mobs_ghoul.source.animation.json")).toBe(anims);
+    expect(files.get("RP/animation_controllers/mobs_ghoul.source.animation_controllers.json")).toBe(controllers);
+    const client = JSON.parse(files.get("RP/entity/ghoul.entity.json") as string)["minecraft:client_entity"].description;
+    expect(client.animations.move).toBe("controller.animation.ghoul.move");
+    // "stride" and "walk" belong to the controller now, so they aren't also played directly.
+    expect(client.scripts.animate).toEqual(["move", "slot4"]);
   });
 
   it("generated walk follows chosen bones, swing and direction", () => {
