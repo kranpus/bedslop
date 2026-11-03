@@ -21,6 +21,8 @@ interface BbModel {
   outliner?: (string | BbGroup)[];
   textures?: { name?: string; source?: string; width?: number; height?: number }[];
   animations?: BbAnimation[];
+  /** Blockbench 5+: group names, pivots and rotations, referenced from the outliner by uuid. */
+  groups?: BbGroup[];
 }
 
 export interface BbConversion {
@@ -36,6 +38,15 @@ const vec = (v: unknown): V3 => (Array.isArray(v) ? [num(v[0]), num(v[1]), num(v
 const zero = (v: V3) => v.every((n) => n === 0);
 const round = (n: number) => Math.round(n * 10000) / 10000 + 0; // + 0 turns -0 into 0
 const neg = (n: number) => round(-n);
+
+/** Negates a keyframe value: numbers directly, Molang by wrapping it. */
+function invert(v: number | string): number | string {
+  if (typeof v === "number") return v === 0 ? 0 : -v;
+  const t = v.trim();
+  if (/^-?\d+(\.\d+)?$/.test(t)) return -Number(t) || 0;
+  if (t.startsWith("-(") && t.endsWith(")")) return t.slice(2, -1);
+  return `-(${t})`;
+}
 
 export function isBbmodel(text: string) {
   try {
@@ -101,7 +112,11 @@ export function convertBbmodel(text: string, fallbackName = "model"): BbConversi
   };
   const rootCubes: BbElement[] = [];
 
-  const walk = (g: BbGroup, parent?: string) => {
+  const groupInfo = new Map((d.groups ?? []).map((g) => [g.uuid, g]));
+  const walk = (node: BbGroup, parent?: string) => {
+    // Older files keep everything on the outliner node; Blockbench 5 keeps it in "groups".
+    const info = groupInfo.get(node.uuid);
+    const g: BbGroup = info ? { ...info, ...node, name: info.name, origin: info.origin, rotation: info.rotation, mirror_uv: info.mirror_uv, children: node.children ?? info.children } : node;
     const name = uniqueName(g.name);
     nameOf.set(g.uuid, name);
     const o = vec(g.origin);
@@ -181,7 +196,14 @@ export function convertBbmodel(text: string, fallbackName = "model"): BbConversi
           const n = Number(x);
           return Number.isFinite(n) ? n : String(x).trim();
         };
-        const point = (p: Record<string, string | number> | undefined) => [val(p?.x), val(p?.y), val(p?.z)];
+        // Blockbench stores keyframes in its own axes; its Bedrock exporter inverts rotation X/Y and position X.
+        const flipX = k.channel === "rotation" || k.channel === "position";
+        const flipY = k.channel === "rotation";
+        const point = (p: Record<string, string | number> | undefined) => [
+          flipX ? invert(val(p?.x)) : val(p?.x),
+          flipY ? invert(val(p?.y)) : val(p?.y),
+          val(p?.z),
+        ];
         const pre = point(k.data_points?.[0]);
         const post = k.data_points && k.data_points.length > 1 ? point(k.data_points[1]) : null;
         const ch = (boneAnims[bone] ??= {})[k.channel] ??= {};
@@ -189,7 +211,10 @@ export function convertBbmodel(text: string, fallbackName = "model"): BbConversi
         if (post) frame = { pre, post, ...(k.interpolation === "catmullrom" ? { lerp_mode: "catmullrom" } : {}) };
         else if (k.interpolation === "catmullrom") frame = { post: pre, lerp_mode: "catmullrom" };
         else if (k.interpolation === "step") frame = { pre, post: pre, lerp_mode: "step" };
-        ch[String(round(k.time))] = frame;
+        // Same timing as Blockbench's export: snap to the animation's frame rate, then 4 decimals.
+        const snap = Number((a as unknown as { snapping?: number }).snapping) || 0;
+        const time = snap > 0 ? Math.round(Number(k.time) * snap) / snap : Number(k.time);
+        ch[String(Number(time.toFixed(4)))] = frame;
       }
     }
     if (Object.keys(boneAnims).length) {

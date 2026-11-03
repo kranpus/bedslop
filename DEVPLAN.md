@@ -78,7 +78,8 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [ ] Preset mob animations (walk, head look) look right; quadruped UV template lines up
 - [ ] Custom command registration on 1.21.100 and on the latest release
 - [ ] Re-export with a bumped version replaces the old pack cleanly
-- [ ] `.bbmodel` import: posed bones, rotated cubes, mirrored and per-face UVs and imported animations match Blockbench in game
+- [x] `.bbmodel` import matches Blockbench's own Bedrock export (checked on a real Blockbench 5 project: 11/11 bones, 137/137 keyframes identical)
+- [ ] `.bbmodel` import in game: rotated cubes and per-face UVs (not covered by the real-project check)
 - [ ] Automatic walk/look animations on custom models look natural
 - [ ] Manual animation slots: "When attacking" (`variable.attack_time`), "When hurt" and "When dying" fire at the right moment; one-shot controllers replay on each attack; "Match walking speed" stops foot sliding
 
@@ -145,6 +146,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.1.7**: Fix `.bbmodel` import: Blockbench 5 projects keep bone names, pivots and rotations in a separate `groups` list, which was ignored, so bones pivoted around the wrong point and limbs flew apart. Keyframes are now converted from Blockbench's axes to Bedrock's (rotation X/Y and position X inverted, like Blockbench's exporter) and snapped to the animation's frame rate. Verified against a real project: output is identical to Blockbench's own export.
 
 - **0.1.6**: Fix "animation isn't in the imported animation file" after re-importing: manual animation choices are matched by name when the file's animation names change, and are re-pointed automatically on upload. Handled cases (like renamed animation ids) show as neutral notes instead of warnings.
 

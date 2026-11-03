@@ -79,7 +79,8 @@ describe("convertBbmodel", () => {
     const anim = JSON.parse(c.animations).animations["animation.ghoul.idle"];
     expect(anim.loop).toBe(true);
     expect(anim.bones.head.rotation["0"]).toEqual([0, 0, 0]);
-    expect(anim.bones.head.rotation["1"]).toEqual({ post: ["math.sin(q.anim_time * 90) * 5", 0, 0], lerp_mode: "catmullrom" });
+    // Blockbench stores keyframes in its own axes; Bedrock's rotation X is inverted.
+    expect(anim.bones.head.rotation["1"]).toEqual({ post: ["-(math.sin(q.anim_time * 90) * 5)", 0, 0], lerp_mode: "catmullrom" });
   });
 
   it("keeps unchanged scale axes at 1, before/after keyframes and animation settings", () => {
@@ -96,7 +97,7 @@ describe("convertBbmodel", () => {
     const a = JSON.parse(convertBbmodel(JSON.stringify(withAnim)).animations).animations["animation.ghoul.hit"];
     expect(a).toMatchObject({ loop: "hold_on_last_frame", override_previous_animation: true, start_delay: 0.2, blend_weight: "q.life_time > 1" });
     expect(a.bones.body.scale["0"]).toEqual([1, 1.2, 1]);
-    expect(a.bones.body.rotation["0.5"]).toEqual({ pre: [0, 0, 0], post: [30, 0, 0] });
+    expect(a.bones.body.rotation["0.5"]).toEqual({ pre: [0, 0, 0], post: [-30, 0, 0] });
   });
 
   it("rejects Java block models with a helpful message", () => {
@@ -344,5 +345,59 @@ describe("manual choices after re-importing animations", () => {
     const m = p.elements[0] as import("../src/model/types").EntityElement;
     const slots = remapSlots(m.animationSlots!, anims(""));
     expect(slots.map((s) => s.animation)).toEqual(["idle", "walk", "attack"]);
+  });
+});
+
+describe("Blockbench 5 projects", () => {
+  // Blockbench 5 keeps group data in "groups"; the outliner only has uuids. Keyframes use Blockbench's axes.
+  const bb5 = {
+    meta: { format_version: "5.0", model_format: "free", box_uv: true },
+    name: "vampire",
+    resolution: { width: 80, height: 80 },
+    elements: [
+      { uuid: "c-leg", name: "Left Leg", type: "cube", from: [-3.9, 0, -2], to: [0.1, 12, 2], origin: [0, 0, 0], box_uv: true, uv_offset: [32, 16] },
+      { uuid: "c-arm", name: "Right Arm", type: "cube", from: [4, 11.5, -2], to: [7, 23.5, 2], origin: [0, 0, 0], box_uv: true, uv_offset: [48, 16] },
+    ],
+    groups: [
+      { uuid: "g-root", name: "vampire", origin: [-1.9, 12, 0], rotation: [0, 0, 0], children: [] },
+      { uuid: "g-leg", name: "Left Leg", origin: [-1.9, 12, 0], rotation: [0, 0, 0], children: [] },
+      { uuid: "g-waist", name: "Waist", origin: [0, 12, 0], rotation: [0, 0, 0], children: [] },
+      { uuid: "g-arm", name: "Right Arm", origin: [5, 21.5, 0], rotation: [0, 0, 0], children: [] },
+    ],
+    outliner: [{ uuid: "g-root", isOpen: true, children: [
+      { uuid: "g-leg", isOpen: true, children: ["c-leg"] },
+      { uuid: "g-waist", isOpen: true, children: [{ uuid: "g-arm", isOpen: true, children: ["c-arm"] }] },
+    ] }],
+    textures: [],
+    animations: [{
+      name: "idle", loop: "loop", length: 2, override: true, anim_time_update: "", blend_weight: "", snapping: 20.25,
+      animators: {
+        "g-waist": { name: "Waist", type: "bone", keyframes: [{ channel: "rotation", time: 0, interpolation: "catmullrom", data_points: [{ x: "-22.5", y: "0", z: "0" }] }] },
+        "g-arm": { name: "Right Arm", type: "bone", keyframes: [
+          { channel: "rotation", time: 0.14815, interpolation: "linear", data_points: [{ x: "16.325", y: "15.6998", z: "47.2658" }] },
+          { channel: "position", time: 0, interpolation: "linear", data_points: [{ x: "0.5", y: "-3", z: "3" }] },
+          { channel: "rotation", time: 1.03704, interpolation: "linear", data_points: [{ x: "math.sin(q.anim_time * 90) * 10", y: "-5", z: "0" }] },
+        ] },
+      },
+    }],
+  };
+  const c = convertBbmodel(JSON.stringify(bb5));
+  const bones = JSON.parse(c.geometry)["minecraft:geometry"][0].bones;
+
+  it("reads names, pivots and hierarchy from the groups list", () => {
+    // Values below are what Blockbench's own Bedrock export produces for this model.
+    expect(bones.map((b: { name: string }) => b.name)).toEqual(["vampire", "Left Leg", "Waist", "Right Arm"]);
+    expect(bones[1]).toMatchObject({ parent: "vampire", pivot: [1.9, 12, 0], cubes: [{ origin: [-0.1, 0, -2], size: [4, 12, 4], uv: [32, 16] }] });
+    expect(bones[3]).toMatchObject({ parent: "Waist", pivot: [-5, 21.5, 0], cubes: [{ origin: [-7, 11.5, -2], size: [3, 12, 4], uv: [48, 16] }] });
+  });
+
+  it("converts keyframes to Bedrock's axes and Blockbench's time rounding", () => {
+    const idle = JSON.parse(c.animations).animations["animation.vampire.idle"];
+    expect(idle.bones.Waist.rotation["0"]).toEqual({ post: [22.5, 0, 0], lerp_mode: "catmullrom" });
+    expect(idle.bones["Right Arm"].rotation["0.1481"]).toEqual([-16.325, -15.6998, 47.2658]);
+    expect(idle.bones["Right Arm"].position["0"]).toEqual([-0.5, -3, 3]);
+    expect(idle.bones["Right Arm"].rotation["1.037"]).toEqual(["-(math.sin(q.anim_time * 90) * 10)", 5, 0]);
+    expect(idle).toMatchObject({ loop: true, animation_length: 2, override_previous_animation: true });
+    expect(idle.anim_time_update).toBeUndefined();
   });
 });
