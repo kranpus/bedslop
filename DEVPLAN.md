@@ -56,7 +56,7 @@ Key decisions:
 | Tool | 5 types, tier presets, damage, durability, speed, enchantability, repair item; durability loss via generated script | ✅ |
 | Armor | 4 pieces, icons, worn layers (attachables), protection, durability multiplier, repair | ✅ |
 | Food | Hunger, saturation, eat/drink, leftover item, effects with chance (script) | ✅ |
-| Living entity | Humanoid / quadruped presets with walk + look animations, or Blockbench import (`.bbmodel` with embedded texture and animations, or `.geo.json` + `.animation.json`), with automatic walk/look from bone names; passive / neutral / hostile AI; drops; spawn egg; natural spawning by biome tag, light, herd size | ✅ |
+| Living entity | Humanoid / quadruped presets with walk + look animations, or Blockbench import (`.bbmodel` with embedded texture and animations, or `.geo.json` + `.animation.json`), with automatic walk/look from bone names and a manual "what plays when" editor (walking, idle, attacking, hurt, in water, on fire, dying, custom Molang; loop or once; speed; match walking speed; body-part mapping); passive / neutral / hostile AI; drops; spawn egg; natural spawning by biome tag, light, herd size | ✅ |
 | Recipe | Shaped (paint-on grid), shapeless, furnace/blast/smoker/campfire, stonecutter, smithing | ✅ |
 | Loot table | Pools, weighted entries, counts, live % per entry | ✅ |
 | Feature (ore) | Vein size, frequency, height range with visual bar, dimension, replace list | ✅ |
@@ -80,6 +80,7 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [ ] Re-export with a bumped version replaces the old pack cleanly
 - [ ] `.bbmodel` import: posed bones, rotated cubes, mirrored and per-face UVs and imported animations match Blockbench in game
 - [ ] Automatic walk/look animations on custom models look natural
+- [ ] Manual animation slots: "When attacking" (`variable.attack_time`), "When hurt" and "When dying" fire at the right moment; one-shot controllers replay on each attack; "Match walking speed" stops foot sliding
 
 ## Phase 2: visual scripting and advanced content ⬜
 
@@ -144,6 +145,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.1.2**: Manual animation assignment for custom mobs: choose each animation's trigger, loop or play-once (via generated animation controllers), speed, and walk-speed sync. Pick which bones the generated walk and head look move, with swing amount and direction.
 
 - **0.1.1**: Fix: a mob set to a custom model whose file was missing or unreadable silently fell back to the player-shaped model (wrong shape, missing arms). That's now a blocking export error. Added direct `.bbmodel` import (model, texture, animations) for mobs and blocks, automatic walk/head-look for custom models, and a warning when a preset model gets a non-64×64 texture.
 

@@ -155,11 +155,39 @@ export interface DropEntry {
   chance: number; // 0-100
 }
 
+export type AnimWhen = "always" | "moving" | "idle" | "attacking" | "hurt" | "in_water" | "on_fire" | "dying" | "custom" | "never";
+
+/** "What plays when" for one animation on a custom mob. */
+export interface AnimationSlot {
+  id: string;
+  /** Full animation id from the imported file, or "@auto_walk" / "@auto_look" for generated ones. */
+  animation: string;
+  when: AnimWhen;
+  /** Molang condition, used when `when` is "custom". */
+  condition: string;
+  mode: "loop" | "once";
+  speed: number;
+  /** Advance the animation by distance walked, so feet don't slide. */
+  matchMovement: boolean;
+}
+
+export type RigRole = "head" | "rightArm" | "leftArm" | "rightLeg" | "leftLeg";
+
+/** Which bones the generated walk/look animations move. Missing role = detect by name, "" = none. */
+export interface AutoRig {
+  bones: Partial<Record<RigRole, string>>;
+  swing: number; // degrees
+  reverse: boolean;
+}
+
 export interface EntityElement extends BaseElement {
   kind: "entity";
   model: "humanoid" | "quadruped" | "custom";
   customGeometry: string;
   customAnimations: string;
+  animationMode?: "auto" | "manual";
+  animationSlots?: AnimationSlot[];
+  autoRig?: AutoRig;
   texture: string;
   health: number;
   speed: number;

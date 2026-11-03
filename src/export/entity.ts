@@ -1,6 +1,7 @@
 import type { EntityElement } from "../model/types";
 import { FORMATS, GenContext, geometryIdentifier } from "./context";
 import { clampInt, round } from "./content";
+import { buildAnimations } from "./entityAnimations";
 
 type Cube = { origin: number[]; size: number[]; uv: number[]; inflate?: number };
 const bone = (name: string, pivot: number[], cubes: Cube[], parent?: string) => ({ name, pivot, ...(parent ? { parent } : {}), cubes });
@@ -189,31 +190,14 @@ export function genEntity(ctx: GenContext, e: EntityElement) {
       ctx.rp(`models/entity/${ns}_${e.name}.geo.json`, e.customGeometry);
     }
     geometryId = geo ?? `geometry.${ns}.humanoid`;
-    let hasWalk = false, hasLook = false;
-    if (e.customAnimations.trim()) {
-      try {
-        const anim = JSON.parse(e.customAnimations);
-        ctx.rp(`animations/${ns}_${e.name}.animation.json`, e.customAnimations);
-        for (const full of Object.keys(anim.animations ?? {})) {
-          const short = full.split(".").pop()!.replace(/[^a-z0-9_]/gi, "_");
-          animations[short] = full;
-          if (/walk|move|run/i.test(short)) { animate.push({ [short]: "query.is_moving" }); hasWalk = true; }
-          else if (/idle/i.test(short)) animate.push({ [short]: "!query.is_moving" });
-          else if (anim.animations[full]?.loop === true) animate.push(short);
-          if (/look/i.test(short)) hasLook = true;
-        }
-      } catch {
-        ctx.warn(e, "animation file could not be read and was skipped.");
-      }
-    }
-    // No walk or look animation supplied: generate them from recognisable bone names.
-    const auto = geo ? autoAnimations(ns, e.name, e.customGeometry, { walk: !hasWalk, look: !hasLook }) : null;
-    if (auto) {
-      ctx.rp(`animations/${ns}_${e.name}.auto.animation.json`, auto.file);
-      for (const [short, full] of Object.entries(auto.names)) {
-        animations[short] = full;
-        animate.push(short === "auto_walk" ? { auto_walk: "query.is_moving" } : short);
-      }
+    if (e.customAnimations.trim() && !e.customAnimations.includes('"animations"')) ctx.warn(e, "animation file could not be read and was skipped.");
+    if (geo) {
+      const built = buildAnimations(ns, e);
+      for (const p of built.problems) ctx.warn(e, p);
+      if (built.animationFile) ctx.rp(`animations/${ns}_${e.name}.animation.json`, built.animationFile);
+      if (built.controllerFile) ctx.rp(`animation_controllers/${ns}_${e.name}.animation_controllers.json`, built.controllerFile);
+      Object.assign(animations, built.animations);
+      animate.push(...built.animate);
     }
   } else {
     const preset = e.model;
@@ -248,43 +232,3 @@ export function genEntity(ctx: GenContext, e: EntityElement) {
   ctx.lang.push(`item.spawn_egg.entity.${id}.name=${e.displayName} Spawn Egg`);
 }
 
-/** Simple walk + head-look animations for a custom model, matched by bone name. */
-export function autoAnimations(ns: string, name: string, geometryJson: string, want: { walk: boolean; look: boolean }) {
-  let bones: { name: string; parent?: string }[] = [];
-  try {
-    bones = JSON.parse(geometryJson)["minecraft:geometry"]?.[0]?.bones ?? [];
-  } catch {
-    return null;
-  }
-  const norm = (n: string) => n.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const pick = (test: (n: string) => boolean) =>
-    bones.filter((b) => test(norm(b.name))).sort((a, b) => a.name.length - b.name.length)[0]?.name;
-  const side = (n: string, s: "left" | "right") => n.includes(s) || new RegExp(`^${s[0]}(arm|leg)|(arm|leg)${s[0]}$`).test(n);
-  const limb = (kind: "arm" | "leg", s: "left" | "right") =>
-    pick((n) => n.includes(kind) && !n.includes("armor") && side(n, s) && !/lower|fore|hand|foot|claw|finger/.test(n));
-  const head = pick((n) => n === "head" || n.startsWith("head"));
-  const swing = (mult: number, neg = false) => `${neg ? "-" : ""}math.cos(query.modified_distance_moved * 38.17) * ${mult} * query.modified_move_speed`;
-
-  const animations: Record<string, unknown> = {};
-  const names: Record<string, string> = {};
-  if (want.walk) {
-    const walkBones: Record<string, unknown> = {};
-    const legR = limb("leg", "right"), legL = limb("leg", "left"), armR = limb("arm", "right"), armL = limb("arm", "left");
-    if (legR) walkBones[legR] = { rotation: [swing(57.3, true), 0, 0] };
-    if (legL) walkBones[legL] = { rotation: [swing(57.3), 0, 0] };
-    if (armR) walkBones[armR] = { rotation: [swing(40), 0, 0] };
-    if (armL) walkBones[armL] = { rotation: [swing(40, true), 0, 0] };
-    if (legR || legL) {
-      const id = `animation.${ns}.${name}.auto_walk`;
-      animations[id] = { loop: true, bones: walkBones };
-      names.auto_walk = id;
-    }
-  }
-  if (want.look && head) {
-    const id = `animation.${ns}.${name}.auto_look`;
-    animations[id] = { loop: true, bones: { [head]: { rotation: ["query.target_x_rotation", "query.target_y_rotation", 0] } } };
-    names.auto_look = id;
-  }
-  if (!Object.keys(names).length) return null;
-  return { file: { format_version: FORMATS.animation, animations }, names };
-}

@@ -111,10 +111,10 @@ describe("custom mob export", () => {
     expect(warnings.filter((w) => w.level === "error")).toEqual([]);
     const client = JSON.parse(files.get("RP/entity/ghoul.entity.json") as string)["minecraft:client_entity"].description;
     expect(client.geometry.default).toBe("geometry.ghoul");
-    expect(client.scripts.animate).toEqual([{ auto_walk: "query.is_moving" }, "auto_look"]);
-    const auto = JSON.parse(files.get("RP/animations/mobs_ghoul.auto.animation.json") as string).animations;
-    expect(Object.keys(auto["animation.mobs.ghoul.auto_walk"].bones).sort()).toEqual(["RightLeg", "leftArm"]);
-    expect(auto["animation.mobs.ghoul.auto_look"].bones.head).toBeDefined();
+    expect(client.scripts.animate).toEqual([{ slot0: "query.is_moving" }, "slot1"]);
+    const anims = JSON.parse(files.get("RP/animations/mobs_ghoul.animation.json") as string).animations;
+    expect(Object.keys(anims["animation.mobs.ghoul.slot0"].bones).sort()).toEqual(["RightLeg", "leftArm"]);
+    expect(anims["animation.mobs.ghoul.slot1"].bones.head).toBeDefined();
   });
 
   it("warns when a preset model gets a texture that isn't 64×64", () => {
@@ -122,5 +122,86 @@ describe("custom mob export", () => {
     mob.model = "humanoid";
     p.textures[0].width = 128;
     expect(generateAddon(p).warnings.some((w) => w.message.includes("expects a 64×64"))).toBe(true);
+  });
+});
+
+describe("manual animation assignment", () => {
+  const anims = JSON.stringify({
+    format_version: "1.8.0",
+    animations: {
+      "animation.ghoul.stride": { loop: true, animation_length: 1, bones: { RightLeg: { rotation: { "0": [20, 0, 0], "0.5": [-20, 0, 0] } } } },
+      "animation.ghoul.claw": { animation_length: 0.5, bones: { leftArm: { rotation: { "0": [0, 0, 0], "0.25": [-80, 0, 0] } } } },
+      "animation.ghoul.walk": { loop: true, bones: { head: { rotation: [5, 0, 0] } } },
+    },
+  });
+  const make = () => {
+    const p = createProject("Mobs");
+    p.namespace = "mobs";
+    const mob = createElement("entity", "ghoul", "Ghoul");
+    mob.model = "custom";
+    mob.customGeometry = convertBbmodel(JSON.stringify({ ...bb, animations: [] })).geometry;
+    mob.customAnimations = anims;
+    p.elements.push(mob);
+    return { p, mob };
+  };
+  const out = (p: ReturnType<typeof make>["p"]) => {
+    const { files, warnings } = generateAddon(p);
+    const json = (f: string) => (files.has(f) ? JSON.parse(files.get(f) as string) : undefined);
+    return {
+      warnings,
+      client: json("RP/entity/ghoul.entity.json")["minecraft:client_entity"].description,
+      anims: json("RP/animations/mobs_ghoul.animation.json")?.animations,
+      ctrls: json("RP/animation_controllers/mobs_ghoul.animation_controllers.json")?.animation_controllers,
+    };
+  };
+  const s = (animation: string, when: string, extra: object = {}) => ({ id: animation + when, animation, when, condition: "", mode: "loop", speed: 1, matchMovement: false, ...extra });
+
+  it("automatic mode guesses by name", () => {
+    const { client } = out(make().p);
+    // "walk" plays while moving; "stride" and the generated look play all the time; "claw" is off.
+    expect(client.scripts.animate).toEqual(["slot0", { slot2: "query.is_moving" }, "slot3"]);
+  });
+
+  it("uses the slots exactly as assigned, with once-only animations on a controller", () => {
+    const { p, mob } = make();
+    mob.animationMode = "manual";
+    mob.animationSlots = [
+      s("animation.ghoul.stride", "moving", { matchMovement: true }) as never,
+      s("animation.ghoul.claw", "attacking", { mode: "once" }) as never,
+      s("animation.ghoul.walk", "never") as never,
+      s("@auto_look", "custom", { condition: "query.is_sneaking" }) as never,
+      s("animation.ghoul.walk", "idle", { speed: 0.5 }) as never,
+    ];
+    const { client, anims, ctrls, warnings } = out(p);
+    expect(warnings.filter((w) => w.level === "error")).toEqual([]);
+    expect(client.scripts.animate).toEqual([{ slot0: "query.is_moving" }, "slot1_ctrl", { slot3: "query.is_sneaking" }, { slot4: "!query.is_moving" }]);
+    expect(anims["animation.mobs.ghoul.slot0"].anim_time_update).toBe("query.modified_distance_moved * 0.4");
+    expect(anims["animation.mobs.ghoul.slot1"].loop).toBeUndefined();
+    expect(anims["animation.mobs.ghoul.slot2"]).toBeUndefined();
+    expect(anims["animation.mobs.ghoul.slot4"].anim_time_update).toBe("query.anim_time + query.delta_time * 0.5");
+    const ctrl = ctrls["controller.animation.mobs.ghoul.slot1"];
+    expect(ctrl.states.default.transitions).toEqual([{ play: "variable.attack_time > 0" }]);
+    expect(ctrl.states.play.animations).toEqual(["slot1"]);
+    expect(client.animations.slot1_ctrl).toBe("controller.animation.mobs.ghoul.slot1");
+  });
+
+  it("generated walk follows chosen bones, swing and direction", () => {
+    const { p, mob } = make();
+    mob.animationMode = "manual";
+    mob.animationSlots = [s("@auto_walk", "moving") as never];
+    mob.autoRig = { bones: { leftArm: "", rightLeg: "head", leftLeg: "RightLeg" }, swing: 30, reverse: true };
+    const bones = out(p).anims["animation.mobs.ghoul.slot0"].bones;
+    expect(Object.keys(bones).sort()).toEqual(["RightLeg", "head"]);
+    expect(bones.RightLeg.rotation[0]).toContain("* -34.5 *");
+  });
+
+  it("flags slots that point at missing animations or bones", () => {
+    const { p, mob } = make();
+    mob.animationMode = "manual";
+    mob.animationSlots = [s("animation.ghoul.gone", "always") as never, s("@auto_look", "always") as never];
+    mob.autoRig = { bones: { head: "" }, swing: 50, reverse: false };
+    const msgs = out(p).warnings.map((w) => w.message).join("\n");
+    expect(msgs).toContain('"gone" isn\'t in the imported animation file');
+    expect(msgs).toContain("needs a head bone");
   });
 });

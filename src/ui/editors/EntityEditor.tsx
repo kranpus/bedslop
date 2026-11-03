@@ -1,10 +1,11 @@
-import type { EntityElement } from "../../model/types";
+import type { AnimationSlot, AnimWhen, AutoRig, EntityElement, RigRole } from "../../model/types";
 import { BIOME_TAGS } from "../../model/vanilla";
 import { ChipList, Color, Field, Grid, IdInput, Num, Section, Segmented, Select, Slider, Toggle } from "../fields";
 import { TexturePicker } from "../TexturePicker";
 import { useState } from "react";
 import { convertBbmodel, isBbmodel } from "../../export/bbmodel";
 import { geometryIdentifier } from "../../export/context";
+import { AUTO_LOOK, AUTO_WALK, RIG_ROLES, WHEN, activeSlots, animationLabel, defaultSlots, listAnimations, listBones, resolveRig } from "../../export/entityAnimations";
 import { useStore } from "../../store/store";
 import type { Patch } from "./types";
 
@@ -32,6 +33,8 @@ export function EntityEditor({ el, patch }: { el: EntityElement; patch: Patch<En
           <Num label="Scale" step={0.1} value={el.scale} onChange={(scale) => patch({ scale }, "scale")} />
         </Grid>
       </Section>
+
+      {el.model === "custom" && geometryIdentifier(el.customGeometry) && <AnimationSection el={el} patch={patch} />}
 
       <Section title="Behaviour">
         <Segmented value={el.behavior} onChange={(behavior) => patch({ behavior, ...PRESETS[behavior], spawnBiomeTags: [...PRESETS[behavior].spawnBiomeTags] })} options={[
@@ -157,5 +160,132 @@ function BlockbenchImport({ el, patch }: { el: EntityElement; patch: Patch<Entit
       </div>
       {message && <p className={message.ok ? "ok-text" : "warn-text"} role="status">{message.text}</p>}
     </div>
+  );
+}
+
+const whenLabel = (w: AnimWhen) => WHEN.find((x) => x.value === w)?.label ?? w;
+
+/** Choose which animation plays when, plus the bones the generated walk/look use. */
+function AnimationSection({ el, patch }: { el: EntityElement; patch: Patch<EntityElement> }) {
+  const manual = el.animationMode === "manual" && !!el.animationSlots;
+  const slots = activeSlots(el);
+  const imported = listAnimations(el.customAnimations);
+  const bones = listBones(el.customGeometry);
+  const choices = [...imported.map((a) => ({ value: a.id, label: a.short })), { value: AUTO_WALK, label: animationLabel(AUTO_WALK) }, { value: AUTO_LOOK, label: animationLabel(AUTO_LOOK) }];
+
+  const setSlots = (animationSlots: AnimationSlot[], key?: string) => patch({ animationMode: "manual", animationSlots }, key);
+  const setSlot = (i: number, p: Partial<AnimationSlot>, key?: string) => setSlots(slots.map((s, k) => (k === i ? { ...s, ...p } : s)), key);
+  const move = (i: number, d: number) => {
+    const j = i + d;
+    if (j < 0 || j >= slots.length) return;
+    const next = [...slots];
+    [next[i], next[j]] = [next[j], next[i]];
+    setSlots(next);
+  };
+  const add = () => {
+    const unused = choices.find((c) => !slots.some((s) => s.animation === c.value)) ?? choices[0];
+    setSlots([...slots, { id: `s${Date.now().toString(36)}`, animation: unused.value, when: "always", condition: "", mode: "loop", speed: 1, matchMovement: false }]);
+  };
+  const usesRig = slots.some((s) => (s.animation === AUTO_WALK || s.animation === AUTO_LOOK) && s.when !== "never");
+
+  return (
+    <Section title="Animations" hint="Choose what plays, and when. Animations on the same body part add together.">
+      <div className="row between">
+        <Segmented value={manual ? "manual" : "auto"} onChange={(m) => (m === "manual" ? patch({ animationMode: "manual", animationSlots: el.animationSlots?.length ? el.animationSlots : defaultSlots(el) }) : patch({ animationMode: "auto" }))}
+          options={[{ value: "auto", label: "Automatic (by name)" }, { value: "manual", label: "Manual" }]} />
+        {manual && <button type="button" className="btn small ghost" onClick={() => patch({ animationSlots: defaultSlots(el) })}>Reset to automatic picks</button>}
+      </div>
+
+      {!manual && (
+        <>
+          <ul className="anim-summary">
+            {slots.map((s) => (
+              <li key={s.id} className={s.when === "never" ? "off" : ""}>
+                <span className="mono">{animationLabel(s.animation)}</span>
+                <span className="muted">{s.when === "never" ? "not used" : `${whenLabel(s.when)}${s.mode === "once" ? ", once" : ""}`}</span>
+              </li>
+            ))}
+            {!slots.length && <li className="muted">No animations. Import an .animation.json or a .bbmodel with animations, or pick body parts below for a generated walk.</li>}
+          </ul>
+          <p className="field-help">Picked from animation names (walk, idle, attack, hurt, death…). Switch to Manual if something plays at the wrong time.</p>
+        </>
+      )}
+
+      {manual && (
+        <div className="logic-list">
+          {slots.map((s, i) => {
+            const auto = s.animation === AUTO_WALK || s.animation === AUTO_LOOK;
+            return (
+              <div className={`logic-card${s.when === "never" ? " muted-card" : ""}`} key={s.id}>
+                <div className="logic-head">
+                  <span className="logic-step mono">{i + 1}</span>
+                  <select value={s.animation} onChange={(e) => setSlot(i, { animation: e.target.value })} aria-label="Animation">
+                    {!choices.some((c) => c.value === s.animation) && <option value={s.animation}>{animationLabel(s.animation)} (missing)</option>}
+                    {imported.length > 0 && <optgroup label="From your animation file">{imported.map((a) => <option key={a.id} value={a.id}>{a.short}</option>)}</optgroup>}
+                    <optgroup label="Generated"><option value={AUTO_WALK}>{animationLabel(AUTO_WALK)}</option><option value={AUTO_LOOK}>{animationLabel(AUTO_LOOK)}</option></optgroup>
+                  </select>
+                  <span className="spacer" />
+                  <button type="button" className="btn ghost small" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up">↑</button>
+                  <button type="button" className="btn ghost small" onClick={() => move(i, 1)} disabled={i === slots.length - 1} aria-label="Move down">↓</button>
+                  <button type="button" className="btn ghost small" onClick={() => setSlots(slots.filter((_, k) => k !== i))}>Remove</button>
+                </div>
+                <div className="logic-params">
+                  <Select label="Plays" value={s.when} onChange={(when) => setSlot(i, { when, ...(["attacking", "hurt", "dying"].includes(when) && !auto ? { mode: "once" as const } : {}) })} options={WHEN.map((w) => ({ value: w.value, label: w.label }))} />
+                  {s.when === "custom" && (
+                    <Field label="Rule (Molang)" help="e.g. query.is_sneaking or query.health < 5">
+                      <input className="mono" value={s.condition} onChange={(e) => setSlot(i, { condition: e.target.value }, `cond-${s.id}`)} placeholder="query.is_on_ground" />
+                    </Field>
+                  )}
+                  {!auto && (
+                    <Select label="Repeat" value={s.mode} onChange={(mode) => setSlot(i, { mode })}
+                      options={[{ value: "loop", label: "Loops while active" }, { value: "once", label: "Plays once each time" }]} />
+                  )}
+                  {s.animation !== AUTO_LOOK && <Num label={auto ? "Step speed" : "Speed"} step={0.1} min={0.1} value={s.speed} onChange={(speed) => setSlot(i, { speed }, `speed-${s.id}`)} suffix="×" />}
+                  {!auto && <Toggle label="Match walking speed" value={s.matchMovement} onChange={(matchMovement) => setSlot(i, { matchMovement })} help="Steps follow how far the mob moves, so feet don't slide." />}
+                </div>
+              </div>
+            );
+          })}
+          <button type="button" className="btn small add-menu" onClick={add}>+ Add animation</button>
+        </div>
+      )}
+
+      {(usesRig || manual) && bones.length > 0 && <RigEditor el={el} patch={patch} bones={bones} />}
+    </Section>
+  );
+}
+
+function RigEditor({ el, patch, bones }: { el: EntityElement; patch: Patch<EntityElement>; bones: string[] }) {
+  const rig: AutoRig = el.autoRig ?? { bones: {}, swing: 50, reverse: false };
+  const detected = resolveRig(bones, undefined);
+  const setRig = (p: Partial<AutoRig>, key?: string) => patch({ autoRig: { ...rig, ...p } }, key);
+  const setBone = (role: RigRole, v: string) => {
+    const next = { ...rig.bones };
+    if (v === "__auto") delete next[role];
+    else next[role] = v === "__none" ? "" : v;
+    setRig({ bones: next });
+  };
+  return (
+    <fieldset className="panel rig">
+      <legend>Body parts for generated walk and head look</legend>
+      <div className="logic-params">
+        {RIG_ROLES.map(({ role, label }) => {
+          const v = rig.bones[role];
+          return (
+            <Field key={role} label={label}>
+              <select value={v === undefined ? "__auto" : v === "" ? "__none" : v} onChange={(e) => setBone(role, e.target.value)}>
+                <option value="__auto">Auto{detected[role] ? ` (${detected[role]})` : " (none found)"}</option>
+                <option value="__none">None</option>
+                {bones.map((b) => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </Field>
+          );
+        })}
+      </div>
+      <div className="row wrap">
+        <Slider label="Swing" min={5} max={90} value={rig.swing} onChange={(swing) => setRig({ swing }, "swing")} format={(v) => `${v}°`} />
+        <Toggle label="Reverse swing direction" value={rig.reverse} onChange={(reverse) => setRig({ reverse })} help="Use if arms and legs swing the wrong way." />
+      </div>
+    </fieldset>
   );
 }
