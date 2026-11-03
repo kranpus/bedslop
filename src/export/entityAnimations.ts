@@ -77,6 +77,38 @@ export function controlledNames(json: string | undefined): Set<string> {
   return names;
 }
 
+const safeName = (s: string) => s.toLowerCase().replace(/[^a-z0-9_.]+/g, "_").replace(/^_+|_+$/g, "") || "anim";
+
+/** Bedrock only loads animations named "animation.…" and controllers named "controller.animation.…". */
+export function exportAnimationId(ns: string, mob: string, id: string, controller = false) {
+  if (controller) return id.startsWith("controller.animation.") ? id : `controller.animation.${ns}.${mob}.${safeName(id.replace(/^controller\./, ""))}`;
+  return id.startsWith("animation.") ? id : `animation.${ns}.${mob}.${safeName(id)}`;
+}
+
+/** Bone names Bedrock is happy with: letters, digits, _ and . only. Returns old (lowercase) -> new. */
+export function boneRenames(geometryJson: string): Map<string, string> {
+  const map = new Map<string, string>();
+  const used = new Set<string>();
+  for (const name of listBones(geometryJson)) {
+    let safe = name.replace(/[^A-Za-z0-9_.]+/g, "_").replace(/^_+|_+$/g, "") || "bone";
+    let i = 2;
+    while (used.has(safe.toLowerCase())) safe = `${safe}_${i++}`;
+    used.add(safe.toLowerCase());
+    if (safe !== name) map.set(name.toLowerCase(), safe);
+  }
+  return map;
+}
+
+/** Applies bone renames to an animation file's bone keys (Bedrock matches bones case-insensitively). */
+export function renameAnimationBones(file: { animations?: Record<string, { bones?: Record<string, unknown> }> }, renames: Map<string, string>) {
+  if (!renames.size) return file;
+  for (const def of Object.values(file.animations ?? {})) {
+    if (!def?.bones) continue;
+    def.bones = Object.fromEntries(Object.entries(def.bones).map(([k, v]) => [renames.get(k.toLowerCase()) ?? k, v]));
+  }
+  return file;
+}
+
 /** Short names for uploaded animations/controllers, so uploaded controllers can find them by name. */
 export function shortNames(ids: string[]): Map<string, string> {
   const used = new Set<string>();
@@ -140,8 +172,9 @@ export function defaultSlots(e: Pick<EntityElement, "customGeometry" | "customAn
     // Already played by an uploaded controller: leave it to the controller.
     if (controlled.has(names.get(a.id)!)) return slot(a.id, "never", a.loop ? "loop" : "once");
     const g = guessWhen(a.short, a.loop);
-    // Keep each animation's own loop setting so it plays exactly as authored.
-    return slot(a.id, g.when, a.loop ? "loop" : "once");
+    // Keep each animation's own loop setting, except one-off moves (attack, hurt, death) which play once per event.
+    const oneOff = g.when === "attacking" || g.when === "hurt" || g.when === "dying";
+    return slot(a.id, g.when, oneOff ? "once" : a.loop ? "loop" : "once");
   });
   for (const c of listControllers(e.customControllers)) slots.push(slot(c, "always", "loop"));
   const rig = resolveRig(listBones(e.customGeometry), e.autoRig);
@@ -195,7 +228,8 @@ export function buildAnimations(ns: string, e: EntityElement): BuiltAnimations {
   // Register every uploaded animation and controller under a short name; they're written to the pack unchanged.
   const ctrlIds = listControllers(e.customControllers);
   const names = shortNames([...imported.keys(), ...ctrlIds]);
-  for (const [id, short] of names) out.animations[short] = id;
+  const ctrlSet = new Set(ctrlIds);
+  for (const [id, short] of names) out.animations[short] = exportAnimationId(ns, e.name, id, ctrlSet.has(id));
 
   activeSlots(e).forEach((s, i) => {
     if (s.when === "never") return;
@@ -204,7 +238,7 @@ export function buildAnimations(ns: string, e: EntityElement): BuiltAnimations {
     if (s.when === "custom" && !molang) out.problems.push(`slot ${i + 1} uses a custom rule but the rule is empty, so it plays all the time.`);
 
     // Uploaded controller: just switch it on (optionally under a condition).
-    if (s.animation.startsWith("controller.")) {
+    if (ctrlSet.has(s.animation) || s.animation.startsWith("controller.")) {
       const short = names.get(s.animation);
       if (!short) return out.problems.push(`controller "${animationLabel(s.animation)}" isn't in the uploaded controllers file any more.`);
       out.animate.push(molang ? { [short]: molang } : short);

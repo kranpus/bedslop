@@ -241,3 +241,63 @@ describe("manual animation assignment", () => {
     expect(msgs).toContain("needs a head bone");
   });
 });
+
+describe("Blockbench exports with unprefixed animation names and spaced bone names", () => {
+  // Same shape as a real "Converted" Blockbench export: ids like "walk", bones like "Left Leg".
+  const geo = JSON.stringify({
+    format_version: "1.12.0",
+    "minecraft:geometry": [{
+      description: { identifier: "geometry.Vampire", texture_width: 80, texture_height: 80 },
+      bones: [
+        { name: "vampire", pivot: [0, 12, 0] },
+        { name: "Waist", parent: "vampire", pivot: [0, 12, 0] },
+        { name: "Head", parent: "Waist", pivot: [0, 24, 0], cubes: [{ origin: [-4, 24, -4], size: [8, 8, 8], uv: [0, 0] }] },
+        { name: "Left Leg", parent: "vampire", pivot: [1.9, 12, 0], cubes: [{ origin: [-0.1, 0, -2], size: [4, 12, 4], uv: [32, 16] }] },
+        { name: "Right Arm", parent: "Waist", pivot: [-5, 21.5, 0], cubes: [{ origin: [-7, 11.5, -2], size: [3, 12, 4], uv: [48, 16] }] },
+      ],
+    }],
+  });
+  const anims = JSON.stringify({
+    format_version: "1.8.0",
+    animations: {
+      idle: { loop: true, animation_length: 2, override_previous_animation: true, bones: { Waist: { rotation: { "0.0": [22.5, 0, 0] } } } },
+      walk: { loop: true, animation_length: 1, bones: { "Left Leg": { rotation: { "0.0": [20, 0, 0], "0.5": [-20, 0, 0] } } } },
+      attack: { loop: true, animation_length: 1.04, bones: { "Right Arm": { rotation: { "0.0": [0, 0, 0], "0.5": [-115, 0, 0] } } } },
+    },
+  });
+  const run = () => {
+    const p = createProject("Vamp");
+    p.namespace = "vamp";
+    const m = createElement("entity", "vampire", "Vampire");
+    m.model = "custom";
+    m.customGeometry = geo;
+    m.customAnimations = anims;
+    p.elements.push(m);
+    const { files, warnings } = generateAddon(p);
+    const json = (f: string) => JSON.parse(files.get(f) as string);
+    return { files, warnings, json };
+  };
+
+  it("exports animations under names Bedrock accepts and points the mob at them", () => {
+    const { json, warnings } = run();
+    const src = json("RP/animations/vamp_vampire.source.animation.json").animations;
+    expect(Object.keys(src)).toEqual(["animation.vamp.vampire.idle", "animation.vamp.vampire.walk", "animation.vamp.vampire.attack"]);
+    const c = json("RP/entity/vampire.entity.json")["minecraft:client_entity"].description;
+    expect(c.animations.idle).toBe("animation.vamp.vampire.idle");
+    expect(c.animations.walk).toBe("animation.vamp.vampire.walk");
+    expect(warnings.some((w) => w.message.includes('must start with "animation."'))).toBe(true);
+  });
+
+  it("renames bones with spaces the same way in the model and every animation", () => {
+    const { json } = run();
+    const bones = json("RP/models/entity/vamp_vampire.geo.json")["minecraft:geometry"][0].bones;
+    expect(bones.map((b: { name: string }) => b.name)).toEqual(["vampire", "Waist", "Head", "Left_Leg", "Right_Arm"]);
+    const src = json("RP/animations/vamp_vampire.source.animation.json").animations;
+    expect(Object.keys(src["animation.vamp.vampire.walk"].bones)).toEqual(["Left_Leg"]);
+    const copies = json("RP/animations/vamp_vampire.animation.json").animations;
+    const attackCopy = Object.values(copies).find((a) => (a as { bones: object }).bones && "Right_Arm" in (a as { bones: object }).bones) as { loop?: unknown };
+    expect(attackCopy).toBeDefined();
+    // A looping attack is played once per attack by default.
+    expect(attackCopy.loop).toBeUndefined();
+  });
+});

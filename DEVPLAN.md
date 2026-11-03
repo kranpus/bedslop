@@ -146,6 +146,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 
 ## Changelog
 
+- **0.1.5**: Fix manually imported animations not loading in game: animation names without the required `animation.` prefix (e.g. `walk`) are exported as `animation.<namespace>.<mob>.walk`, and controllers without `controller.animation.` get it too. Bone names with spaces or symbols are renamed identically in the model and all animations. Attack, hurt and death animations default to playing once even if authored as looping. The preview now honours `override_previous_animation`.
+
 - **0.1.4**: Animated 3D preview for mobs, built from exactly what gets exported: model, texture, animations and controllers. "As in game" mode with walking/attack/hurt/water/fire/dying/look toggles, "Single animation" mode with a scrubbable timeline, playback speed, and front/side/back/top views. Includes a Molang interpreter. "Match walking speed" now scales by `query.modified_move_speed` (the old distance-based formula could play far too fast in game).
 
 - **0.1.3**: Manual model files for custom mobs: upload Blockbench's own `.geo.json`, `.animation.json` and `.animation_controllers.json`; they're written to the pack unchanged and unmodified animations are referenced directly. Uploaded controllers can be switched on in the animation list, and animations they already play aren't double-played. `.bbmodel` conversion fixes: blank scale axes no longer collapse to 0; before/after keyframes, step keyframes, override, blend weight, start/loop delay and time update are kept. Warning when a texture's shape doesn't match the model.

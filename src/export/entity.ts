@@ -1,7 +1,7 @@
 import type { EntityElement } from "../model/types";
 import { FORMATS, GenContext, geometryIdentifier } from "./context";
 import { clampInt, round } from "./content";
-import { buildAnimations } from "./entityAnimations";
+import { boneRenames, buildAnimations, exportAnimationId, renameAnimationBones } from "./entityAnimations";
 
 type Cube = { origin: number[]; size: number[]; uv: number[]; inflate?: number };
 const bone = (name: string, pivot: number[], cubes: Cube[], parent?: string) => ({ name, pivot, ...(parent ? { parent } : {}), cubes });
@@ -187,7 +187,16 @@ export function genEntity(ctx: GenContext, e: EntityElement) {
         : "is set to use a Blockbench model, but no model file has been imported yet.", "error");
       ctx.rp(`models/entity/${ns}_humanoid.geo.json`, humanoidGeometry(ns));
     } else {
-      ctx.rp(`models/entity/${ns}_${e.name}.geo.json`, e.customGeometry);
+      // Bone names with spaces or symbols are renamed the same way in the model and every animation.
+      const renames = boneRenames(e.customGeometry);
+      if (renames.size) {
+        const g = JSON.parse(e.customGeometry);
+        for (const b of g["minecraft:geometry"]?.[0]?.bones ?? []) {
+          b.name = renames.get(String(b.name).toLowerCase()) ?? b.name;
+          if (b.parent) b.parent = renames.get(String(b.parent).toLowerCase()) ?? b.parent;
+        }
+        ctx.rp(`models/entity/${ns}_${e.name}.geo.json`, g);
+      } else ctx.rp(`models/entity/${ns}_${e.name}.geo.json`, e.customGeometry);
       const tex = ctx.texture(e.texture);
       try {
         const d = JSON.parse(e.customGeometry)["minecraft:geometry"]?.[0]?.description;
@@ -200,18 +209,34 @@ export function genEntity(ctx: GenContext, e: EntityElement) {
     if (e.customAnimations.trim() && !e.customAnimations.includes('"animations"')) ctx.warn(e, "animation file could not be read and was skipped.");
     if (geo) {
       // Uploaded files go into the pack unchanged.
-      if (e.customAnimations.trim().includes('"animations"')) ctx.rp(`animations/${ns}_${e.name}.source.animation.json`, e.customAnimations);
+      const renames = boneRenames(e.customGeometry);
+      if (e.customAnimations.trim().includes('"animations"')) {
+        try {
+          const src = JSON.parse(e.customAnimations);
+          const ids = Object.keys(src.animations ?? {});
+          const bad = ids.filter((id) => !id.startsWith("animation."));
+          if (bad.length || renames.size) {
+            src.animations = Object.fromEntries(Object.entries(src.animations ?? {}).map(([id, def]) => [exportAnimationId(ns, e.name, id), def]));
+            ctx.rp(`animations/${ns}_${e.name}.source.animation.json`, renameAnimationBones(src, renames));
+          } else ctx.rp(`animations/${ns}_${e.name}.source.animation.json`, e.customAnimations);
+          if (bad.length) ctx.warn(e, `animation names must start with "animation." in Bedrock, so ${bad.map((b) => `"${b}"`).join(", ")} were exported as ${bad.map((b) => exportAnimationId(ns, e.name, b)).join(", ")}. Nothing to fix.`);
+        } catch { /* reported above */ }
+      }
       if (e.customControllers?.trim()) {
         try {
-          JSON.parse(e.customControllers);
-          ctx.rp(`animation_controllers/${ns}_${e.name}.source.animation_controllers.json`, e.customControllers);
+          const src = JSON.parse(e.customControllers);
+          const keys = Object.keys(src.animation_controllers ?? {});
+          if (keys.some((k) => !k.startsWith("controller.animation."))) {
+            src.animation_controllers = Object.fromEntries(Object.entries(src.animation_controllers).map(([k, v]) => [exportAnimationId(ns, e.name, k, true), v]));
+            ctx.rp(`animation_controllers/${ns}_${e.name}.source.animation_controllers.json`, src);
+          } else ctx.rp(`animation_controllers/${ns}_${e.name}.source.animation_controllers.json`, e.customControllers);
         } catch {
           ctx.warn(e, "animation controllers file could not be read and was skipped.");
         }
       }
       const built = buildAnimations(ns, e);
       for (const p of built.problems) ctx.warn(e, p);
-      if (built.animationFile) ctx.rp(`animations/${ns}_${e.name}.animation.json`, built.animationFile);
+      if (built.animationFile) ctx.rp(`animations/${ns}_${e.name}.animation.json`, renameAnimationBones(built.animationFile as never, renames));
       if (built.controllerFile) ctx.rp(`animation_controllers/${ns}_${e.name}.animation_controllers.json`, built.controllerFile);
       Object.assign(animations, built.animations);
       animate.push(...built.animate);

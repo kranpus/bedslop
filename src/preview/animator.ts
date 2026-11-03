@@ -130,6 +130,12 @@ export class Animator {
       for (const [bone, chans] of Object.entries(def.bones ?? {})) {
         if (!this.model.bones.has(bone)) continue;
         const a = this.accFor(bone);
+        // "Override previous animation": this animation replaces, rather than adds to, earlier ones on this bone.
+        if (def.override_previous_animation) {
+          if (chans.rotation !== undefined) a.rot = [0, 0, 0];
+          if (chans.position !== undefined) a.pos = [0, 0, 0];
+          if (chans.scale !== undefined) a.scale = [1, 1, 1];
+        }
         if (chans.rotation !== undefined) this.channel(chans.rotation, st.time, 0).forEach((v, k) => (a.rot[k] += v * w));
         if (chans.position !== undefined) this.channel(chans.position, st.time, 0).forEach((v, k) => (a.pos[k] += v * w));
         if (chans.scale !== undefined) this.channel(chans.scale, st.time, 1).forEach((v, k) => (a.scale[k] *= 1 + (v - 1) * w));
