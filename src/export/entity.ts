@@ -219,7 +219,7 @@ export function genEntity(ctx: GenContext, e: EntityElement) {
             src.animations = Object.fromEntries(Object.entries(src.animations ?? {}).map(([id, def]) => [exportAnimationId(ns, e.name, id), def]));
             ctx.rp(`animations/${ns}_${e.name}.source.animation.json`, renameAnimationBones(src, renames));
           } else ctx.rp(`animations/${ns}_${e.name}.source.animation.json`, e.customAnimations);
-          if (bad.length) ctx.warn(e, `animation names must start with "animation." in Bedrock, so ${bad.map((b) => `"${b}"`).join(", ")} were exported as ${bad.map((b) => exportAnimationId(ns, e.name, b)).join(", ")}. Nothing to fix.`);
+          if (bad.length) ctx.warn(e, `animation names must start with "animation." in Bedrock, so ${bad.map((b) => `"${b}"`).join(", ")} were exported as ${bad.map((b) => exportAnimationId(ns, e.name, b)).join(", ")}. Nothing to fix.`, "info");
         } catch { /* reported above */ }
       }
       if (e.customControllers?.trim()) {

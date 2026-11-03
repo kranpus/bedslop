@@ -6,7 +6,7 @@ import { MobPreview } from "../MobPreview";
 import { useState } from "react";
 import { convertBbmodel, isBbmodel } from "../../export/bbmodel";
 import { geometryIdentifier } from "../../export/context";
-import { AUTO_LOOK, AUTO_WALK, RIG_ROLES, WHEN, activeSlots, animationLabel, defaultSlots, listAnimations, listBones, listControllers, resolveRig } from "../../export/entityAnimations";
+import { AUTO_LOOK, AUTO_WALK, RIG_ROLES, WHEN, activeSlots, animationLabel, defaultSlots, listAnimations, listBones, listControllers, remapSlots, resolveAnimation, resolveRig } from "../../export/entityAnimations";
 import { useStore } from "../../store/store";
 import type { Patch } from "./types";
 
@@ -119,7 +119,10 @@ function BlockbenchImport({ el, patch }: { el: EntityElement; patch: Patch<Entit
       const text = await f.text();
       if (!isBbmodel(text)) throw new Error(`${f.name} isn't a Blockbench project. For exported .geo.json or .animation.json files, use "Manual files".`);
       const c = convertBbmodel(text, el.name);
-      const p: Partial<EntityElement> = { model: "custom", modelSource: "bbmodel", customGeometry: c.geometry, customAnimations: c.animations, customControllers: "" };
+      const p: Partial<EntityElement> = {
+        model: "custom", modelSource: "bbmodel", customGeometry: c.geometry, customAnimations: c.animations, customControllers: "",
+        ...(el.animationSlots ? { animationSlots: remapSlots(el.animationSlots, c.animations) } : {}),
+      };
       if (c.texture) p.texture = addTexture({ ...c.texture, kind: "entity" }).id;
       patch(p);
       setMessage({ ok: true, text: [`Imported ${f.name}: model${c.texture ? ", texture" : ""}${c.animations ? ", animations" : ""}.`, ...c.notes].join(" ") });
@@ -179,7 +182,7 @@ function BlockbenchImport({ el, patch }: { el: EntityElement; patch: Patch<Entit
               const d = JSON.parse(t)["minecraft:geometry"]?.[0];
               return `${id} · ${d?.bones?.length ?? 0} bones${d?.description ? ` · texture ${d.description.texture_width}×${d.description.texture_height}` : ""}`;
             }} />
-          <JsonFileSlot label="Animations" value={el.customAnimations} onChange={(customAnimations) => patch({ customAnimations }, "anim")}
+          <JsonFileSlot label="Animations" value={el.customAnimations} onChange={(customAnimations) => patch({ customAnimations, ...(el.animationSlots ? { animationSlots: remapSlots(el.animationSlots, customAnimations) } : {}) }, "anim")}
             how="Blockbench: Animate tab → Animation menu → Export Animations (.animation.json)"
             check={(t) => {
               const list = listAnimations(t);
@@ -245,6 +248,7 @@ function AnimationSection({ el, patch }: { el: EntityElement; patch: Patch<Entit
   const ctrls = listControllers(el.customControllers);
   const choices = [...imported.map((a) => ({ value: a.id, label: a.short })), ...ctrls.map((c) => ({ value: c, label: animationLabel(c) })), { value: AUTO_WALK, label: animationLabel(AUTO_WALK) }, { value: AUTO_LOOK, label: animationLabel(AUTO_LOOK) }];
 
+  const resolved = (id: string) => (id.startsWith("@") || id.startsWith("controller.") ? id : resolveAnimation(id, imported)?.id ?? id);
   const setSlots = (animationSlots: AnimationSlot[], key?: string) => patch({ animationMode: "manual", animationSlots }, key);
   const setSlot = (i: number, p: Partial<AnimationSlot>, key?: string) => setSlots(slots.map((s, k) => (k === i ? { ...s, ...p } : s)), key);
   const move = (i: number, d: number) => {
@@ -292,8 +296,8 @@ function AnimationSection({ el, patch }: { el: EntityElement; patch: Patch<Entit
               <div className={`logic-card${s.when === "never" ? " muted-card" : ""}`} key={s.id}>
                 <div className="logic-head">
                   <span className="logic-step mono">{i + 1}</span>
-                  <select value={s.animation} onChange={(e) => setSlot(i, { animation: e.target.value })} aria-label="Animation">
-                    {!choices.some((c) => c.value === s.animation) && <option value={s.animation}>{animationLabel(s.animation)} (missing)</option>}
+                  <select value={resolved(s.animation)} onChange={(e) => setSlot(i, { animation: e.target.value })} aria-label="Animation">
+                    {!choices.some((c) => c.value === resolved(s.animation)) && <option value={s.animation}>{animationLabel(s.animation)} (not in your file – pick another)</option>}
                     {imported.length > 0 && <optgroup label="From your animation file">{imported.map((a) => <option key={a.id} value={a.id}>{a.short}</option>)}</optgroup>}
                     {ctrls.length > 0 && <optgroup label="Your animation controllers">{ctrls.map((c) => <option key={c} value={c}>{animationLabel(c)}</option>)}</optgroup>}
                     <optgroup label="Generated"><option value={AUTO_WALK}>{animationLabel(AUTO_WALK)}</option><option value={AUTO_LOOK}>{animationLabel(AUTO_LOOK)}</option></optgroup>

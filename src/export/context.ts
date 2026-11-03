@@ -19,7 +19,8 @@ export const FORMATS = {
 
 export interface Warning {
   elementId?: string;
-  level: "error" | "warning";
+  /** "info" is a note about something the exporter handled for you. */
+  level: "error" | "warning" | "info";
   message: string;
 }
 

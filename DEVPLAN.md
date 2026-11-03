@@ -146,6 +146,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 
 ## Changelog
 
+- **0.1.6**: Fix "animation isn't in the imported animation file" after re-importing: manual animation choices are matched by name when the file's animation names change, and are re-pointed automatically on upload. Handled cases (like renamed animation ids) show as neutral notes instead of warnings.
+
 - **0.1.5**: Fix manually imported animations not loading in game: animation names without the required `animation.` prefix (e.g. `walk`) are exported as `animation.<namespace>.<mob>.walk`, and controllers without `controller.animation.` get it too. Bone names with spaces or symbols are renamed identically in the model and all animations. Attack, hurt and death animations default to playing once even if authored as looping. The preview now honours `override_previous_animation`.
 
 - **0.1.4**: Animated 3D preview for mobs, built from exactly what gets exported: model, texture, animations and controllers. "As in game" mode with walking/attack/hurt/water/fire/dying/look toggles, "Single animation" mode with a scrubbable timeline, playback speed, and front/side/back/top views. Includes a Molang interpreter. "Match walking speed" now scales by `query.modified_move_speed` (the old distance-based formula could play far too fast in game).

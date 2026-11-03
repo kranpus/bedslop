@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { convertBbmodel, isBbmodel } from "../src/export/bbmodel";
+import { remapSlots } from "../src/export/entityAnimations";
 import { generateAddon } from "../src/export/generate";
 import { createElement } from "../src/model/registry";
 import { createProject } from "../src/model/project";
@@ -237,7 +238,7 @@ describe("manual animation assignment", () => {
     mob.animationSlots = [s("animation.ghoul.gone", "always") as never, s("@auto_look", "always") as never];
     mob.autoRig = { bones: { head: "" }, swing: 50, reverse: false };
     const msgs = out(p).warnings.map((w) => w.message).join("\n");
-    expect(msgs).toContain('"gone" isn\'t in the imported animation file');
+    expect(msgs).toContain('plays "gone", which isn\'t in your animation file');
     expect(msgs).toContain("needs a head bone");
   });
 });
@@ -299,5 +300,49 @@ describe("Blockbench exports with unprefixed animation names and spaced bone nam
     expect(attackCopy).toBeDefined();
     // A looping attack is played once per attack by default.
     expect(attackCopy.loop).toBeUndefined();
+  });
+});
+
+describe("manual choices after re-importing animations", () => {
+  const anims = (prefix: string) => JSON.stringify({
+    format_version: "1.8.0",
+    animations: {
+      [`${prefix}idle`]: { loop: true, bones: { head: { rotation: [5, 0, 0] } } },
+      [`${prefix}walk`]: { loop: true, bones: { head: { rotation: [10, 0, 0] } } },
+      [`${prefix}attack`]: { loop: true, animation_length: 1, bones: { head: { rotation: { "0": [0, 0, 0], "1": [20, 0, 0] } } } },
+    },
+  });
+  const make = () => {
+    const p = createProject("Mobs");
+    p.namespace = "ruby";
+    const m = createElement("entity", "new_mob", "New Mob");
+    m.model = "custom";
+    m.customGeometry = convertBbmodel(JSON.stringify({ ...bb, animations: [] })).geometry;
+    // Manual choices were made while an older file named them "animation.vampire.*" ...
+    m.animationMode = "manual";
+    m.animationSlots = [
+      { id: "a", animation: "animation.vampire.idle", when: "idle", condition: "", mode: "loop", speed: 1, matchMovement: false },
+      { id: "b", animation: "animation.vampire.walk", when: "moving", condition: "", mode: "loop", speed: 1, matchMovement: false },
+      { id: "c", animation: "animation.vampire.attack", when: "attacking", condition: "", mode: "once", speed: 1, matchMovement: false },
+    ];
+    // ... and the file now in use calls them just "idle", "walk", "attack".
+    m.customAnimations = anims("");
+    p.elements.push(m);
+    return p;
+  };
+
+  it("still finds each animation by its name and exports it", () => {
+    const { files, warnings } = generateAddon(make());
+    expect(warnings.map((w) => w.message).join("\n")).not.toContain("isn't in the imported animation file");
+    const c = JSON.parse(files.get("RP/entity/new_mob.entity.json") as string)["minecraft:client_entity"].description;
+    expect(c.scripts.animate).toEqual([{ idle: "!query.is_moving" }, { walk: "query.is_moving" }, "slot2_ctrl"]);
+    expect(c.animations.idle).toBe("animation.ruby.new_mob.idle");
+  });
+
+  it("re-points saved choices at a newly uploaded file", () => {
+    const p = make();
+    const m = p.elements[0] as import("../src/model/types").EntityElement;
+    const slots = remapSlots(m.animationSlots!, anims(""));
+    expect(slots.map((s) => s.animation)).toEqual(["idle", "walk", "attack"]);
   });
 });

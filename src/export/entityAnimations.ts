@@ -77,6 +77,29 @@ export function controlledNames(json: string | undefined): Set<string> {
   return names;
 }
 
+const lastPart = (id: string) => (id.split(".").pop() ?? id).toLowerCase();
+
+/**
+ * Finds the animation a saved choice refers to: the exact name first, then the same last name part
+ * (so "animation.vampire.walk" still finds "walk" after re-importing), but only when that's unambiguous.
+ */
+export function resolveAnimation<T extends { id: string }>(id: string, list: T[]): T | undefined {
+  const exact = list.find((a) => a.id === id);
+  if (exact) return exact;
+  const same = list.filter((a) => lastPart(a.id) === lastPart(id));
+  return same.length === 1 ? same[0] : undefined;
+}
+
+/** Points saved choices at the animations in a newly imported file, matching by name. */
+export function remapSlots(slots: AnimationSlot[], animJson: string): AnimationSlot[] {
+  const list = listAnimations(animJson);
+  return slots.map((s) => {
+    if (s.animation === AUTO_WALK || s.animation === AUTO_LOOK || s.animation.startsWith("controller.")) return s;
+    const hit = resolveAnimation(s.animation, list);
+    return hit && hit.id !== s.animation ? { ...s, animation: hit.id } : s;
+  });
+}
+
 const safeName = (s: string) => s.toLowerCase().replace(/[^a-z0-9_.]+/g, "_").replace(/^_+|_+$/g, "") || "anim";
 
 /** Bedrock only loads animations named "animation.…" and controllers named "controller.animation.…". */
@@ -255,8 +278,8 @@ export function buildAnimations(ns: string, e: EntityElement): BuiltAnimations {
       def = rig.head ? { loop: true, bones: { [rig.head]: { rotation: ["query.target_x_rotation", "query.target_y_rotation", 0] } } } : null;
       if (!def) return out.problems.push("the generated head look needs a head bone. Pick it under Body parts.");
     } else {
-      const a = imported.get(s.animation);
-      if (!a) return out.problems.push(`animation "${animationLabel(s.animation)}" isn't in the imported animation file any more.`);
+      const a = resolveAnimation(s.animation, [...imported.values()]);
+      if (!a) return out.problems.push(`step ${i + 1} plays "${animationLabel(s.animation)}", which isn't in your animation file. Pick an animation for it under Animations, or click "Reset to automatic picks".`);
       // Unchanged settings: play the uploaded animation exactly as authored.
       reuse = speed === 1 && !s.matchMovement && (s.mode === "loop") === a.loop;
       if (reuse) short = names.get(a.id)!;
