@@ -1,0 +1,82 @@
+// Curated vanilla Bedrock identifiers used for pickers and autocomplete.
+// Free text is always allowed, so this list only needs the common cases.
+
+const items = `
+apple baked_potato beef bread carrot cooked_beef cooked_chicken cooked_porkchop cooked_mutton cooked_cod cooked_salmon
+golden_apple golden_carrot melon_slice pumpkin_pie cookie sweet_berries glow_berries honey_bottle mushroom_stew bowl
+stick string feather leather flint gunpowder bone bone_meal slime_ball ender_pearl blaze_rod blaze_powder ghast_tear
+coal charcoal raw_iron raw_gold raw_copper iron_ingot gold_ingot copper_ingot netherite_ingot netherite_scrap
+iron_nugget gold_nugget diamond emerald lapis_lazuli redstone quartz amethyst_shard glowstone_dust prismarine_shard
+prismarine_crystals nether_star echo_shard paper book sugar sugar_cane wheat wheat_seeds egg milk_bucket bucket
+water_bucket lava_bucket glass_bottle potion clay_ball brick nether_brick honeycomb ink_sac glow_ink_sac phantom_membrane
+rabbit_hide scute turtle_scute armadillo_scute breeze_rod heavy_core
+wooden_pickaxe stone_pickaxe iron_pickaxe golden_pickaxe diamond_pickaxe netherite_pickaxe
+wooden_sword stone_sword iron_sword golden_sword diamond_sword netherite_sword
+wooden_axe stone_axe iron_axe diamond_axe netherite_axe wooden_shovel iron_shovel diamond_shovel
+iron_hoe diamond_hoe bow arrow crossbow trident shield fishing_rod flint_and_steel shears compass clock spyglass mace
+iron_helmet iron_chestplate iron_leggings iron_boots diamond_helmet diamond_chestplate diamond_leggings diamond_boots
+netherite_upgrade_smithing_template totem_of_undying elytra saddle name_tag lead firework_rocket
+`;
+
+const blocks = `
+stone cobblestone deepslate cobbled_deepslate granite diorite andesite tuff calcite dirt grass_block podzol mycelium
+coarse_dirt rooted_dirt mud moss_block sand red_sand gravel clay snow snow_block ice packed_ice blue_ice
+oak_log spruce_log birch_log jungle_log acacia_log dark_oak_log mangrove_log cherry_log
+oak_planks spruce_planks birch_planks jungle_planks acacia_planks dark_oak_planks mangrove_planks cherry_planks bamboo_planks
+glass white_wool obsidian crying_obsidian bedrock netherrack basalt blackstone end_stone soul_sand soul_soil
+iron_block gold_block diamond_block emerald_block lapis_block redstone_block coal_block copper_block netherite_block
+iron_ore gold_ore diamond_ore coal_ore copper_ore emerald_ore lapis_ore redstone_ore
+deepslate_iron_ore deepslate_gold_ore deepslate_diamond_ore deepslate_coal_ore nether_gold_ore quartz_ore ancient_debris
+crafting_table furnace blast_furnace smoker chest barrel anvil enchanting_table bookshelf torch lantern glowstone
+sea_lantern tnt hay_block pumpkin melon_block cactus bricks stone_bricks mossy_cobblestone sandstone red_sandstone
+prismarine quartz_block purpur_block amethyst_block terracotta white_concrete
+`;
+
+const toIds = (s: string) =>
+  s
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((x) => `minecraft:${x}`);
+
+export const VANILLA_ITEMS = toIds(items);
+export const VANILLA_BLOCKS = toIds(blocks);
+export const VANILLA_ALL = Array.from(new Set([...VANILLA_ITEMS, ...VANILLA_BLOCKS])).sort();
+
+export const VANILLA_ENTITIES = toIds(`
+zombie skeleton creeper spider cave_spider enderman witch slime blaze ghast piglin hoglin wither_skeleton drowned husk stray
+phantom pillager vindicator evoker ravager warden breeze bogged pig cow sheep chicken horse donkey wolf cat fox rabbit
+llama goat bee turtle axolotl frog camel armadillo sniffer villager wandering_trader iron_golem snow_golem
+lightning_bolt tnt xp_orb armor_stand boat minecart
+`);
+
+export const EFFECTS = [
+  "speed", "slowness", "haste", "mining_fatigue", "strength", "instant_health", "instant_damage", "jump_boost",
+  "nausea", "regeneration", "resistance", "fire_resistance", "water_breathing", "invisibility", "blindness",
+  "night_vision", "hunger", "weakness", "poison", "wither", "health_boost", "absorption", "saturation",
+  "levitation", "slow_falling", "conduit_power", "darkness", "bad_omen", "village_hero",
+  "wind_charged", "weaving", "oozing", "infested",
+];
+
+/** Biome tags usable in spawn rules and feature rules. */
+export const BIOME_TAGS = [
+  "animal", "monster", "overworld", "plains", "forest", "birch", "roofed", "taiga", "cold", "frozen", "desert",
+  "jungle", "savanna", "swamp", "mesa", "extreme_hills", "ocean", "deep", "river", "beach", "mushroom_island",
+  "lush_caves", "nether", "the_end",
+];
+
+/** Sound sets accepted by the "sound" field in RP/blocks.json. */
+export const BLOCK_SOUNDS = [
+  "stone", "wood", "grass", "gravel", "sand", "metal", "glass", "cloth", "snow", "deepslate", "deepslate_bricks",
+  "copper", "amethyst_block", "netherite", "nether_brick", "netherrack", "basalt", "bone_block", "calcite",
+  "tuff", "mud", "moss_block", "cherry_wood", "bamboo_wood", "slime", "honey_block", "lantern", "chain", "coral",
+  "sweet_berry_bush", "vines", "azalea", "sculk", "ladder", "anvil",
+];
+
+export const VANILLA_SOUNDS = [
+  "random.levelup", "random.orb", "random.pop", "random.explode", "random.anvil_land", "random.break",
+  "random.click", "random.chestopen", "random.door_open", "random.toast", "random.totem", "mob.zombie.say",
+  "mob.enderdragon.growl", "mob.endermen.portal", "ambient.weather.thunder", "note.pling", "note.bell",
+  "note.harp", "beacon.activate", "fire.ignite", "dig.stone",
+];
+
+export const MENU_CATEGORIES = ["construction", "equipment", "items", "nature", "none"] as const;

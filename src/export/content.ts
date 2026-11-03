@@ -1,0 +1,324 @@
+// Blocks, plants, items, tools, armor and food.
+import type {
+  ArmorElement, ArmorSlot, BlockElement, FoodElement, ItemElement, PlantElement, ToolElement,
+} from "../model/types";
+import { FORMATS, GenContext, geometryIdentifier } from "./context";
+
+const menu = (category: string, group?: string) => (group ? { category, group } : { category });
+
+// ---------- Blocks ----------
+
+const TOOL_TAGS: Record<BlockElement["bestTool"], string[]> = {
+  none: [],
+  pickaxe: ["stone", "minecraft:is_pickaxe_item_destructible"],
+  axe: ["wood", "minecraft:is_axe_item_destructible"],
+  shovel: ["dirt", "minecraft:is_shovel_item_destructible"],
+  hoe: ["minecraft:is_hoe_item_destructible"],
+};
+
+export function genBlock(ctx: GenContext, b: BlockElement) {
+  const id = ctx.id(b.name);
+  const rm = b.renderMethod;
+  const inst = (texId: string | undefined) => {
+    const key = ctx.terrainKey(texId);
+    return key ? { texture: key, render_method: rm } : undefined;
+  };
+
+  const t = b.textures;
+  const instances: Record<string, unknown> = {};
+  if (b.textureMode === "all") {
+    instances["*"] = inst(t.all);
+  } else if (b.textureMode === "pillar") {
+    instances["*"] = inst(t.side ?? t.all);
+    instances.up = inst(t.top ?? t.side);
+    instances.down = inst(t.bottom ?? t.top ?? t.side);
+  } else {
+    instances["*"] = inst(t.north ?? t.side ?? t.all);
+    for (const f of ["north", "south", "east", "west"] as const) instances[f] = inst(t[f] ?? t.side ?? t.all);
+    instances.up = inst(t.top);
+    instances.down = inst(t.bottom);
+  }
+  for (const k of Object.keys(instances)) if (!instances[k]) delete instances[k];
+  if (!instances["*"]) {
+    ctx.warn(b, "has no texture yet. It will show as a missing-texture block.");
+    instances["*"] = { texture: "missing", render_method: rm };
+  }
+
+  let geometry = "minecraft:geometry.full_block";
+  if (b.geometry === "custom") {
+    const geoId = geometryIdentifier(b.customGeometry);
+    if (geoId) {
+      geometry = geoId;
+      ctx.rp(`models/blocks/${ctx.ns}_${b.name}.geo.json`, b.customGeometry);
+    } else {
+      ctx.warn(b, "custom model could not be read, using a full block instead.");
+    }
+  }
+
+  const components: Record<string, unknown> = {
+    "minecraft:geometry": geometry,
+    "minecraft:material_instances": instances,
+    "minecraft:destructible_by_mining": b.hardness < 0 ? false : { seconds_to_destroy: round(b.hardness) },
+    "minecraft:destructible_by_explosion": { explosion_resistance: round(b.explosionResistance) },
+    "minecraft:map_color": b.mapColor,
+  };
+  if (b.lightEmission > 0) components["minecraft:light_emission"] = clampInt(b.lightEmission, 0, 15);
+  const dampening = b.lightDampening;
+  if (dampening !== 15) components["minecraft:light_dampening"] = clampInt(dampening, 0, 15);
+  if (Math.abs(b.friction - 0.4) > 1e-6) components["minecraft:friction"] = round(Math.min(0.9, Math.max(0, b.friction)));
+  if (b.flammable) components["minecraft:flammable"] = { catch_chance_modifier: 5, destroy_chance_modifier: 20 };
+  if (b.drops === "nothing") components["minecraft:loot"] = "loot_tables/empty.json";
+  if (b.drops === "loot") {
+    const loot = ctx.project.elements.find((e) => e.id === b.lootTable && e.kind === "loot");
+    if (loot && loot.kind === "loot") components["minecraft:loot"] = `loot_tables/${loot.lootType}/${ctx.ns}_${loot.name}.json`;
+    else ctx.warn(b, "is set to drop a loot table, but none is selected. It will drop itself.");
+  }
+  for (const tag of TOOL_TAGS[b.bestTool]) components[`tag:${tag}`] = {};
+
+  const block: Record<string, unknown> = {
+    description: { identifier: id, menu_category: menu(b.category, b.group) } as Record<string, unknown>,
+    components,
+  };
+
+  if (b.rotation === "facing") {
+    (block.description as Record<string, unknown>).traits = {
+      "minecraft:placement_direction": { enabled_states: ["minecraft:cardinal_direction"], y_rotation_offset: 180 },
+    };
+    block.permutations = (
+      [["north", 0], ["west", 90], ["south", 180], ["east", -90]] as const
+    ).map(([dir, y]) => ({
+      condition: `q.block_state('minecraft:cardinal_direction') == '${dir}'`,
+      components: { "minecraft:transformation": { rotation: [0, y, 0] } },
+    }));
+  } else if (b.rotation === "axis") {
+    (block.description as Record<string, unknown>).traits = {
+      "minecraft:placement_position": { enabled_states: ["minecraft:block_face"] },
+    };
+    block.permutations = [
+      { condition: "q.block_state('minecraft:block_face') == 'up' || q.block_state('minecraft:block_face') == 'down'", components: { "minecraft:transformation": { rotation: [0, 0, 0] } } },
+      { condition: "q.block_state('minecraft:block_face') == 'north' || q.block_state('minecraft:block_face') == 'south'", components: { "minecraft:transformation": { rotation: [90, 0, 0] } } },
+      { condition: "q.block_state('minecraft:block_face') == 'east' || q.block_state('minecraft:block_face') == 'west'", components: { "minecraft:transformation": { rotation: [0, 0, 90] } } },
+    ];
+  }
+
+  ctx.bp(`blocks/${b.name}.json`, { format_version: FORMATS.block, "minecraft:block": block });
+  ctx.blockSounds[id] = { sound: b.sound };
+  ctx.lang.push(`tile.${id}.name=${b.displayName}`);
+}
+
+// ---------- Plants ----------
+
+export function crossGeometry(ns: string) {
+  const face = { north: { uv: [0, 0], uv_size: [16, 16] }, south: { uv: [16, 0], uv_size: [-16, 16] } };
+  return {
+    format_version: FORMATS.geometry,
+    "minecraft:geometry": [
+      {
+        description: { identifier: `geometry.${ns}_cross`, texture_width: 16, texture_height: 16, visible_bounds_width: 2, visible_bounds_height: 2, visible_bounds_offset: [0, 0.5, 0] },
+        bones: [
+          {
+            name: "plant",
+            pivot: [0, 0, 0],
+            cubes: [
+              { origin: [-8, 0, 0], size: [16, 16, 0], pivot: [0, 0, 0], rotation: [0, 45, 0], uv: face },
+              { origin: [-8, 0, 0], size: [16, 16, 0], pivot: [0, 0, 0], rotation: [0, -45, 0], uv: face },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+export function genPlant(ctx: GenContext, p: PlantElement) {
+  const id = ctx.id(p.name);
+  const key = ctx.terrainKey(p.texture);
+  if (!key) ctx.warn(p, "has no texture yet.");
+  ctx.rp(`models/blocks/${ctx.ns}_cross.geo.json`, crossGeometry(ctx.ns));
+  const components: Record<string, unknown> = {
+    "minecraft:geometry": `geometry.${ctx.ns}_cross`,
+    "minecraft:material_instances": {
+      "*": { texture: key || "missing", render_method: "alpha_test", face_dimming: false, ambient_occlusion: false },
+    },
+    "minecraft:collision_box": false,
+    "minecraft:selection_box": { origin: [-6, 0, -6], size: [12, 13, 12] },
+    "minecraft:destructible_by_mining": { seconds_to_destroy: round(Math.max(0, p.hardness)) },
+    "minecraft:destructible_by_explosion": { explosion_resistance: 0 },
+    "minecraft:light_dampening": 0,
+    "minecraft:flammable": { catch_chance_modifier: 60, destroy_chance_modifier: 100 },
+    "minecraft:map_color": "#4f8a3a",
+    "minecraft:placement_filter": {
+      conditions: [{ allowed_faces: ["up"], block_filter: p.placeableOn.length ? p.placeableOn : ["minecraft:grass_block"] }],
+    },
+  };
+  if (p.lightEmission > 0) components["minecraft:light_emission"] = clampInt(p.lightEmission, 0, 15);
+  ctx.bp(`blocks/${p.name}.json`, {
+    format_version: FORMATS.block,
+    "minecraft:block": { description: { identifier: id, menu_category: menu("nature") }, components },
+  });
+  ctx.blockSounds[id] = { sound: p.sound };
+  ctx.lang.push(`tile.${id}.name=${p.displayName}`);
+
+  if (p.generate) {
+    ctx.bp(`features/${p.name}_feature.json`, {
+      format_version: FORMATS.feature,
+      "minecraft:single_block_feature": {
+        description: { identifier: `${id}_feature` },
+        places_block: id,
+        enforce_placement_rules: true,
+        enforce_survivability_rules: true,
+        may_attach_to: { min_sides_must_attach: 1, bottom: p.placeableOn },
+      },
+    });
+    ctx.bp(`feature_rules/${p.name}_rule.json`, {
+      format_version: FORMATS.feature,
+      "minecraft:feature_rules": {
+        description: { identifier: `${id}_rule`, places_feature: `${id}_feature` },
+        conditions: {
+          placement_pass: "surface_pass",
+          "minecraft:biome_filter": [{ test: "has_biome_tag", operator: "==", value: "overworld" }],
+        },
+        distribution: {
+          iterations: clampInt(p.generateTries, 1, 64),
+          scatter_chance: { numerator: 1, denominator: 3 },
+          x: { distribution: "uniform", extent: [0, 15] },
+          y: "query.heightmap(variable.worldx, variable.worldz)",
+          z: { distribution: "uniform", extent: [0, 15] },
+        },
+      },
+    });
+  }
+}
+
+// ---------- Items ----------
+
+function itemBase(ctx: GenContext, el: { name: string; displayName: string }, iconKey: string, extra: Record<string, unknown>, category: string, group = "") {
+  const id = ctx.id(el.name);
+  const langKey = `item.${id}.name`;
+  ctx.lang.push(`${langKey}=${el.displayName}`);
+  const components: Record<string, unknown> = {
+    "minecraft:display_name": { value: langKey },
+    ...(iconKey ? { "minecraft:icon": { textures: { default: iconKey } } } : {}),
+    ...extra,
+  };
+  return {
+    format_version: FORMATS.item,
+    "minecraft:item": { description: { identifier: id, menu_category: menu(category, group) }, components },
+  };
+}
+
+export function genItem(ctx: GenContext, it: ItemElement) {
+  const key = ctx.itemKey(it.texture);
+  if (!key) ctx.warn(it, "has no texture yet.");
+  const extra: Record<string, unknown> = { "minecraft:max_stack_size": { value: clampInt(it.maxStack, 1, 64) } };
+  if (it.glint) extra["minecraft:glint"] = { value: true };
+  if (it.handEquipped) extra["minecraft:hand_equipped"] = { value: true };
+  if (it.fuelSeconds > 0) extra["minecraft:fuel"] = { duration: round(it.fuelSeconds) };
+  if (it.tags.length) extra["minecraft:tags"] = { tags: it.tags };
+  ctx.bp(`items/${it.name}.json`, itemBase(ctx, it, key, extra, it.category, it.group));
+}
+
+const DIG: Record<ToolElement["toolType"], string> = {
+  pickaxe: "q.any_tag('stone', 'metal', 'rock', 'minecraft:is_pickaxe_item_destructible')",
+  axe: "q.any_tag('wood', 'pumpkin', 'plant', 'minecraft:is_axe_item_destructible')",
+  shovel: "q.any_tag('dirt', 'sand', 'gravel', 'grass', 'snow', 'minecraft:is_shovel_item_destructible')",
+  hoe: "q.any_tag('plant', 'minecraft:is_hoe_item_destructible')",
+  sword: "q.any_tag('minecraft:is_sword_item_destructible')",
+};
+
+export function genTool(ctx: GenContext, t: ToolElement) {
+  const key = ctx.itemKey(t.texture);
+  if (!key) ctx.warn(t, "has no texture yet.");
+  const durability = clampInt(t.durability, 1, 100000);
+  const extra: Record<string, unknown> = {
+    "minecraft:max_stack_size": { value: 1 },
+    "minecraft:hand_equipped": { value: true },
+    "minecraft:durability": { max_durability: durability },
+    "minecraft:damage": { value: clampInt(t.attackDamage, 0, 1000) },
+    "minecraft:enchantable": { slot: t.toolType, value: clampInt(t.enchantability, 0, 100) },
+    "minecraft:digger": {
+      use_efficiency: true,
+      destroy_speeds: [{ block: { tags: DIG[t.toolType] }, speed: Math.max(1, Math.round(t.toolType === "sword" ? 15 : t.miningSpeed)) }],
+    },
+    "minecraft:tags": { tags: ["minecraft:is_tool", `minecraft:is_${t.toolType}`, `minecraft:${t.tier}_tier`] },
+  };
+  if (t.toolType === "sword") extra["minecraft:can_destroy_in_creative"] = { value: false };
+  if (t.glint) extra["minecraft:glint"] = { value: true };
+  if (t.repairItem) {
+    extra["minecraft:repairable"] = { repair_items: [{ items: [t.repairItem], repair_amount: Math.ceil(durability / 4) }] };
+  }
+  ctx.bp(`items/${t.name}.json`, itemBase(ctx, t, key, extra, "equipment"));
+  ctx.script.tools[ctx.id(t.name)] = t.toolType === "sword" ? [2, 1] : [1, 2];
+}
+
+const ARMOR: Record<ArmorSlot, { slot: string; ench: string; base: number; layer: 1 | 2; geo: string; visible: string; label: string }> = {
+  helmet: { slot: "slot.armor.head", ench: "armor_head", base: 11, layer: 1, geo: "geometry.player.armor.helmet", visible: "variable.helmet_layer_visible = 0.0;", label: "Helmet" },
+  chestplate: { slot: "slot.armor.chest", ench: "armor_torso", base: 16, layer: 1, geo: "geometry.player.armor.chestplate", visible: "variable.chest_layer_visible = 0.0;", label: "Chestplate" },
+  leggings: { slot: "slot.armor.legs", ench: "armor_legs", base: 15, layer: 2, geo: "geometry.player.armor.leggings", visible: "variable.leg_layer_visible = 0.0;", label: "Leggings" },
+  boots: { slot: "slot.armor.feet", ench: "armor_feet", base: 13, layer: 1, geo: "geometry.player.armor.boots", visible: "variable.boot_layer_visible = 0.0;", label: "Boots" },
+};
+
+export function genArmor(ctx: GenContext, a: ArmorElement) {
+  const layer1 = ctx.writeTexture(a.layer1, "models/armor");
+  const layer2 = ctx.writeTexture(a.layer2, "models/armor");
+  for (const slot of Object.keys(ARMOR) as ArmorSlot[]) {
+    const piece = a.pieces[slot];
+    if (!piece.enabled) continue;
+    const info = ARMOR[slot];
+    const name = `${a.name}_${slot}`;
+    const id = ctx.id(name);
+    const key = ctx.itemKey(piece.texture);
+    if (!key) ctx.warn(a, `${info.label.toLowerCase()} has no icon texture yet.`);
+    const layerPath = info.layer === 1 ? layer1 : layer2;
+    if (!layerPath) ctx.warn(a, `is missing the worn texture (layer ${info.layer}) used by the ${info.label.toLowerCase()}.`);
+    const durability = Math.max(1, Math.round(info.base * a.durabilityMultiplier));
+    const extra: Record<string, unknown> = {
+      "minecraft:max_stack_size": { value: 1 },
+      "minecraft:wearable": { slot: info.slot, protection: clampInt(piece.protection, 0, 100) },
+      "minecraft:durability": { max_durability: durability },
+      "minecraft:enchantable": { slot: info.ench, value: clampInt(a.enchantability, 0, 100) },
+      "minecraft:tags": { tags: ["minecraft:is_armor"] },
+    };
+    if (a.repairItem) extra["minecraft:repairable"] = { repair_items: [{ items: [a.repairItem], repair_amount: Math.ceil(durability / 4) }] };
+    ctx.bp(`items/${name}.json`, itemBase(ctx, { name, displayName: `${a.displayName} ${info.label}` }, key, extra, "equipment"));
+    ctx.rp(`attachables/${name}.json`, {
+      format_version: FORMATS.attachable,
+      "minecraft:attachable": {
+        description: {
+          identifier: id,
+          materials: { default: "armor", enchanted: "armor_enchanted" },
+          textures: { default: layerPath || "textures/misc/missing_texture", enchanted: "textures/misc/enchanted_actor_glint" },
+          geometry: { default: info.geo },
+          scripts: { parent_setup: info.visible },
+          render_controllers: ["controller.render.armor"],
+        },
+      },
+    });
+  }
+}
+
+export function genFood(ctx: GenContext, f: FoodElement) {
+  const key = ctx.itemKey(f.texture);
+  if (!key) ctx.warn(f, "has no texture yet.");
+  const food: Record<string, unknown> = {
+    nutrition: clampInt(f.nutrition, 0, 20),
+    saturation_modifier: round(f.saturation),
+    can_always_eat: f.canAlwaysEat,
+  };
+  if (f.convertsTo) food.using_converts_to = f.convertsTo;
+  const extra: Record<string, unknown> = {
+    "minecraft:max_stack_size": { value: clampInt(f.maxStack, 1, 64) },
+    "minecraft:food": food,
+    "minecraft:use_animation": f.animation,
+    "minecraft:use_modifiers": { use_duration: round(Math.max(0.1, f.useDuration)), movement_modifier: 0.35 },
+  };
+  if (f.glint) extra["minecraft:glint"] = { value: true };
+  ctx.bp(`items/${f.name}.json`, itemBase(ctx, f, key, extra, "items"));
+  const fx = f.effects.filter((e) => e.effect);
+  if (fx.length) {
+    ctx.script.foods[ctx.id(f.name)] = fx.map((e) => [e.effect, Math.round(e.seconds * 20), clampInt(e.amplifier, 0, 255), clampInt(e.chance, 0, 100)]);
+  }
+}
+
+export const round = (n: number) => Math.round((Number(n) || 0) * 1000) / 1000;
+export const clampInt = (n: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(Number(n) || 0)));
