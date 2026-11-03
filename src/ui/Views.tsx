@@ -4,7 +4,7 @@ import { exampleProject } from "../model/packs";
 import { PARITY, type ParityStatus } from "../model/parity";
 import { SCRIPT_API_VERSIONS } from "../model/project";
 import { generateAddon } from "../export/generate";
-import { buildMcaddon, buildMcpack, downloadBlob, fileSafe } from "../export/zip";
+import { buildMcaddon, buildMcpack, fileSafe, isHostedPreview, saveFile } from "../export/zip";
 import { packIconFrom } from "../textures/procedural";
 import { Field, Grid, Section, Select, Text } from "./fields";
 import { TexturePicker, readImageFile } from "./TexturePicker";
@@ -192,7 +192,7 @@ export function SettingsView() {
   const api = SCRIPT_API_VERSIONS.find((v) => v.api === project.scriptApi);
   const download = () => {
     const blob = new Blob([JSON.stringify(project)], { type: "application/json" });
-    downloadBlob(blob, `${fileSafe(project.name)}.bcproject.json`);
+    saveFile(blob, `${fileSafe(project.name)}.bcproject.json`);
   };
   return (
     <div className="page narrow">
@@ -249,6 +249,7 @@ export function ExportView() {
   const result = useMemo(() => generateAddon(project), [project]);
   const [selected, setSelected] = useState<string>("BP/manifest.json");
   const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
   const errors = result.warnings.filter((w) => w.level === "error");
   const warns = result.warnings.filter((w) => w.level === "warning");
   const paths = [...result.files.keys()].sort();
@@ -269,8 +270,9 @@ export function ExportView() {
     try {
       const { files } = generateAddon(project, await iconBytes());
       const name = fileSafe(project.name);
-      if (kind === "mcaddon") downloadBlob(await buildMcaddon(files, project.name), `${name}.mcaddon`);
-      else downloadBlob(await buildMcpack(files, kind), `${name}_${kind}.mcpack`);
+      setNote(kind === "mcaddon"
+        ? await saveFile(await buildMcaddon(files, project.name), `${name}.mcaddon`)
+        : await saveFile(await buildMcpack(files, kind), `${name}_${kind}.mcpack`));
     } finally {
       setBusy(false);
     }
@@ -290,6 +292,8 @@ export function ExportView() {
         </div>
       </header>
 
+      {isHostedPreview() && !note && <p className="muted">In this hosted preview, add-ons save as <span className="mono">.mcaddon.zip</span>. Remove “.zip” from the file name before opening it.</p>}
+      {note && <p className="status-banner ok" role="status">{note}</p>}
       <div className={`status-banner ${errors.length ? "error" : warns.length ? "warning" : "ok"}`}>
         {errors.length ? `${errors.length} problem${errors.length > 1 ? "s" : ""} will stop parts of the add-on from working.` : warns.length ? `Ready, with ${warns.length} thing${warns.length > 1 ? "s" : ""} to check.` : "Ready to export. No problems found."}
       </div>
