@@ -2,7 +2,10 @@ import type { EntityElement } from "../../model/types";
 import { BIOME_TAGS } from "../../model/vanilla";
 import { ChipList, Color, Field, Grid, IdInput, Num, Section, Segmented, Select, Slider, Toggle } from "../fields";
 import { TexturePicker } from "../TexturePicker";
-import { GeometryUpload } from "./ContentEditors";
+import { useState } from "react";
+import { convertBbmodel, isBbmodel } from "../../export/bbmodel";
+import { geometryIdentifier } from "../../export/context";
+import { useStore } from "../../store/store";
 import type { Patch } from "./types";
 
 const PRESETS = {
@@ -21,22 +24,8 @@ export function EntityEditor({ el, patch }: { el: EntityElement; patch: Patch<En
           { value: "humanoid", label: "Humanoid (player-shaped)" }, { value: "quadruped", label: "Four-legged animal" }, { value: "custom", label: "Blockbench model" },
         ]} />
         <TexturePicker label="Texture" kind="entity" template={el.model === "quadruped" ? "mob_quadruped" : "mob_humanoid"} value={el.texture} suggestedName={el.name} onChange={(texture) => patch({ texture })}
-          help={el.model === "humanoid" ? "64 × 64. Any Minecraft skin works here." : el.model === "quadruped" ? "64 × 64. Generate a template to see where each part goes." : "Use the texture you painted in Blockbench."} />
-        {el.model === "custom" && (
-          <>
-            <GeometryUpload value={el.customGeometry} onChange={(customGeometry) => patch({ customGeometry })} />
-            <div className="field wide">
-              <span className="field-label">Animations (.animation.json, optional)</span>
-              <div className="row">
-                <label className="btn small">
-                  Choose file…
-                  <input type="file" accept=".json" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) patch({ customAnimations: await f.text() }); }} />
-                </label>
-                <span className="muted">{el.customAnimations ? "Loaded. Animations named walk/move play while moving, idle while standing." : "None"}</span>
-              </div>
-            </div>
-          </>
-        )}
+          help={el.model === "humanoid" ? "64 × 64 in the player-skin layout. Any Minecraft skin works here; textures painted for your own model won't." : el.model === "quadruped" ? "64 × 64. Generate a template to see where each part goes." : "The texture you painted in Blockbench. Imported automatically from a .bbmodel."} />
+        <BlockbenchImport el={el} patch={patch} />
         <Grid>
           <Num label="Hitbox width" suffix="blocks" step={0.1} value={el.width} onChange={(width) => patch({ width }, "w")} />
           <Num label="Hitbox height" suffix="blocks" step={0.1} value={el.height} onChange={(height) => patch({ height }, "h")} />
@@ -106,5 +95,67 @@ export function EntityEditor({ el, patch }: { el: EntityElement; patch: Patch<En
         )}
       </Section>
     </>
+  );
+}
+
+/** Import a Blockbench mob: .bbmodel (model + texture + animations) or .geo.json / .animation.json. */
+function BlockbenchImport({ el, patch }: { el: EntityElement; patch: Patch<EntityElement> }) {
+  const addTexture = useStore((s) => s.addTexture);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const geoId = geometryIdentifier(el.customGeometry);
+  let animCount = 0;
+  try { animCount = Object.keys(JSON.parse(el.customAnimations).animations ?? {}).length; } catch { /* none */ }
+
+  const importFiles = async (files: File[]) => {
+    const p: Partial<EntityElement> = {};
+    const notes: string[] = [];
+    try {
+      for (const f of files) {
+        const text = await f.text();
+        if (isBbmodel(text)) {
+          const c = convertBbmodel(text, el.name);
+          p.customGeometry = c.geometry;
+          if (c.animations) p.customAnimations = c.animations;
+          if (c.texture) p.texture = addTexture({ ...c.texture, kind: "entity" }).id;
+          notes.push(`Imported ${f.name}: model${c.texture ? ", texture" : ""}${c.animations ? ", animations" : ""}.`, ...c.notes);
+        } else {
+          const data = JSON.parse(text);
+          if (data["minecraft:geometry"] || Object.keys(data).some((k) => k.startsWith("geometry."))) {
+            p.customGeometry = text;
+            notes.push(`Imported model ${f.name}.`);
+          } else if (data.animations) {
+            p.customAnimations = text;
+            notes.push(`Imported animations ${f.name}.`);
+          } else {
+            throw new Error(`${f.name} isn't a Blockbench model or animation file.`);
+          }
+        }
+      }
+      patch({ ...p, model: "custom" });
+      if (!p.texture && !el.texture) notes.push("Now upload the texture you painted for this model.");
+      setMessage({ ok: true, text: notes.join(" ") });
+    } catch (err) {
+      setMessage({ ok: false, text: err instanceof Error ? err.message : "That file couldn't be read." });
+    }
+  };
+
+  return (
+    <div className={`bb-import${el.model === "custom" ? " on" : ""}`}>
+      <div className="row between">
+        <div className="stack tight">
+          <strong>{el.model === "custom" ? "Blockbench model" : "Made this mob in Blockbench?"}</strong>
+          <span className="field-help">
+            {el.model === "custom"
+              ? geoId ? <>Using <span className="mono">{geoId}</span>{animCount ? `, ${animCount} animation${animCount > 1 ? "s" : ""}` : ", automatic walk and head movement"}.</> : "No model imported yet. The mob won't export correctly until you import one."
+              : "Import your .bbmodel file. Its shape, texture and animations come with it."}
+          </span>
+        </div>
+        <label className={`btn small${el.model === "custom" && !geoId ? " primary" : ""}`}>
+          Import from Blockbench…
+          <input type="file" multiple accept=".bbmodel,.json" hidden onChange={(e) => { const fs = Array.from(e.target.files ?? []); e.target.value = ""; if (fs.length) importFiles(fs); }} />
+        </label>
+      </div>
+      {message && <p className={message.ok ? "ok-text" : "warn-text"} role="status">{message.text}</p>}
+    </div>
   );
 }

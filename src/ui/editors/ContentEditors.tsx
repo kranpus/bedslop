@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { convertBbmodel, isBbmodel } from "../../export/bbmodel";
 import type {
   ArmorElement, ArmorSlot, BlockElement, BlockFace, FoodElement, ItemElement, PlantElement, ToolElement, ToolType,
 } from "../../model/types";
@@ -127,7 +128,7 @@ function CreativeSection({ el, patch }: { el: BlockElement | ItemElement; patch:
   );
 }
 
-export function GeometryUpload({ value, onChange, label = "Blockbench model (.geo.json)" }: { value: string; onChange: (v: string) => void; label?: string }) {
+export function GeometryUpload({ value, onChange, label = "Blockbench model (.bbmodel or .geo.json)" }: { value: string; onChange: (v: string) => void; label?: string }) {
   let id: string | null = null;
   try {
     const d = JSON.parse(value);
@@ -139,7 +140,12 @@ export function GeometryUpload({ value, onChange, label = "Blockbench model (.ge
       <div className="row">
         <label className="btn small">
           Choose file…
-          <input type="file" accept=".json" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) onChange(await f.text()); }} />
+          <input type="file" accept=".bbmodel,.json" hidden onChange={async (e) => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            const text = await f.text();
+            try { onChange(isBbmodel(text) ? convertBbmodel(text).geometry : text); } catch { onChange(text); }
+          }} />
         </label>
         <span className={id ? "mono" : "muted"}>{id ?? (value ? "Couldn't read this file" : "No model yet. In Blockbench: File → Export → Bedrock Geometry.")}</span>
       </div>

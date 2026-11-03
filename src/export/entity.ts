@@ -181,12 +181,15 @@ export function genEntity(ctx: GenContext, e: EntityElement) {
   if (e.model === "custom") {
     const geo = geometryIdentifier(e.customGeometry);
     if (!geo) {
-      ctx.warn(e, "custom model is missing or unreadable, using the humanoid model instead.", "warning");
+      ctx.warn(e, e.customGeometry.trim()
+        ? "the custom model file couldn't be read. Import a Blockbench .bbmodel, or a Bedrock .geo.json (Blockbench: File → Export → Export Bedrock Geometry)."
+        : "is set to use a Blockbench model, but no model file has been imported yet.", "error");
+      ctx.rp(`models/entity/${ns}_humanoid.geo.json`, humanoidGeometry(ns));
     } else {
       ctx.rp(`models/entity/${ns}_${e.name}.geo.json`, e.customGeometry);
     }
     geometryId = geo ?? `geometry.${ns}.humanoid`;
-    if (!geo) ctx.rp(`models/entity/${ns}_humanoid.geo.json`, humanoidGeometry(ns));
+    let hasWalk = false, hasLook = false;
     if (e.customAnimations.trim()) {
       try {
         const anim = JSON.parse(e.customAnimations);
@@ -194,16 +197,30 @@ export function genEntity(ctx: GenContext, e: EntityElement) {
         for (const full of Object.keys(anim.animations ?? {})) {
           const short = full.split(".").pop()!.replace(/[^a-z0-9_]/gi, "_");
           animations[short] = full;
-          if (/walk|move|run/i.test(short)) animate.push({ [short]: "query.is_moving" });
+          if (/walk|move|run/i.test(short)) { animate.push({ [short]: "query.is_moving" }); hasWalk = true; }
           else if (/idle/i.test(short)) animate.push({ [short]: "!query.is_moving" });
           else if (anim.animations[full]?.loop === true) animate.push(short);
+          if (/look/i.test(short)) hasLook = true;
         }
       } catch {
         ctx.warn(e, "animation file could not be read and was skipped.");
       }
     }
+    // No walk or look animation supplied: generate them from recognisable bone names.
+    const auto = geo ? autoAnimations(ns, e.name, e.customGeometry, { walk: !hasWalk, look: !hasLook }) : null;
+    if (auto) {
+      ctx.rp(`animations/${ns}_${e.name}.auto.animation.json`, auto.file);
+      for (const [short, full] of Object.entries(auto.names)) {
+        animations[short] = full;
+        animate.push(short === "auto_walk" ? { auto_walk: "query.is_moving" } : short);
+      }
+    }
   } else {
     const preset = e.model;
+    const tex = ctx.texture(e.texture);
+    if (tex && (tex.width !== 64 || tex.height !== 64)) {
+      ctx.warn(e, `texture is ${tex.width}×${tex.height}, but the ${preset} model expects a 64×64 layout. If you made this mob in Blockbench, choose "Blockbench model" and import it.`);
+    }
     geometryId = `geometry.${ns}.${preset}`;
     ctx.rp(`models/entity/${ns}_${preset}.geo.json`, preset === "humanoid" ? humanoidGeometry(ns) : quadrupedGeometry(ns));
     ctx.rp(`animations/${ns}_presets.animation.json`, presetAnimations(ns));
@@ -229,4 +246,45 @@ export function genEntity(ctx: GenContext, e: EntityElement) {
   });
   ctx.lang.push(`entity.${id}.name=${e.displayName}`);
   ctx.lang.push(`item.spawn_egg.entity.${id}.name=${e.displayName} Spawn Egg`);
+}
+
+/** Simple walk + head-look animations for a custom model, matched by bone name. */
+export function autoAnimations(ns: string, name: string, geometryJson: string, want: { walk: boolean; look: boolean }) {
+  let bones: { name: string; parent?: string }[] = [];
+  try {
+    bones = JSON.parse(geometryJson)["minecraft:geometry"]?.[0]?.bones ?? [];
+  } catch {
+    return null;
+  }
+  const norm = (n: string) => n.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const pick = (test: (n: string) => boolean) =>
+    bones.filter((b) => test(norm(b.name))).sort((a, b) => a.name.length - b.name.length)[0]?.name;
+  const side = (n: string, s: "left" | "right") => n.includes(s) || new RegExp(`^${s[0]}(arm|leg)|(arm|leg)${s[0]}$`).test(n);
+  const limb = (kind: "arm" | "leg", s: "left" | "right") =>
+    pick((n) => n.includes(kind) && !n.includes("armor") && side(n, s) && !/lower|fore|hand|foot|claw|finger/.test(n));
+  const head = pick((n) => n === "head" || n.startsWith("head"));
+  const swing = (mult: number, neg = false) => `${neg ? "-" : ""}math.cos(query.modified_distance_moved * 38.17) * ${mult} * query.modified_move_speed`;
+
+  const animations: Record<string, unknown> = {};
+  const names: Record<string, string> = {};
+  if (want.walk) {
+    const walkBones: Record<string, unknown> = {};
+    const legR = limb("leg", "right"), legL = limb("leg", "left"), armR = limb("arm", "right"), armL = limb("arm", "left");
+    if (legR) walkBones[legR] = { rotation: [swing(57.3, true), 0, 0] };
+    if (legL) walkBones[legL] = { rotation: [swing(57.3), 0, 0] };
+    if (armR) walkBones[armR] = { rotation: [swing(40), 0, 0] };
+    if (armL) walkBones[armL] = { rotation: [swing(40, true), 0, 0] };
+    if (legR || legL) {
+      const id = `animation.${ns}.${name}.auto_walk`;
+      animations[id] = { loop: true, bones: walkBones };
+      names.auto_walk = id;
+    }
+  }
+  if (want.look && head) {
+    const id = `animation.${ns}.${name}.auto_look`;
+    animations[id] = { loop: true, bones: { [head]: { rotation: ["query.target_x_rotation", "query.target_y_rotation", 0] } } };
+    names.auto_look = id;
+  }
+  if (!Object.keys(names).length) return null;
+  return { file: { format_version: FORMATS.animation, animations }, names };
 }
