@@ -89,7 +89,7 @@ Ordered by user value:
 1. ⬜ **Blockly procedure editor** alongside the simple builder (both compile to the same Script API code). Variables: world, player and entity scoped, stored as dynamic properties. Loops, math, text, lists, if/else, wait (`system.runTimeout`).
 2. ⬜ **Forms (MCreator GUIs)** via `@minecraft/server-ui`: action forms (buttons → procedures), modal forms (text, slider, dropdown, toggle → variables), message forms. "Open form" action.
 3. ⬜ **Command arguments**: typed parameters (player, number, text, item, enum) usable inside actions.
-4. ⬜ **3D previews** (three.js): items in hand, mobs with animations, armor on a player, Blockbench models.
+4. 🟡 **3D previews** (three.js): ✅ mobs with live animations, controllers and game-state toggles. ⬜ blocks with custom models, items in hand, armor on a player.
 5. ⬜ **Projectiles and ranged items**: throwables, bows/shooters, custom projectile entities with on-hit procedures.
 6. ⬜ **Special block shapes**: slabs, stairs, fences, walls, doors, trapdoors, panes, carpets (geometry presets + block states + scripts).
 7. ⬜ **Crops**: growth stages, bonemeal, seeds, harvest drops.
@@ -145,6 +145,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.1.4**: Animated 3D preview for mobs, built from exactly what gets exported: model, texture, animations and controllers. "As in game" mode with walking/attack/hurt/water/fire/dying/look toggles, "Single animation" mode with a scrubbable timeline, playback speed, and front/side/back/top views. Includes a Molang interpreter. "Match walking speed" now scales by `query.modified_move_speed` (the old distance-based formula could play far too fast in game).
 
 - **0.1.3**: Manual model files for custom mobs: upload Blockbench's own `.geo.json`, `.animation.json` and `.animation_controllers.json`; they're written to the pack unchanged and unmodified animations are referenced directly. Uploaded controllers can be switched on in the animation list, and animations they already play aren't double-played. `.bbmodel` conversion fixes: blank scale axes no longer collapse to 0; before/after keyframes, step keyframes, override, blend weight, start/loop delay and time update are kept. Warning when a texture's shape doesn't match the model.
 

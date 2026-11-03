@@ -41,7 +41,7 @@ export const PARITY: ParityRow[] = [
   { mcreator: "Music disc", bedrock: "jukebox_playable + jukebox songs", status: "planned", phase: 2, notes: "" },
   { mcreator: "Tags", bedrock: "Item/block tags", status: "partial", phase: 2, notes: "Item tags work now; tag editor in phase 2." },
   { mcreator: "Localization", bedrock: "texts/*.lang", status: "partial", phase: 2, notes: "en_US is generated; multi-language editor in phase 2." },
-  { mcreator: "3D model import / preview", bedrock: "Blockbench .geo.json", status: "partial", phase: 2, notes: "Import works now; 3D preview in phase 2." },
+  { mcreator: "3D model import / preview", bedrock: "Blockbench .bbmodel / .geo.json", status: "partial", phase: 2, notes: "Mob import and animated 3D preview are ready; previews for blocks, items and armor come next." },
   { mcreator: "Creative tab", bedrock: "menu_category groups", status: "partial", phase: 2, notes: "Vanilla categories and groups only; Bedrock has no custom tabs." },
   // Phase 3: Bedrock gaps covered by scripting
   { mcreator: "Enchantment", bedrock: "Script-simulated", status: "workaround", phase: 3, notes: "No data-driven enchantments; simulate with lore + dynamic properties + events." },

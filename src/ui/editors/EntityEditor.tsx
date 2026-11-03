@@ -2,6 +2,7 @@ import type { AnimationSlot, AnimWhen, AutoRig, EntityElement, RigRole } from ".
 import { BIOME_TAGS } from "../../model/vanilla";
 import { ChipList, Color, Field, Grid, IdInput, Num, Section, Segmented, Select, Slider, Toggle } from "../fields";
 import { TexturePicker } from "../TexturePicker";
+import { MobPreview } from "../MobPreview";
 import { useState } from "react";
 import { convertBbmodel, isBbmodel } from "../../export/bbmodel";
 import { geometryIdentifier } from "../../export/context";
@@ -20,6 +21,10 @@ export function EntityEditor({ el, patch }: { el: EntityElement; patch: Patch<En
     patch({ drops: el.drops.map((d, k) => (k === i ? { ...d, ...p } : d)) }, `drop-${i}`);
   return (
     <>
+      <Section title="3D preview" hint="Exactly what the add-on exports. Edits update it live.">
+        <MobPreview el={el} />
+      </Section>
+
       <Section title="Model & texture">
         <Segmented value={el.model} onChange={(model) => patch({ model })} options={[
           { value: "humanoid", label: "Humanoid (player-shaped)" }, { value: "quadruped", label: "Four-legged animal" }, { value: "custom", label: "Blockbench model" },
@@ -310,7 +315,7 @@ function AnimationSection({ el, patch }: { el: EntityElement; patch: Patch<Entit
                       options={[{ value: "loop", label: "Loops while active" }, { value: "once", label: "Plays once each time" }]} />
                   )}
                   {s.animation !== AUTO_LOOK && !isCtrl && <Num label={auto ? "Step speed" : "Speed"} step={0.1} min={0.1} value={s.speed} onChange={(speed) => setSlot(i, { speed }, `speed-${s.id}`)} suffix="×" />}
-                  {!auto && !isCtrl && <Toggle label="Match walking speed" value={s.matchMovement} onChange={(matchMovement) => setSlot(i, { matchMovement })} help="Steps follow how far the mob moves, so feet don't slide." />}
+                  {!auto && !isCtrl && <Toggle label="Match walking speed" value={s.matchMovement} onChange={(matchMovement) => setSlot(i, { matchMovement })} help="Plays faster when the mob moves faster and pauses when it stops." />}
                 </div>
               </div>
             );

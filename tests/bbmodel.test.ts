@@ -194,7 +194,7 @@ describe("manual animation assignment", () => {
     const { client, anims, ctrls, warnings } = out(p);
     expect(warnings.filter((w) => w.level === "error")).toEqual([]);
     expect(client.scripts.animate).toEqual([{ slot0: "query.is_moving" }, "slot1_ctrl", { slot3: "query.is_sneaking" }, { slot4: "!query.is_moving" }]);
-    expect(anims["animation.mobs.ghoul.slot0"].anim_time_update).toBe("query.modified_distance_moved * 0.4");
+    expect(anims["animation.mobs.ghoul.slot0"].anim_time_update).toBe("query.anim_time + query.delta_time * query.modified_move_speed * 1");
     // "claw" keeps its own settings, so the controller plays the uploaded animation itself.
     expect(anims["animation.mobs.ghoul.slot1"]).toBeUndefined();
     expect(anims["animation.mobs.ghoul.slot2"]).toBeUndefined();

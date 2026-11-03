@@ -227,7 +227,8 @@ export function buildAnimations(ns: string, e: EntityElement): BuiltAnimations {
       reuse = speed === 1 && !s.matchMovement && (s.mode === "loop") === a.loop;
       if (reuse) short = names.get(a.id)!;
       def = structuredClone(a.def);
-      if (s.matchMovement) def.anim_time_update = `query.modified_distance_moved * ${round(0.4 * speed)}`;
+      // Plays at full speed while walking normally, slower when slower, and stops when the mob stops.
+      if (s.matchMovement) def.anim_time_update = `query.anim_time + query.delta_time * query.modified_move_speed * ${round(speed)}`;
       else if (speed !== 1) def.anim_time_update = `query.anim_time + query.delta_time * ${round(speed)}`;
     }
     if (reuse) {
