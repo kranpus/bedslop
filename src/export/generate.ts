@@ -1,9 +1,9 @@
 import type { CommandElement, ModElement, Project } from "../model/types";
 import { genArmor, genBlock, genFood, genItem, genPlant, genTool } from "./content";
-import { GenContext, type FileMap, type Warning, dataUrlToBytes, vec } from "./context";
+import { GenContext, type FileMap, type Warning, compareVersion, dataUrlToBytes, vec } from "./context";
 import { genFunction, genLoot, genOre, genRecipe, genSound } from "./data";
 import { genEntity } from "./entity";
-import { buildScript, genCommands, genProcedure } from "./scripts";
+import { buildScript, genBlockScripts, genCommands, genProcedure } from "./scripts";
 import { genForm } from "./forms";
 import { uiVersionFor } from "../model/project";
 
@@ -94,11 +94,6 @@ function manifests(ctx: GenContext, usesScripts: boolean) {
   });
 }
 
-function compareVersion(a: string, b: string) {
-  const pa = a.split(/[.-]/).map(Number), pb = b.split(/[.-]/).map(Number);
-  for (let i = 0; i < 3; i++) if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0);
-  return 0;
-}
 
 export function generateAddon(project: Project, packIconPng?: Uint8Array): GenerateResult {
   const ctx = new GenContext(project);
@@ -129,6 +124,16 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
     ctx.warn(undefined, "Custom commands need Script API 2.1.0 or newer (Minecraft 1.21.100+). Change it in Project settings.", "error");
   }
   genCommands(ctx, commands);
+  genBlockScripts(ctx);
+
+  // Features in use that need a newer game or Script API than the project targets.
+  for (const r of ctx.requires) {
+    if (r.engine && compareVersion(project.minEngine, r.engine) < 0) {
+      ctx.warnings.push({ elementId: r.elementId, level: "error", message: `${r.reason} need Minecraft ${r.engine} or newer, but the project targets ${project.minEngine.join(".")}. Change the Script API in Settings (or use “Update project version” on the block).` });
+    } else if (r.api && compareVersion(project.scriptApi, r.api) < 0) {
+      ctx.warnings.push({ elementId: r.elementId, level: "error", message: `${r.reason} need Script API ${r.api} or newer (project uses ${project.scriptApi}). Change it in Settings.` });
+    }
+  }
 
   const script = buildScript(ctx);
   if (script) ctx.bp("scripts/main.js", script);

@@ -66,6 +66,29 @@ export interface BlockElement extends BaseElement {
   geometry: "full" | "custom";
   customGeometry: string;
   bestTool: "none" | "pickaxe" | "axe" | "shovel" | "hoe";
+  /** Hitbox for custom models: whole block, fitted to the model, or none (walk through). */
+  collision?: "full" | "model" | "none";
+  /** What the block does when used. */
+  function?: "none" | "crafting" | "storage";
+  /** Crafting station: recipes tagged with any of these can be made here. */
+  craftingTags?: string[];
+  tableName?: string;
+  /** Storage: number of slots (1-54) and the title shown on its screen. */
+  slotCount?: number;
+  containerTitle?: string;
+  /** Redstone output power 0-15 (0 = none). */
+  redstonePower?: number;
+  /** "always": constant signal; "toggle": right-click switches it on and off, like a lever. */
+  redstoneMode?: "always" | "toggle";
+  /** Reacts to incoming redstone (onRedstoneUpdate). */
+  redstoneInput?: boolean;
+  /** Lights up while powered (input) or switched on (toggle), like a redstone lamp. */
+  litWhenPowered?: boolean;
+  litLevel?: number;
+  /** Texture used while on/powered, "" = unchanged. */
+  poweredTexture?: string;
+  /** Lets a redstone signal pass through to the next block. */
+  passesPower?: boolean;
 }
 
 export interface PlantElement extends BaseElement {
@@ -235,6 +258,8 @@ export interface RecipeElement extends BaseElement {
   smithingAddition: string;
   result: string;
   count: number;
+  /** Where shaped/shapeless recipes can be crafted: "crafting_table" and/or custom station tags. */
+  stations?: string[];
 }
 
 export interface LootEntry {
@@ -297,7 +322,9 @@ export type TriggerType =
   | "entity_hurt"
   | "entity_die"
   | "tick"
-  | "manual";
+  | "manual"
+  | "redstone_on"
+  | "redstone_off";
 
 export interface ProcedureElement extends BaseElement {
   kind: "procedure";

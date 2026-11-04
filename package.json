@@ -28,6 +28,7 @@
     "@types/react-dom": "^19.3.0",
     "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "mcserver211": "npm:@minecraft/server@^2.11.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.7",
     "vitest": "^3.2.7"

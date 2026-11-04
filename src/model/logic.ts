@@ -372,6 +372,8 @@ export const TRIGGERS: TriggerSpec[] = [
   { type: "player_join", label: "Player joins the world", filter: null, has: { target: false, block: false }, help: "" },
   { type: "player_respawn", label: "Player respawns", filter: null, has: { target: false, block: false }, help: "" },
   { type: "tick", label: "Every few ticks (for each player)", filter: null, has: { target: false, block: false }, help: "20 ticks = 1 second." },
+  { type: "redstone_on", label: "A block receives redstone power", filter: { kind: "block", label: "Block" }, has: { target: false, block: true }, help: "Works on your blocks with “Reacts to redstone” turned on. {power} is the signal strength." },
+  { type: "redstone_off", label: "A block loses redstone power", filter: { kind: "block", label: "Block" }, has: { target: false, block: true }, help: "Works on your blocks with “Reacts to redstone” turned on." },
   { type: "manual", label: "Only when run by another procedure, command or form", filter: null, has: { target: true, block: true }, help: "Use the “Run another procedure” step to start it. It sees the same player and target as whatever ran it." },
 ];
 

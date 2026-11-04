@@ -27,6 +27,9 @@ export function shapedPattern(grid: string[]) {
   return { pattern, key };
 }
 
+/** Where a crafting recipe can be made: the vanilla table and/or custom crafting stations (their tags). */
+const stations = (r: RecipeElement) => (r.stations?.length ? r.stations : ["crafting_table"]);
+
 export function genRecipe(ctx: GenContext, r: RecipeElement) {
   const identifier = ctx.id(r.name);
   const count = clampInt(r.count, 1, 64);
@@ -38,13 +41,13 @@ export function genRecipe(ctx: GenContext, r: RecipeElement) {
     case "shaped": {
       const p = shapedPattern(r.grid);
       if (!p) return ctx.warn(r, "has an empty crafting grid, so it was skipped.", "error");
-      body = { "minecraft:recipe_shaped": { description: { identifier }, tags: ["crafting_table"], ...p, result } };
+      body = { "minecraft:recipe_shaped": { description: { identifier }, tags: stations(r), ...p, result } };
       break;
     }
     case "shapeless": {
       const ingredients = r.grid.filter(Boolean).map((item) => ({ item }));
       if (!ingredients.length) return ctx.warn(r, "has no ingredients, so it was skipped.", "error");
-      body = { "minecraft:recipe_shapeless": { description: { identifier }, tags: ["crafting_table"], ingredients, result } };
+      body = { "minecraft:recipe_shapeless": { description: { identifier }, tags: stations(r), ingredients, result } };
       break;
     }
     case "furnace": {

@@ -2,7 +2,7 @@
 import type {
   ArmorElement, ArmorSlot, BlockElement, FoodElement, ItemElement, PlantElement, ToolElement,
 } from "../model/types";
-import { FORMATS, GenContext, geometryIdentifier } from "./context";
+import { FORMATS, GenContext, geometryIdentifier, maxVersion } from "./context";
 
 const menu = (category: string, group?: string) => (group ? { category, group } : { category });
 
@@ -45,13 +45,15 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
   }
 
   let geometry = "minecraft:geometry.full_block";
+  let modelBox: { origin: number[]; size: number[] } | null = null;
   if (b.geometry === "custom") {
     const geoId = geometryIdentifier(b.customGeometry);
     if (geoId) {
       geometry = geoId;
       ctx.rp(`models/blocks/${ctx.ns}_${b.name}.geo.json`, b.customGeometry);
+      modelBox = modelBounds(b.customGeometry);
     } else {
-      ctx.warn(b, "custom model could not be read, using a full block instead.");
+      ctx.warn(b, "custom model could not be read, using a full block instead.", "error");
     }
   }
 
@@ -75,8 +77,74 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
   }
   for (const tag of TOOL_TAGS[b.bestTool]) components[`tag:${tag}`] = {};
 
+  // Hitbox for custom models.
+  if (b.geometry === "custom" && modelBox) {
+    const mode = b.collision ?? "model";
+    if (mode === "none") {
+      components["minecraft:collision_box"] = false;
+      components["minecraft:selection_box"] = modelBox;
+    } else if (mode === "model") {
+      components["minecraft:collision_box"] = modelBox;
+      components["minecraft:selection_box"] = modelBox;
+    }
+  }
+
+  // Each feature needs a minimum block format (and sometimes game / Script API version).
+  let format = FORMATS.block;
+  const need = (fmt: string, reason: string, engine?: string, api?: string) => {
+    format = maxVersion(format, fmt);
+    ctx.requires.push({ engine: engine ?? fmt, api, reason: `${b.displayName}: ${reason}`, elementId: b.id });
+  };
+
+  // What the block does when used.
+  const fn = b.function ?? "none";
+  if (fn === "crafting") {
+    const tags = (b.craftingTags?.length ? b.craftingTags : [id]).slice(0, 64);
+    components["minecraft:crafting_table"] = { crafting_tags: tags, table_name: b.tableName || b.displayName };
+  } else if (fn === "storage") {
+    components["minecraft:block_entity"] = { container: { slot_count: clampInt(b.slotCount ?? 27, 1, 54), title: (b.containerTitle || b.displayName).slice(0, 256) } };
+    need("1.26.20", "storage blocks", "1.26.60");
+  }
+
+  // Redstone.
+  const power = clampInt(b.redstonePower ?? 0, 0, 15);
+  const toggle = power > 0 && b.redstoneMode === "toggle";
+  const input = !!b.redstoneInput;
+  const onState = `${ctx.ns}:on`;
+  const lit = !!b.litWhenPowered && (toggle || input);
+  const hasOnState = toggle || (input && (lit || !!b.poweredTexture));
+  const states: Record<string, unknown> = {};
+  const onComponents: Record<string, unknown> = {};
+  if (power > 0 && !toggle) {
+    components["minecraft:redstone_producer"] = { power };
+    need("1.21.120", "redstone output");
+  }
+  if (toggle) {
+    onComponents["minecraft:redstone_producer"] = { power };
+    need("1.21.120", "redstone output");
+  }
+  if (input) {
+    components["minecraft:redstone_consumer"] = { min_power: 0, propagates_power: !!b.passesPower };
+    need("1.26.0", "redstone input", "1.26.0", "2.5.0");
+  }
+  if (hasOnState) {
+    states[onState] = [false, true];
+    if (lit) onComponents["minecraft:light_emission"] = clampInt(b.litLevel ?? 15, 1, 15);
+    if (b.poweredTexture) {
+      const key = ctx.terrainKey(b.poweredTexture);
+      if (key) onComponents["minecraft:material_instances"] = { "*": { texture: key, render_method: rm } };
+    }
+  }
+  if (toggle || input) {
+    // Script behaviour lives in a custom component registered in main.js.
+    const component = `${ctx.ns}:${b.name}_logic`;
+    components[component] = {};
+    need("1.21.90", "lever / redstone behaviour");
+    ctx.script.blocks.push({ id, component, toggleState: toggle ? onState : undefined, litState: input && hasOnState ? onState : undefined, input });
+  }
+
   const block: Record<string, unknown> = {
-    description: { identifier: id, menu_category: menu(b.category, b.group) } as Record<string, unknown>,
+    description: { identifier: id, menu_category: menu(b.category, b.group), ...(Object.keys(states).length ? { states } : {}) } as Record<string, unknown>,
     components,
   };
 
@@ -101,9 +169,39 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
     ];
   }
 
-  ctx.bp(`blocks/${b.name}.json`, { format_version: FORMATS.block, "minecraft:block": block });
+  if (Object.keys(onComponents).length) {
+    block.permutations = [...((block.permutations as unknown[]) ?? []), { condition: `q.block_state('${onState}')`, components: onComponents }];
+  }
+  ctx.bp(`blocks/${b.name}.json`, { format_version: format, "minecraft:block": block });
   ctx.blockSounds[id] = { sound: b.sound };
   ctx.lang.push(`tile.${id}.name=${b.displayName}`);
+}
+
+/** The space a custom block model fills, as a collision/selection box (block pixels, x/z -8..8, y 0..16). */
+export function modelBounds(geometryJson: string): { origin: number[]; size: number[] } | null {
+  try {
+    const bones = JSON.parse(geometryJson)["minecraft:geometry"]?.[0]?.bones ?? [];
+    const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+    for (const bone of bones) for (const c of bone.cubes ?? []) {
+      const inf = Number(c.inflate) || 0;
+      for (let i = 0; i < 3; i++) {
+        lo[i] = Math.min(lo[i], Number(c.origin[i]) - inf);
+        hi[i] = Math.max(hi[i], Number(c.origin[i]) + Number(c.size[i]) + inf);
+      }
+    }
+    if (!Number.isFinite(lo[0])) return null;
+    const clampAxis = (i: number) => {
+      const [min, max] = i === 1 ? [0, 16] : [-8, 8];
+      let a = Math.max(min, Math.min(max, lo[i])), z = Math.max(min, Math.min(max, hi[i]));
+      // Flat models (e.g. a sign) still need a little thickness to be clickable.
+      if (z - a < 1) { const mid = (a + z) / 2; a = Math.max(min, mid - 0.5); z = Math.min(max, a + 1); }
+      return [round(a), round(z - a)];
+    };
+    const axes = [0, 1, 2].map(clampAxis);
+    return { origin: axes.map((x) => x[0]), size: axes.map((x) => x[1]) };
+  } catch {
+    return null;
+  }
 }
 
 // ---------- Plants ----------

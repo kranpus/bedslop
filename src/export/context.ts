@@ -32,6 +32,10 @@ export interface ScriptParts {
   /** Ids of tools mapped to [durability cost when mining, cost when hitting]. */
   tools: Record<string, [number, number]>;
   foods: Record<string, [string, number, number, number][]>;
+  /** Blocks with script behaviour (lever toggles, redstone input), keyed by block id. */
+  blocks: { id: string; component: string; toggleState?: string; litState?: string; input: boolean }[];
+  /** Procedures started by redstone: [function name, true = powered / false = unpowered, block id or ""]. */
+  redstone: [string, boolean, string][];
 }
 
 export class GenContext {
@@ -44,7 +48,9 @@ export class GenContext {
   readonly blockSounds: Record<string, { sound: string }> = {};
   readonly soundDefs: Record<string, unknown> = {};
   readonly tickFunctions: string[] = [];
-  readonly script: ScriptParts = { imports: new Set(["world", "system", "ItemStack"]), uiImports: new Set(), sections: [], tools: {}, foods: {} };
+  /** Minimum game / Script API versions that features in use need, with the reason. */
+  readonly requires: { engine?: string; api?: string; reason: string; elementId: string }[] = [];
+  readonly script: ScriptParts = { imports: new Set(["world", "system", "ItemStack"]), uiImports: new Set(), sections: [], tools: {}, foods: {}, blocks: [], redstone: [] };
   private writtenTextures = new Map<string, string>();
 
   constructor(readonly project: Project) {
@@ -147,3 +153,11 @@ export function geometryIdentifier(json: string): string | null {
 }
 
 export const vec = (v: [number, number, number]) => v.map((n) => Math.max(0, Math.floor(Number(n) || 0))) as [number, number, number];
+
+/** Compares dotted versions: negative if a < b. */
+export function compareVersion(a: string | number[], b: string | number[]) {
+  const pa = (Array.isArray(a) ? a : a.split(/[.-]/)).map(Number), pb = (Array.isArray(b) ? b : b.split(/[.-]/)).map(Number);
+  for (let i = 0; i < 3; i++) if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0);
+  return 0;
+}
+export const maxVersion = (...vs: string[]) => vs.reduce((m, v) => (compareVersion(v, m) > 0 ? v : m));

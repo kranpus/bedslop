@@ -190,6 +190,12 @@ export function genProcedure(ctx: GenContext, p: ProcedureElement) {
     case "manual":
       hook = "";
       break;
+    case "redstone_on":
+    case "redstone_off":
+      // Started from the block's custom component (see genBlockScripts).
+      ctx.script.redstone.push([fn, p.trigger === "redstone_on", filter]);
+      hook = "";
+      break;
     case "tick":
       hook = `system.runInterval(() => {\n  for (const player of world.getAllPlayers()) ${fn}(BC.ctxP(player));\n}, ${Math.max(1, Math.round(p.intervalTicks) || 20)});`;
       break;
@@ -303,6 +309,53 @@ world.afterEvents.itemCompleteUse.subscribe((ev) => {
 `;
   }
   return out;
+}
+
+/** Lever toggles, lamp lighting and redstone-triggered procedures, via block custom components. */
+export function genBlockScripts(ctx: GenContext) {
+  const { blocks, redstone } = ctx.script;
+  const inputs = new Set(blocks.filter((b) => b.input).map((b) => b.id));
+  for (const [fn, , filter] of redstone) {
+    const proc = ctx.project.elements.find((e) => e.kind === "procedure" && fnName("proc", e.name) === fn);
+    if (filter && !inputs.has(filter)) ctx.warn(proc, `listens for redstone on ${filter}, but that block doesn't react to redstone. Turn on “Reacts to redstone” in the block's Redstone settings.`, "error");
+    else if (!filter && !inputs.size) ctx.warn(proc, "listens for redstone, but no block reacts to redstone yet. Turn on “Reacts to redstone” on a block.", "error");
+  }
+  if (!blocks.length) return;
+  const regs = blocks.map((b) => {
+    const handlers: string[] = [];
+    if (b.toggleState) handlers.push(`    onPlayerInteract(e) {
+      BC.run(${S(`${b.id}: switch`)}, () => {
+        const block = e.block;
+        const on = bcGetState(block, ${S(b.toggleState)}) !== true;
+        bcSetState(block, ${S(b.toggleState)}, on);
+        e.dimension.playSound("random.click", block.location, { pitch: on ? 0.6 : 0.5 });
+      });
+    },`);
+    if (b.input) handlers.push(`    onRedstoneUpdate(e) {
+      BC.run(${S(`${b.id}: redstone`)}, () => bcRedstone(e, ${S(b.id)}, ${b.litState ? S(b.litState) : "undefined"}));
+    },`);
+    return `  registry.registerCustomComponent(${S(b.component)}, {\n${handlers.join("\n")}\n  });`;
+  });
+  ctx.script.sections.push(`// Custom block behaviour
+/** Procedures started by redstone: when powered (on: true) or unpowered, on one block or "" for any. */
+const BC_REDSTONE = [${redstone.map(([fn, on, f]) => `{ run: ${fn}, on: ${on}, block: ${S(f)} }`).join(", ")}];
+// Custom block states (like "ns:on") aren't in the built-in state list, so they're passed through untyped.
+function bcGetState(block, name) { return block.permutation.getState(/** @type {any} */ (name)); }
+function bcSetState(block, name, value) { block.setPermutation(block.permutation.withState(/** @type {any} */ (name), value)); }
+function bcRedstone(e, id, litState) {
+  const on = e.powerLevel > 0, was = e.previousPowerLevel > 0;
+  const block = e.block;
+  if (litState && bcGetState(block, litState) !== on) bcSetState(block, litState, on);
+  if (on === was) return;
+  const l = block.location;
+  const ctx = { dimension: e.dimension, location: { x: l.x + 0.5, y: l.y, z: l.z + 0.5 }, block: { x: l.x + 0.5, y: l.y, z: l.z + 0.5 }, args: { power: e.powerLevel } };
+  for (const r of BC_REDSTONE) if (r.on === on && (!r.block || r.block === id)) BC.run("redstone procedure", () => r.run(ctx));
+}
+system.beforeEvents.startup.subscribe((ev) => {
+  const registry = ev.blockComponentRegistry;
+${regs.join("\n")}
+});
+`);
 }
 
 /** Returns the main.js source, or null when the add-on needs no scripting. */
