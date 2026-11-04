@@ -343,6 +343,15 @@ export function exampleProject(p: Project): Project {
   bush.seedsTexture = tex("ruby_berry_crop_seeds", "seeds", "#c9a25a", "item");
   bush.produce = "ruby:ruby_berry";
 
+  // Custom enchantments with books the merchant sells.
+  const vampire = createElement("enchantment", "vampire", "Vampire");
+  Object.assign(vampire, { maxLevel: 3, targets: ["sword", "axe"], effects: [
+    { id: uid(), when: "hit", type: "lifesteal", amount: 10, perLevel: 5 },
+    { id: uid(), when: "hit", type: "effect", effect: "wither", amount: 1, perLevel: 1 },
+  ] });
+  const sight = createElement("enchantment", "ruby_sight", "Ruby Sight");
+  Object.assign(sight, { maxLevel: 1, targets: ["helmet"], effects: [{ id: uid(), when: "equipped", type: "self_effect", effect: "night_vision", amount: 0, perLevel: 0 }] });
+
   // Brewing: a ruby turns an awkward potion into Regeneration II.
   const brew = createElement("recipe", "ruby_regeneration", "Ruby regeneration brew");
   Object.assign(brew, { recipeType: "brewing", brewMode: "mix", input: "minecraft:potion_type:awkward", reagent: "ruby:ruby", result: "minecraft:potion_type:strong_regeneration" });
@@ -393,7 +402,12 @@ export function exampleProject(p: Project): Project {
     { wants: "ruby:ruby", wantsCount: 8, wants2: "minecraft:stick", wants2Count: 1, gives: "ruby:ruby_wand", givesCount: 1, maxUses: 2 },
   ];
 
-  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle, lamp, lampClick, brew];
+  merchant.trades!.push(
+    { wants: "ruby:ruby", wantsCount: 12, wants2: "minecraft:book", wants2Count: 1, gives: "ruby:vampire_book", givesCount: 1, maxUses: 3 },
+    { wants: "ruby:ruby", wantsCount: 8, gives: "ruby:ruby_sight_book", givesCount: 1, maxUses: 3 },
+  );
+
+  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle, lamp, lampClick, brew, vampire, sight];
   p.textures = textures;
   p.packIcon = textures.find((t) => t.name === "ruby")?.id ?? "";
   return p;

@@ -554,6 +554,14 @@ export function buildScript(ctx: GenContext): string | null {
   }
   if (stubs.length) sections += "\n// Missing references\n" + stubs.join("\n") + "\n";
   const structures = new Set(ctx.project.elements.filter((e) => e.kind === "structure").map((e) => e.name));
+  // Enchantment steps need the enchantment script, which only exists when the project has enchantments.
+  const enchantments = new Set(ctx.project.elements.filter((e) => e.kind === "enchantment").map((e) => e.name));
+  for (const m of new Set([...sections.matchAll(/bcEnchant(?:Held\(ctx|Level\(BC\.heldStack\(ctx\.player\)), "([^"]*)"/g)].map((m) => m[1]))) {
+    if (!enchantments.has(m)) ctx.warn(undefined, `A step uses the enchantment "${m}", which doesn't exist (renamed or deleted?).`, "error");
+  }
+  if (!enchantments.size && /bcEnchant(Held|Level)\(/.test(sections)) {
+    sections += "\n// Missing references\nfunction bcEnchantHeld(ctx, name, level) {}\nfunction bcEnchantLevel(stack, name) { return 0; }\n";
+  }
   const particles = new Set(ctx.project.elements.filter((e) => e.kind === "particle").map((e) => e.name));
   for (const m of new Set([...sections.matchAll(/BC\.particle\(ctx, "([^"]+)"/g)].map((m) => m[1]))) {
     if (!m.includes(":") && !particles.has(m)) ctx.warn(undefined, `A step spawns the particle effect "${m}", which doesn't exist (renamed or deleted?).`, "error");

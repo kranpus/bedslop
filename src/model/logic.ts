@@ -5,7 +5,7 @@ import type { TriggerType } from "./types";
 
 export type ParamKind =
   | "text" | "longtext" | "number" | "bool" | "item" | "block" | "entity" | "effect" | "sound"
-  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle";
+  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle" | "enchantment";
 
 export interface ParamSpec {
   key: string;
@@ -219,6 +219,15 @@ export const ACTIONS: ActionSpec[] = [
     code: (g) => `BC.explode(ctx, ${S(g.f("at"))}, ${g.e("power")}, ${!!g.f("fire")}, ${!!g.f("breaks")});`,
   },
   {
+    type: "enchant_held", label: "Enchant held item", group: "Items",
+    params: [
+      { key: "enchantment", label: "Enchantment", kind: "enchantment", default: "" },
+      { key: "level", label: "Level (0 = one more)", kind: "number", default: 1 },
+    ],
+    summary: (p) => `Enchant held item with ${p.enchantment || "(none)"} ${Number(p.level) > 0 ? p.level : "+1"}`,
+    code: (g) => (g.f("enchantment") ? `bcEnchantHeld(ctx, ${S(g.f("enchantment"))}, ${g.e("level")});` : "// No enchantment selected"),
+  },
+  {
     type: "set_block_state", label: "Set block state", group: "World",
     params: [
       at("block"),
@@ -346,6 +355,12 @@ export const CONDITIONS: ConditionSpec[] = [
   {
     type: "holding", label: "Player is holding item", params: [{ key: "item", label: "Item", kind: "item", default: "minecraft:stick" }],
     summary: (p) => `player holds ${p.item}`, code: (g) => `BC.held(ctx.player) === ${S(g.f("item"))}`,
+  },
+  {
+    type: "held_enchant", label: "Held item has enchantment",
+    params: [{ key: "enchantment", label: "Enchantment", kind: "enchantment", default: "" }, { key: "level", label: "At least level", kind: "number", default: 1 }],
+    summary: (p) => `held item has ${p.enchantment || "(none)"} ≥ ${p.level}`,
+    code: (g) => `bcEnchantLevel(BC.heldStack(ctx.player), ${S(g.f("enchantment"))}) >= (${g.e("level")})`,
   },
   {
     type: "holding_tag", label: "Player is holding an item tagged", params: [{ key: "tag", label: "Item tag", kind: "text", default: "minecraft:is_sword" }],

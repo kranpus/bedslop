@@ -178,6 +178,8 @@ describe("example project", () => {
     const lamp = JSON.parse(files.get("BP/blocks/ruby_lamp.json") as string)["minecraft:block"];
     expect(lamp.description.states).toEqual({ "ruby:lit": [false, true] });
     expect(JSON.parse(files.get("BP/recipes/ruby_regeneration.json") as string)["minecraft:recipe_brewing_mix"].reagent).toBe("ruby:ruby");
+    expect(files.has("BP/items/vampire_book.json")).toBe(true);
+    expect(files.get("BP/scripts/main.js")).toContain(`"ruby_sight": { title: "Ruby Sight"`);
     expect(lamp.permutations.at(-1).components["minecraft:light_emission"]).toBe(15);
     expect(files.get("BP/scripts/main.js")).toContain(`BC.particle(ctx, "ruby_sparkle"`);
     expect(typecheckScript(files.get("BP/scripts/main.js") as string)).toEqual([]);

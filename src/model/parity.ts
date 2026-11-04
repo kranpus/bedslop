@@ -52,7 +52,7 @@ export const PARITY: ParityRow[] = [
   { mcreator: "3D model import / preview", bedrock: "Blockbench .bbmodel / .geo.json", status: "partial", phase: 2, notes: "Mob import and animated 3D preview are ready; previews for blocks, items and armor come next." },
   { mcreator: "Creative tab", bedrock: "menu_category groups", status: "partial", phase: 2, notes: "Vanilla categories and groups only; Bedrock has no custom tabs." },
   // Phase 3: Bedrock gaps covered by scripting
-  { mcreator: "Enchantment", bedrock: "Script-simulated", status: "workaround", phase: 3, notes: "No data-driven enchantments; simulate with lore + dynamic properties + events." },
+  { mcreator: "Enchantment", bedrock: "Script-simulated", status: "done", phase: 3, notes: "Run by script: stored on the item with a tooltip line; hit, break and worn effects; enchanted books. Not in the enchanting table or anvil." },
   { mcreator: "Potion effect", bedrock: "Script-simulated", status: "workaround", phase: 3, notes: "No custom effects; simulate with timed scripts and HUD text." },
   { mcreator: "Achievement / advancement", bedrock: "Script-simulated", status: "workaround", phase: 3, notes: "Track with dynamic properties, announce with titles/toasts." },
   { mcreator: "Overlay", bedrock: "JSON UI / title + actionbar", status: "workaround", phase: 3, notes: "Simple overlays via actionbar/title; full HUD via JSON UI." },

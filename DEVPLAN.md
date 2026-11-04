@@ -97,6 +97,7 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [ ] Tags: `#tag` shaped/shapeless recipes accept tagged items; tag conditions; custom block states persist, rules apply, set/cycle steps work on placed blocks
 - [ ] Music discs: jukebox plays the song, stops at the set length, hopper ejects; "Now playing" shows the disc name; comparator signal
 - [ ] Brewing: custom-ingredient mixes and bottle changes show up and work in the brewing stand
+- [ ] Custom enchantments: book form applies and levels up; lore shows; hit/break/worn effects fire (and extra damage doesn't loop); bow enchantments apply to arrows
 - [ ] Manual animation slots: "When attacking" (`variable.attack_time`), "When hurt" and "When dying" fire at the right moment; one-shot controllers replay on each attack; "Match walking speed" stops foot sliding
 
 ## Phase 2: visual scripting and advanced content ⬜
@@ -125,7 +126,7 @@ Ordered by user value:
 
 Bedrock has no data-driven version of these, so they're simulated with generated scripts:
 
-- 🔧 Custom enchantments (lore + dynamic properties + event hooks, enchanting via custom table or anvil-like form)
+- ✅ **Custom enchantments**: stored on the item (dynamic property + tooltip lore line), up to level X, for swords/axes/tools/bows/armour pieces/anything plus chosen items. Effects scale per level: on hit (extra damage, fire, effect on target, life steal, lightning chance, run a procedure with {level}), on block break (XP, effect, procedure), while worn/held (constant effect). Enchanted book items (use to pick an item; another copy raises the level), "Enchant held item" step and "Held item has enchantment" check. Bow enchantments carry over to the arrow. ⬜ enchanting table / anvil integration (not scriptable), incompatible enchantments, villager enchanted-book trades with random levels.
 - 🔧 Custom potion effects (timed script effects + HUD text)
 - 🔧 Achievements / advancements (tracked per player, toast via title/actionbar)
 - 🔧 Overlays (actionbar/title first; JSON UI HUD later)
@@ -165,6 +166,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.11.0** (Phase 3, item 1): Custom enchantments run by script: on-hit, on-break and worn/held effects that scale per level, enchanted books, an "Enchant held item" step and a "Held item has enchantment" check. Examples: Vampire (life steal, wither) and Ruby Sight (night vision helmet), sold by the Ruby Merchant. 130 tests.
 
 - **0.10.0** (Phase 2, item 14): Brewing recipes. Turn one vanilla potion into another, or change the bottle (splash, lingering), with any item as the ingredient. Example: a ruby turns an awkward potion into Regeneration II. 124 tests.
 

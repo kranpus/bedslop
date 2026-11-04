@@ -2,6 +2,7 @@
 // Everything here is plain JSON so a project can be saved, exported and re-imported as-is.
 
 export type ElementKind =
+  | "enchantment"
   | "disc"
   | "particle"
   | "structure"
@@ -661,6 +662,36 @@ export interface DiscElement extends BaseElement {
   volume: number;
 }
 
+export type EnchantTarget = "sword" | "axe" | "pickaxe" | "shovel" | "hoe" | "bow" | "helmet" | "chestplate" | "leggings" | "boots" | "any";
+
+/** One thing an enchantment does. Values scale: amount at level 1, plus perLevel for each level above. */
+export interface EnchantEffect {
+  id: string;
+  /** hit: when the item hits a mob; break: when it breaks a block; equipped: all the time while worn or held. */
+  when: "hit" | "break" | "equipped";
+  type: "damage" | "fire" | "effect" | "lifesteal" | "lightning" | "xp" | "self_effect" | "procedure";
+  amount: number;
+  perLevel: number;
+  /** Potion effect id for effect / self_effect. */
+  effect?: string;
+  /** Higher enchantment levels give a stronger effect (amplifier). */
+  stronger?: boolean;
+  /** Procedure name for "procedure". */
+  procedure?: string;
+}
+
+export interface EnchantmentElement extends BaseElement {
+  kind: "enchantment";
+  maxLevel: number;
+  targets: EnchantTarget[];
+  /** Extra items it fits, by id. */
+  extraItems: string[];
+  effects: EnchantEffect[];
+  /** Adds an enchanted book item that applies it. */
+  book: boolean;
+  bookTexture: string;
+}
+
 export type ModElement =
   | BlockElement
   | PlantElement
@@ -681,7 +712,8 @@ export type ModElement =
   | CropElement
   | StructureElement
   | ParticleElement
-  | DiscElement;
+  | DiscElement
+  | EnchantmentElement;
 
 export type ElementOf<K extends ElementKind> = Extract<ModElement, { kind: K }>;
 
