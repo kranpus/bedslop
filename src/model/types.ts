@@ -451,13 +451,15 @@ export interface ProcedureElement extends BaseElement {
   blocks?: string;
 }
 
-export type CommandArgType = "integer" | "float" | "string" | "boolean" | "player";
+export type CommandArgType = "integer" | "float" | "string" | "boolean" | "player" | "item" | "block" | "entity_type" | "enum";
 
 export interface CommandArg {
   id: string;
   name: string;
   type: CommandArgType;
   optional: boolean;
+  /** Choices for "enum" arguments (lower case, no spaces). */
+  options?: string[];
 }
 
 export interface CommandElement extends BaseElement {

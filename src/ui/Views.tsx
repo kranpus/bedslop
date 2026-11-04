@@ -425,7 +425,7 @@ export function VariablesView() {
               {vars.map((v, i) => (
                 <tr key={v.id}>
                   <td><input className="mono" value={v.name} aria-label="Variable name" onChange={(e) => set(i, { name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") }, `name-${v.id}`)} /></td>
-                  <td><select value={v.scope} aria-label="Belongs to" onChange={(e) => set(i, { scope: e.target.value as GlobalVariable["scope"] })}><option value="player">Each player</option><option value="world">The world</option></select></td>
+                  <td><select value={v.scope} aria-label="Belongs to" onChange={(e) => set(i, { scope: e.target.value as GlobalVariable["scope"] })}><option value="player">Each player or mob</option><option value="world">The world</option></select></td>
                   <td><select value={v.type} aria-label="Type" onChange={(e) => set(i, { type: e.target.value as GlobalVariable["type"], initial: e.target.value === "number" ? "0" : e.target.value === "boolean" ? "false" : "" })}><option value="number">Number</option><option value="text">Text</option><option value="boolean">True / false</option></select></td>
                   <td>{v.type === "boolean"
                     ? <select value={v.initial} aria-label="Starting value" onChange={(e) => set(i, { initial: e.target.value })}><option value="false">false</option><option value="true">true</option></select>

@@ -93,7 +93,7 @@ describe("generateAddon", () => {
   it("compiles block procedures, manual procedures, forms and command arguments", () => {
     const js = text(files, "BP/scripts/main.js");
     expect(js).toContain('const BC_VARS = {"gems":["player","number",0],"boss_defeated":["world","boolean",false],"nickname":["player","text",""]}');
-    expect(js).toMatch(/function proc_gem_counter\(ctx\) \{\n  let v_count = 0;\n  let v_i = 0;/);
+    expect(js).toMatch(/function proc_gem_counter\(ctx\) \{\n  \/\*\* @type \{any\} \*\/ let v_count = 0;\n  \/\*\* @type \{any\} \*\/ let v_i = 0;/);
     expect(js).toContain('BC.setVar(ctx, "gems", "player", "add", v_count);');
     expect(js).toContain("} else if (((ctx.player?.isSneaking === true) && !((BC.isDay()))))");
     expect(js).toContain("for (let i1 = 0; i1 < Math.min(10000, Number(3)); i1++) {");

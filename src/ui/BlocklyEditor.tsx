@@ -200,6 +200,21 @@ function toolbox(isCommand: boolean): Blockly.utils.toolbox.ToolboxDefinition {
         ],
       },
       {
+        kind: "category", name: "Lists", colour: "%{BKY_LISTS_HUE}",
+        contents: [
+          { kind: "block", type: "lists_create_with" },
+          { kind: "block", type: "lists_create_empty" },
+          { kind: "block", type: "lists_repeat", inputs: { NUM: num(3) } },
+          { kind: "block", type: "lists_length" },
+          { kind: "block", type: "lists_isEmpty" },
+          { kind: "block", type: "lists_indexOf" },
+          { kind: "block", type: "lists_getIndex" },
+          { kind: "block", type: "lists_setIndex" },
+          { kind: "block", type: "lists_getSublist" },
+          { kind: "block", type: "controls_forEach" },
+        ],
+      },
+      {
         kind: "category", name: "Values", colour: "160",
         contents: [
           { kind: "block", type: "bc_info" },

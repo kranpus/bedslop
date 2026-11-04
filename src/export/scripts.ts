@@ -70,6 +70,27 @@ export const RUNTIME = `const BC = {
     }
   },
   randInt(a, b) { const lo = Math.ceil(Math.min(Number(a), Number(b))), hi = Math.floor(Math.max(Number(a), Number(b))); return lo + Math.floor(Math.random() * (hi - lo + 1)); },
+  /** Lists in the block editor. Positions start at 1. */
+  list(x) { return Array.isArray(x) ? x : []; },
+  listPos(l, where, at) {
+    if (where === "FIRST") return 0;
+    if (where === "LAST") return l.length - 1;
+    if (where === "RANDOM") return Math.floor(Math.random() * l.length);
+    const n = Math.round(Number(at) || 1);
+    return where === "FROM_END" ? l.length - n : n - 1;
+  },
+  listGet(x, where, at, mode) {
+    const l = BC.list(x);
+    const i = BC.listPos(l, where, at);
+    if (i < 0 || i >= l.length) return undefined;
+    return mode === "GET" ? l[i] : l.splice(i, 1)[0];
+  },
+  listSet(x, mode, where, at, value) {
+    const l = BC.list(x);
+    if (mode === "INSERT") { l.splice(Math.max(0, Math.min(l.length, where === "LAST" ? l.length : BC.listPos(l, where, at))), 0, value); return; }
+    const i = BC.listPos(l, where, at);
+    if (i >= 0 && i < l.length) l[i] = value;
+  },
   /** The block at a place in the context (procedure blocks are positions). */
   blockAt(ctx, a) {
     const l = BC.at(ctx, a);
@@ -296,19 +317,33 @@ export function genCommands(ctx: GenContext, commands: CommandElement[]) {
   ctx.script.imports.add("CommandPermissionLevel").add("CustomCommandStatus");
   const fns: string[] = [];
   const regs: string[] = [];
-  const ARG_TYPE: Record<string, string> = { integer: "Integer", float: "Float", string: "String", boolean: "Boolean", player: "PlayerSelector" };
+  const ARG_TYPE: Record<string, string> = {
+    integer: "Integer", float: "Float", string: "String", boolean: "Boolean", player: "PlayerSelector",
+    item: "ItemType", block: "BlockType", entity_type: "EntityType", enum: "Enum",
+  };
+  const enums: string[] = [];
   for (const c of commands) {
     const fn = fnName("cmd", c.name);
     fns.push(`// Command: /${ctx.ns}:${c.name}\nfunction ${fn}(ctx) {\n${logicBody(ctx, c, `/${c.name}`)}}\n`);
     // Required arguments must come before optional ones.
     const args = [...(c.args ?? [])].filter((a) => a.name.trim()).sort((a, b) => Number(a.optional) - Number(b.optional));
     if (args.length) ctx.script.imports.add("CustomCommandParamType");
-    const param = (a: (typeof args)[number]) => `{ name: ${S(a.name)}, type: CustomCommandParamType.${ARG_TYPE[a.type]} }`;
+    // Option lists are registered as enums; the parameter is named after its enum.
+    const enumName = (a: (typeof args)[number]) => `${ctx.ns}:${c.name}_${a.name}`;
+    for (const a of args) {
+      if (a.type !== "enum") continue;
+      const opts = Array.from(new Set((a.options ?? []).map((o) => o.trim().toLowerCase().replace(/[^a-z0-9_]/g, "_")).filter(Boolean)));
+      if (!opts.length) ctx.warn(c, `argument "${a.name}" is a list of options but has none.`, "error");
+      enums.push(`  registry.registerEnum(${S(enumName(a))}, ${S(opts.length ? opts : ["none"])});`);
+    }
+    const param = (a: (typeof args)[number]) => `{ name: ${S(a.type === "enum" ? enumName(a) : a.name)}, type: CustomCommandParamType.${ARG_TYPE[a.type]} }`;
     const mandatory = args.filter((a) => !a.optional), optional = args.filter((a) => a.optional);
     const argNames = args.map((a) => a.name.replace(/[^a-zA-Z0-9_]/g, "_"));
     const collect = args.map((a, i) => a.type === "player"
       ? `      if (${argNames[i]}?.length) { ctx.target = ${argNames[i]}[0]; ctx.args[${S(a.name)}] = ${argNames[i]}[0].name; }\n`
-      : `      if (${argNames[i]} !== undefined) ctx.args[${S(a.name)}] = ${argNames[i]};\n`).join("");
+      : ["item", "block", "entity_type"].includes(a.type)
+        ? `      if (${argNames[i]} !== undefined) ctx.args[${S(a.name)}] = ${argNames[i]}.id;\n`
+        : `      if (${argNames[i]} !== undefined) ctx.args[${S(a.name)}] = ${argNames[i]};\n`).join("");
     regs.push(`  registry.registerCommand(
     {
       name: ${S(`${ctx.ns}:${c.name}`)},
@@ -327,7 +362,7 @@ ${collect}      system.run(() => ${fn}(ctx));
   }
   ctx.script.sections.push(
     fns.join("\n") +
-      `\nsystem.beforeEvents.startup.subscribe((ev) => {\n  const registry = ev.customCommandRegistry;\n${regs.join("\n")}\n});\n`,
+      `\nsystem.beforeEvents.startup.subscribe((ev) => {\n  const registry = ev.customCommandRegistry;\n${enums.length ? enums.join("\n") + "\n" : ""}${regs.join("\n")}\n});\n`,
   );
 }
 

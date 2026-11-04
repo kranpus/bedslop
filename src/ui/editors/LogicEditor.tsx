@@ -6,7 +6,7 @@ import { EFFECTS, VANILLA_PARTICLES, VANILLA_SOUNDS } from "../../model/vanilla"
 import { GenContext } from "../../export/context";
 import { genCommands, genProcedure } from "../../export/scripts";
 import { useStore } from "../../store/store";
-import { Field, IdInput, Num, Section, Segmented, Select, Text, Toggle } from "../fields";
+import { ChipList, Field, IdInput, Num, Section, Segmented, Select, Text, Toggle } from "../fields";
 import { BlocklyEditor } from "../BlocklyEditor";
 import { simpleToWorkspace } from "../../export/blocks";
 import type { Patch } from "./types";
@@ -276,6 +276,8 @@ export function ProcedureEditor({ el, patch }: { el: ProcedureElement; patch: Pa
 const ARG_TYPES: { value: CommandArgType; label: string }[] = [
   { value: "integer", label: "Whole number" }, { value: "float", label: "Decimal number" }, { value: "string", label: "Text" },
   { value: "boolean", label: "true / false" }, { value: "player", label: "Player (becomes the target)" },
+  { value: "item", label: "Item (its id)" }, { value: "block", label: "Block (its id)" }, { value: "entity_type", label: "Mob type (its id)" },
+  { value: "enum", label: "One of a list" },
 ];
 
 export function CommandEditor({ el, patch }: { el: CommandElement; patch: Patch<CommandElement> }) {
@@ -303,9 +305,13 @@ export function CommandEditor({ el, patch }: { el: CommandElement; patch: Patch<
         {args.map((a, i) => (
           <div className="row effect-row" key={a.id}>
             <Field label="Name"><input className="mono" value={a.name} onChange={(e) => setArg(i, { name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") }, `arg-${a.id}`)} /></Field>
-            <Select label="Type" value={a.type} onChange={(type) => setArg(i, { type })} options={ARG_TYPES} />
+            <Select label="Type" value={a.type} onChange={(type) => setArg(i, { type, ...(type === "enum" && !a.options?.length ? { options: ["easy", "hard"] } : {}) })} options={ARG_TYPES} />
             <Toggle label="Optional" value={a.optional} onChange={(optional) => setArg(i, { optional })} />
             <button type="button" className="btn ghost small" onClick={() => patch({ args: args.filter((_, k) => k !== i) })}>Remove</button>
+            {a.type === "enum" && (
+              <ChipList label="Options" values={a.options ?? []} onChange={(options) => setArg(i, { options: options.map((o) => o.toLowerCase().replace(/[^a-z0-9_]/g, "_")) })}
+                placeholder="add option…" help="Players pick one with tab completion." />
+            )}
           </div>
         ))}
         <button type="button" className="btn small" onClick={() => patch({ args: [...args, { id: uid(), name: `arg${args.length + 1}`, type: "integer", optional: false }] })}>Add argument</button>

@@ -138,6 +138,18 @@ export function blocksToBody(json: string | undefined, label: string): BlocksRes
         return parts.length ? `(${parts.join(" + ")})` : '""';
       }
       case "text_length": return `String(${v("VALUE", '""')}).length`;
+      // ----- Lists (positions start at 1, like Blockly shows them) -----
+      case "lists_create_empty": return "[]";
+      case "lists_create_with": {
+        const n = Number(b.extraState?.itemCount ?? 0);
+        return `[${Array.from({ length: n }, (_, i) => v(`ADD${i}`, "undefined")).join(", ")}]`;
+      }
+      case "lists_repeat": return `Array(Math.max(0, Math.min(${LOOP_LIMIT}, Math.round(Number(${v("NUM", "3")}))))).fill(${v("ITEM", "0")})`;
+      case "lists_length": return `BC.list(${v("VALUE", "[]")}).length`;
+      case "lists_isEmpty": return `(BC.list(${v("VALUE", "[]")}).length === 0)`;
+      case "lists_indexOf": return `(BC.list(${v("VALUE", "[]")}).${F.END === "LAST" ? "lastIndexOf" : "indexOf"}(${v("FIND", "0")}) + 1)`;
+      case "lists_getIndex": return `BC.listGet(${v("VALUE", "[]")}, ${S(String(F.WHERE ?? "FROM_START"))}, ${v("AT", "1")}, ${S(String(F.MODE ?? "GET"))})`;
+      case "lists_getSublist": return `BC.list(${v("LIST", "[]")}).slice(Math.max(0, Number(${v("AT1", "1")}) - 1), Number(${v("AT2", "1")}))`;
       case "variables_get": return local(F.VAR);
       case "bc_var_get": return `BC.getVar(ctx, ${S(String(F.VAR ?? ""))}, ${S(String(F.WHO ?? "player"))})`;
       case "bc_info": return INFO.find((i) => i.value === F.WHAT)?.code ?? "0";
@@ -190,6 +202,14 @@ export function blocksToBody(json: string | undefined, label: string): BlocksRes
           stmts(b.inputs?.DO?.block, depth + 2) + line("  }") + line("}");
       }
       case "controls_flow_statements": return line(F.FLOW === "CONTINUE" ? "continue;" : "break;");
+      case "controls_forEach": {
+        const x = local(F.VAR), n = ++seq;
+        return line(`for (const each${n} of BC.list(${v("LIST", "[]")}).slice(0, ${LOOP_LIMIT})) {`) + line(`  ${x} = each${n};`) + body("DO") + line("}");
+      }
+      case "lists_setIndex":
+        return line(`BC.listSet(${v("LIST", "[]")}, ${S(String(F.MODE ?? "SET"))}, ${S(String(F.WHERE ?? "FROM_START"))}, ${v("AT", "1")}, ${v("TO", "0")});`);
+      case "lists_getIndex": // used as a statement: "remove"
+        return line(`BC.listGet(${v("VALUE", "[]")}, ${S(String(F.WHERE ?? "FROM_START"))}, ${v("AT", "1")}, "REMOVE");`);
       case "variables_set": return line(`${local(F.VAR)} = ${v("VALUE")};`);
       case "math_change": {
         const x = local(F.VAR);
@@ -219,7 +239,8 @@ export function blocksToBody(json: string | undefined, label: string): BlocksRes
 
   const start = ws.blocks?.blocks?.find((b) => b.type === START_BLOCK);
   if (!start) return { code: "", problems: ["the start block is missing, so nothing runs."], count: 0 };
-  const decls = [...names.values()].map((n) => `  let ${n} = 0;\n`).join("");
+  // Untyped, like Blockly variables: they can hold numbers, text, true/false or lists.
+  const decls = [...names.values()].map((n) => `  /** @type {any} */ let ${n} = 0;\n`).join("");
   const code = stmts(start.next?.block, 1);
   return { code: decls + code, problems: [...new Set(problems)], count };
 }
