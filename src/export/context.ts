@@ -52,7 +52,7 @@ export class GenContext {
   readonly tickFunctions: string[] = [];
   /** Minimum game / Script API versions that features in use need, with the reason. */
   readonly requires: { engine?: string; api?: string; reason: string; elementId: string }[] = [];
-  readonly script: ScriptParts = { imports: new Set(["world", "system", "ItemStack", "BlockStates"]), uiImports: new Set(), sections: [], tools: {}, foods: {}, blocks: [], redstone: [] };
+  readonly script: ScriptParts = { imports: new Set(["world", "system", "ItemStack", "BlockStates", "DisplaySlotId", "ObjectiveSortOrder"]), uiImports: new Set(), sections: [], tools: {}, foods: {}, blocks: [], redstone: [] };
   private writtenTextures = new Map<string, string>();
 
   constructor(readonly project: Project) {

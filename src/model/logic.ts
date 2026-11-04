@@ -5,7 +5,7 @@ import type { TriggerType } from "./types";
 
 export type ParamKind =
   | "text" | "longtext" | "number" | "bool" | "item" | "block" | "entity" | "effect" | "sound"
-  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle" | "enchantment";
+  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle" | "enchantment" | "objective";
 
 export interface ParamSpec {
   key: string;
@@ -61,6 +61,8 @@ export interface ActionSpec {
 
 const who = (d: "player" | "target" = "player"): ParamSpec => ({ key: "who", label: "Who", kind: "who", default: d });
 const at = (d: "player" | "target" | "block" = "player"): ParamSpec => ({ key: "at", label: "Where", kind: "at", default: d });
+/** Whose score: the player, the target, or the shared "global" score. */
+const scoreWho = (): ParamSpec => ({ key: "who", label: "Whose", kind: "select", options: ["player", "target", "global"], default: "player" });
 const int = (expr: string, min = 1) => `Math.max(${min}, Math.round(${expr}))`;
 
 export const ACTIONS: ActionSpec[] = [
@@ -313,6 +315,39 @@ export const ACTIONS: ActionSpec[] = [
     code: (g) => (g.f("variable") ? `BC.setVar(ctx, ${S(g.f("variable"))}, ${S(g.f("who"))}, ${S(g.f("op"))}, ${g.e("value")});` : "// No variable selected"),
   },
   {
+    type: "score_change", label: "Change score", group: "Variables & logic",
+    params: [
+      { key: "objective", label: "Scoreboard", kind: "objective", default: "" },
+      { key: "op", label: "How", kind: "select", options: ["set", "add", "subtract"], default: "add" },
+      { key: "value", label: "Value", kind: "number", default: 1 },
+      scoreWho(),
+    ],
+    summary: (p) => `${p.op === "set" ? "Set" : String(p.op)[0].toUpperCase() + String(p.op).slice(1)} ${p.who === "global" ? "global" : p.who + "'s"} ${p.objective || "(scoreboard)"} ${p.op === "set" ? "to" : "by"} ${p.value}`,
+    code: (g) => (g.f("objective") ? `BC.setScore(ctx, ${S(g.f("objective"))}, ${S(g.f("who"))}, ${S(g.f("op"))}, ${g.e("value")});` : "// No scoreboard selected"),
+  },
+  {
+    type: "score_reset", label: "Reset score", group: "Variables & logic",
+    params: [{ key: "objective", label: "Scoreboard", kind: "objective", default: "" }, scoreWho()],
+    summary: (p) => `Reset ${p.who === "global" ? "global" : p.who + "'s"} ${p.objective || "(scoreboard)"}`,
+    code: (g) => (g.f("objective") ? `BC.resetScore(ctx, ${S(g.f("objective"))}, ${S(g.f("who"))});` : "// No scoreboard selected"),
+  },
+  {
+    type: "score_show", label: "Show scoreboard", group: "Chat & screen",
+    params: [
+      { key: "objective", label: "Scoreboard", kind: "objective", default: "" },
+      { key: "slot", label: "Where", kind: "select", options: ["Sidebar", "List", "BelowName"], default: "Sidebar" },
+      { key: "order", label: "Order", kind: "select", options: ["highest first", "lowest first"], default: "highest first" },
+    ],
+    summary: (p) => `Show ${p.objective || "(scoreboard)"} in the ${String(p.slot).toLowerCase()}`,
+    code: (g) => (g.f("objective") ? `BC.showScore(${S(g.f("objective"))}, ${S(g.f("slot"))}, ${g.f("order") === "lowest first"});` : "// No scoreboard selected"),
+  },
+  {
+    type: "score_hide", label: "Hide scoreboard", group: "Chat & screen",
+    params: [{ key: "slot", label: "From", kind: "select", options: ["Sidebar", "List", "BelowName"], default: "Sidebar" }],
+    summary: (p) => `Hide the ${String(p.slot).toLowerCase()} scoreboard`,
+    code: (g) => `BC.hideScore(${S(g.f("slot"))});`,
+  },
+  {
     type: "run_procedure", label: "Run another procedure", group: "Variables & logic",
     params: [{ key: "procedure", label: "Procedure", kind: "procedure", default: "" }],
     summary: (p) => `Run ${p.procedure || "(procedure)"}`,
@@ -415,6 +450,17 @@ export const CONDITIONS: ConditionSpec[] = [
     ],
     summary: (p) => `${p.variable || "(variable)"} ${p.op} ${p.value}`,
     code: (g) => `BC.compare(BC.getVar(ctx, ${S(g.f("variable"))}, ${S(g.f("who"))}), ${S(g.f("op"))}, ${g.e("value")})`,
+  },
+  {
+    type: "score_compare", label: "Score compares to",
+    params: [
+      { key: "objective", label: "Scoreboard", kind: "objective", default: "" },
+      { key: "op", label: "Is", kind: "select", options: ["=", "≠", "<", "≤", ">", "≥"], default: "≥" },
+      { key: "value", label: "Value", kind: "number", default: 10 },
+      scoreWho(),
+    ],
+    summary: (p) => `${p.who === "global" ? "global" : p.who + "'s"} ${p.objective || "(scoreboard)"} ${p.op} ${p.value}`,
+    code: (g) => `BC.compare(BC.getScore(ctx, ${S(g.f("objective"))}, ${S(g.f("who"))}), ${S(g.f("op"))}, ${g.e("value")})`,
   },
 ];
 

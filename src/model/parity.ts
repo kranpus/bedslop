@@ -57,6 +57,7 @@ export const PARITY: ParityRow[] = [
   { mcreator: "Achievement / advancement", bedrock: "Script-simulated", status: "workaround", phase: 3, notes: "Track with dynamic properties, announce with titles/toasts." },
   { mcreator: "Overlay", bedrock: "JSON UI / title + actionbar", status: "workaround", phase: 3, notes: "Simple overlays via actionbar/title; full HUD via JSON UI." },
   { mcreator: "Key binding", bedrock: "Input API / sneak + item combos", status: "workaround", phase: 3, notes: "No custom key bindings on Bedrock." },
+  { mcreator: "Scoreboard procedures", bedrock: "world.scoreboard", status: "done", phase: 3, notes: "Objectives on the Variables tab; change/reset/show/hide steps, score checks and blocks, {score:name} text." },
   { mcreator: "Game rule", bedrock: "Vanilla game rules only", status: "workaround", phase: 3, notes: "Can set vanilla rules from scripts; custom rules as world dynamic properties." },
   { mcreator: "Biome", bedrock: "Data-driven biomes (limited)", status: "workaround", phase: 3, notes: "Custom biome support on Bedrock is limited/experimental." },
   { mcreator: "Damage type", bedrock: "Vanilla damage causes", status: "workaround", phase: 3, notes: "applyDamage with a vanilla cause." },

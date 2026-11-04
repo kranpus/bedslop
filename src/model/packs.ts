@@ -248,7 +248,9 @@ export function exampleProject(p: Project): Project {
   bonus.actions = [
     { id: uid(), type: "drop_item", params: { at: "block", item: "minecraft:emerald", count: 1 }, chance: 10 },
     { id: uid(), type: "sound", params: { at: "block", sound: "random.orb", volume: 1, pitch: 1.4 }, chance: 100 },
+    { id: uid(), type: "score_change", params: { objective: "rubies_mined", op: "add", value: 1, who: "player" }, chance: 100 },
   ];
+  p.scoreboards = [{ id: uid(), name: "rubies_mined", title: "Rubies mined", show: "Sidebar", ascending: false }];
 
   const heal = createElement("command", "heal", "Heal command");
   heal.description = "Heals you fully";

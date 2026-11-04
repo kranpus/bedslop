@@ -52,6 +52,18 @@ function ParamInput({ spec, value, onChange, slots }: { spec: ParamSpec; value: 
       ]} />;
     case "select":
       return <Select label={spec.label} value={String(v)} onChange={onChange} options={spec.options ?? []} />;
+    case "objective": {
+      const names = (project.scoreboards ?? []).map((b) => b.name);
+      return (
+        <Field label={spec.label}>
+          <select value={String(v)} onChange={(e) => onChange(e.target.value)}>
+            <option value="">{names.length ? "Choose…" : "Add one on the Variables tab"}</option>
+            {(project.scoreboards ?? []).map((b) => <option key={b.id} value={b.name}>{b.title || b.name} ({b.name})</option>)}
+            {v && !names.includes(String(v)) && <option value={String(v)}>{String(v)} (not on the Variables tab)</option>}
+          </select>
+        </Field>
+      );
+    }
     case "particle": {
       const own = project.elements.filter((e) => e.kind === "particle");
       const known = !v || own.some((e) => e.name === v) || VANILLA_PARTICLES.includes(String(v));
@@ -227,6 +239,7 @@ function BlocksSection({ el, patch, isCommand }: { el: ProcedureElement | Comman
         structures={project.elements.filter((e) => e.kind === "structure").map((e) => e.name)}
         particles={project.elements.filter((e) => e.kind === "particle").map((e) => e.name)}
         enchantments={project.elements.filter((e) => e.kind === "enchantment").map((e) => e.name)}
+        objectives={(project.scoreboards ?? []).map((b) => b.name)}
         args={isCommand ? ((el as CommandElement).args ?? []).map((a) => a.name) : []}
         isCommand={isCommand}
       />

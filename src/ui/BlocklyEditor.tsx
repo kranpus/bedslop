@@ -5,7 +5,7 @@ import { EFFECTS, VANILLA_PARTICLES } from "../model/vanilla";
 import { INFO, START_BLOCK, actionBlock, conditionBlock, parseWorkspace } from "../export/blocks";
 
 /** Lists the dynamic dropdowns read from; kept up to date by the component. */
-const lists = { variables: [] as string[], procedures: [] as string[], forms: [] as string[], structures: [] as string[], particles: [] as string[], enchantments: [] as string[], args: [] as string[], known: new Set<string>() };
+const lists = { variables: [] as string[], procedures: [] as string[], forms: [] as string[], structures: [] as string[], particles: [] as string[], enchantments: [] as string[], objectives: [] as string[], args: [] as string[], known: new Set<string>() };
 
 const GROUP_HUE: Record<string, number> = {
   "Chat & screen": 200, Entities: 0, Items: 30, World: 120, "Variables & logic": 330, Advanced: 260,
@@ -34,6 +34,7 @@ function fieldFor(p: ParamSpec): Blockly.Field {
     case "procedure": return new Blockly.FieldDropdown(dynamicOptions(() => lists.procedures, "(no procedures)"));
     case "form": return new Blockly.FieldDropdown(dynamicOptions(() => lists.forms, "(no forms)"));
     case "structure": return new Blockly.FieldDropdown(dynamicOptions(() => lists.structures, "(no structures)"));
+    case "objective": return new Blockly.FieldDropdown(dynamicOptions(() => lists.objectives, "(add a scoreboard first)"));
     case "enchantment": return new Blockly.FieldDropdown(dynamicOptions(() => lists.enchantments, "(no enchantments)"));
     case "particle": return new Blockly.FieldDropdown(dynamicOptions(() => [...lists.particles, ...VANILLA_PARTICLES], "(no particles)"));
     default: return new Blockly.FieldTextInput(String(p.default ?? ""));
@@ -89,6 +90,15 @@ function defineBlocks() {
       this.setOutput(true);
       this.setColour(330);
       this.setTooltip("A global variable. World variables ignore “of”.");
+    },
+  };
+  Blockly.Blocks.bc_score_get = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput().appendField("score").appendField(new Blockly.FieldDropdown(dynamicOptions(() => lists.objectives, "(add a scoreboard first)")), "OBJ")
+        .appendField("of").appendField(new Blockly.FieldDropdown([["the player", "player"], ["the target", "target"], ["global", "global"]]), "WHO");
+      this.setOutput(true, "Number");
+      this.setColour(330);
+      this.setTooltip("A scoreboard score (0 if there isn't one yet).");
     },
   };
   Blockly.Blocks.bc_info = {
@@ -219,6 +229,7 @@ function toolbox(isCommand: boolean): Blockly.utils.toolbox.ToolboxDefinition {
         contents: [
           { kind: "block", type: "bc_info" },
           { kind: "block", type: "bc_var_get" },
+          { kind: "block", type: "bc_score_get" },
           ...(isCommand ? [{ kind: "block", type: "bc_arg" }] : []),
         ],
       },
@@ -232,7 +243,7 @@ function cssVar(name: string, fallback: string) {
   return v || fallback;
 }
 
-export function BlocklyEditor({ value, onChange, variables, procedures, forms, structures = [], particles = [], enchantments = [], args, isCommand, resetKey }: {
+export function BlocklyEditor({ value, onChange, variables, procedures, forms, structures = [], particles = [], enchantments = [], objectives = [], args, isCommand, resetKey }: {
   value: string;
   onChange: (json: string) => void;
   variables: string[];
@@ -241,6 +252,7 @@ export function BlocklyEditor({ value, onChange, variables, procedures, forms, s
   structures?: string[];
   particles?: string[];
   enchantments?: string[];
+  objectives?: string[];
   args: string[];
   isCommand?: boolean;
   /** Changing this reloads the workspace from `value` (e.g. a different element). */
@@ -250,12 +262,12 @@ export function BlocklyEditor({ value, onChange, variables, procedures, forms, s
   const ws = useRef<Blockly.WorkspaceSvg | null>(null);
   const changeRef = useRef(onChange);
   changeRef.current = onChange;
-  Object.assign(lists, { variables, procedures, forms, structures, particles, enchantments, args });
+  Object.assign(lists, { variables, procedures, forms, structures, particles, enchantments, objectives, args });
 
   useEffect(() => {
     defineBlocks();
     // Remember names a saved workspace uses so dropdowns accept them while loading.
-    lists.known = new Set((value.match(/"(?:variable|procedure|form|structure|particle|enchantment|VAR|NAME)":"([^"]*)"/g) ?? []).map((m) => m.split(":")[1].replace(/"/g, "")));
+    lists.known = new Set((value.match(/"(?:variable|procedure|form|structure|particle|enchantment|objective|VAR|NAME|OBJ)":"([^"]*)"/g) ?? []).map((m) => m.split(":")[1].replace(/"/g, "")));
     const theme = Blockly.Theme.defineTheme(`bc-${Date.now()}`, {
       name: "bc",
       base: Blockly.Themes.Classic,

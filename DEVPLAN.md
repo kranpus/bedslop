@@ -100,6 +100,7 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [ ] Custom enchantments: book form applies and levels up; lore shows; hit/break/worn effects fire (and extra damage doesn't loop); bow enchantments apply to arrows
 - [ ] Creative groups: appear folded with their icon and name; members aren't listed twice; translations show when the game language changes
 - [ ] Leftovers round: stair corners join like vanilla; fence arms now face the right way; gates/buttons/plates power redstone; crops stop without water/daylight; picking resets the stage; crossbows load and fire; saddles, carrot-on-a-stick steering, mount chests and flying mounts; trade levels unlock; flipbook particles animate; block particles tick; state rules hide model parts; enchantment conflicts block combining; enum/item/block command arguments
+- [ ] Scoreboards: created and shown on world load; change/reset/show/hide steps; global scores; {score:name} text; work alongside /scoreboard
 - [ ] Manual animation slots: "When attacking" (`variable.attack_time`), "When hurt" and "When dying" fire at the right moment; one-shot controllers replay on each attack; "Match walking speed" stops foot sliding
 
 ## Phase 2: visual scripting and advanced content ✅
@@ -169,6 +170,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.14.0**: In-game scoreboards. Define them on the Variables tab (title, where they show, sort order); they're created when the world loads. New steps: Change score (set/add/subtract for the player, the target or a shared "global" score), Reset score, Show scoreboard, Hide scoreboard; a "Score compares to" check; a "score of" block; `{score:name}` in any text. Example: a "Rubies mined" sidebar. 163 tests.
 
 - **0.13.0**: Finished the "not yet" notes inside done features: command item/block/mob/option arguments; list blocks; stair corners, fence gates, buttons and pressure plates (and fixed swapped east/west fence arms); crops that need water or daylight and berry-style picking; crossbows; saddles, item steering, mount chests, flying mounts and trade levels; flipbook particles and blocks that give off particles; state rules that hide model parts; conflicting enchantments. The rest are marked as impossible on Bedrock, with the reason. 158 tests.
 

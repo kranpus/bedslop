@@ -10,7 +10,7 @@ import { packIconFrom } from "../textures/procedural";
 import { Field, Grid, Section, Select, Text } from "./fields";
 import { TexturePicker, readImageFile } from "./TexturePicker";
 import { TextureEditor } from "./TextureEditor";
-import type { GlobalVariable, TextureAsset } from "../model/types";
+import type { ScoreboardDef, GlobalVariable, TextureAsset } from "../model/types";
 import { uid } from "../model/registry";
 import { elementTexture } from "./Thumb";
 
@@ -445,6 +445,55 @@ export function VariablesView() {
         <li>Change them with the “Change a variable” step, check them with “Variable compares to”, or use the variable blocks.</li>
         <li>Show them in any text as <span className="mono">{"{name}"}</span>, e.g. “You have {"{coins}"} coins”.</li>
       </ul>
+      <ScoreboardsSection />
     </div>
+  );
+}
+
+/** In-game scoreboards: objectives that show on screen and work with /scoreboard too. */
+function ScoreboardsSection() {
+  const project = useStore((s) => s.project!);
+  const update = useStore((s) => s.update);
+  const boards = project.scoreboards ?? [];
+  const setBoards = (scoreboards: ScoreboardDef[], key?: string) => update((p) => ({ ...p, scoreboards }), key);
+  const set = (i: number, b: Partial<ScoreboardDef>, key?: string) => setBoards(boards.map((x, k) => (k === i ? { ...x, ...b } : x)), key);
+  return (
+    <section className="stack">
+      <header className="page-head">
+        <div>
+          <h2>Scoreboards</h2>
+          <p className="muted">Minecraft's own scoreboards: shown on screen, sorted, and usable with <span className="mono">/scoreboard</span> commands too.</p>
+        </div>
+        <button className="btn" onClick={() => setBoards([...boards, { id: uid(), name: `score${boards.length + 1}`, title: "Score", show: "Sidebar", ascending: false }])}>Add scoreboard</button>
+      </header>
+      {boards.length > 0 && (
+        <div className="table-wrap">
+          <table className="var-table">
+            <thead><tr><th>Name</th><th>Title on screen</th><th>Shows</th><th>Order</th><th /></tr></thead>
+            <tbody>
+              {boards.map((b, i) => (
+                <tr key={b.id}>
+                  <td><input className="mono" value={b.name} aria-label="Scoreboard name" onChange={(e) => set(i, { name: e.target.value.replace(/[^A-Za-z0-9_.-]/g, "_") }, `sb-name-${b.id}`)} /></td>
+                  <td><input value={b.title} aria-label="Title" onChange={(e) => set(i, { title: e.target.value }, `sb-title-${b.id}`)} /></td>
+                  <td><select value={b.show} aria-label="Shows" onChange={(e) => set(i, { show: e.target.value as ScoreboardDef["show"] })}>
+                    <option value="Sidebar">On the side</option><option value="List">In the player list</option><option value="BelowName">Below names</option><option value="none">Hidden</option>
+                  </select></td>
+                  <td><select value={b.ascending ? "asc" : "desc"} aria-label="Order" onChange={(e) => set(i, { ascending: e.target.value === "asc" })}>
+                    <option value="desc">Highest first</option><option value="asc">Lowest first</option>
+                  </select></td>
+                  <td><button className="btn ghost small" onClick={() => setBoards(boards.filter((_, k) => k !== i))}>Remove</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <ul className="hint-list">
+        <li>Change scores with the <strong>Change score</strong> step (set, add or subtract), check them with <strong>Score compares to</strong>, or use the “score of” block.</li>
+        <li>Scores belong to the player, the target, or <strong>global</strong> (one shared score, like a team total).</li>
+        <li>Show a player's score in any text as <span className="mono">{"{score:name}"}</span>, e.g. “Kills: {"{score:kills}"}”.</li>
+        <li>Only one scoreboard shows in each place at a time; use the <strong>Show scoreboard</strong> step to switch.</li>
+      </ul>
+    </section>
   );
 }

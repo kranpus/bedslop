@@ -151,6 +151,7 @@ export function blocksToBody(json: string | undefined, label: string): BlocksRes
       case "lists_getIndex": return `BC.listGet(${v("VALUE", "[]")}, ${S(String(F.WHERE ?? "FROM_START"))}, ${v("AT", "1")}, ${S(String(F.MODE ?? "GET"))})`;
       case "lists_getSublist": return `BC.list(${v("LIST", "[]")}).slice(Math.max(0, Number(${v("AT1", "1")}) - 1), Number(${v("AT2", "1")}))`;
       case "variables_get": return local(F.VAR);
+      case "bc_score_get": return `BC.getScore(ctx, ${S(String(F.OBJ ?? ""))}, ${S(String(F.WHO ?? "player"))})`;
       case "bc_var_get": return `BC.getVar(ctx, ${S(String(F.VAR ?? ""))}, ${S(String(F.WHO ?? "player"))})`;
       case "bc_info": return INFO.find((i) => i.value === F.WHAT)?.code ?? "0";
       case "bc_arg": return `(ctx.args?.[${S(String(F.NAME ?? ""))}] ?? "")`;

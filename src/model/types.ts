@@ -718,6 +718,17 @@ export interface EnchantmentElement extends BaseElement {
   bookTexture: string;
 }
 
+export interface ScoreboardDef {
+  id: string;
+  /** Objective id used by /scoreboard, e.g. "kills". */
+  name: string;
+  /** Title shown on screen. */
+  title: string;
+  /** Where it shows when the world loads. */
+  show: "none" | "Sidebar" | "List" | "BelowName";
+  ascending: boolean;
+}
+
 export interface CreativeGroup {
   id: string;
   /** Shown in the creative inventory. */
@@ -778,6 +789,8 @@ export interface Project {
   elements: ModElement[];
   textures: TextureAsset[];
   variables?: GlobalVariable[];
+  /** In-game scoreboard objectives, created when the world loads. */
+  scoreboards?: ScoreboardDef[];
   /** Extra languages (besides en_US), e.g. "es_ES". */
   languages?: string[];
   /** language -> lang key -> translated text. Missing keys fall back to English. */
