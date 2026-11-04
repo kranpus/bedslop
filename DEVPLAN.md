@@ -95,6 +95,7 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [ ] Particles: billboard size matches the preview (exported as half-width); colours/opacity fade; bouncing and vanishing on blocks; custom texture shows whole; "Spawn particles" height offset
 - [ ] Mob extras: taming chance and sitting; breeding makes babies that grow up; rider steers a walking mount; flyers hover and swimmers stay in water; ranged mobs fire own projectiles; trade screen opens and restocks; sounds play; variants differ between spawns
 - [ ] Tags: `#tag` shaped/shapeless recipes accept tagged items; tag conditions; custom block states persist, rules apply, set/cycle steps work on placed blocks
+- [ ] Music discs: jukebox plays the song, stops at the set length, hopper ejects; "Now playing" shows the disc name; comparator signal
 - [ ] Manual animation slots: "When attacking" (`variable.attack_time`), "When hurt" and "When dying" fire at the right moment; one-shot controllers replay on each attack; "Match walking speed" stops foot sliding
 
 ## Phase 2: visual scripting and advanced content ⬜
@@ -115,8 +116,8 @@ Ordered by user value:
 9. ✅ **Particles**: particle effect designer with a live 3D preview that simulates the game's motion rules (speed, gravity, drag, bouncing). Eight built-in white sprites (tinted) or your own texture; start/end colour, opacity and size; smooth or crisp; glow or take world light; burst or stream; ball/cube/flat-circle spawn area, outwards/up/inwards; lifetime, gravity, air resistance, spin; pass through, bounce or vanish on blocks. Seven presets. "Spawn particles" step for your effects and 25 vanilla ones; `/particle` works too. ⬜ flipbook animations, attaching particles to mobs/blocks (ambient), Molang curves.
 10. ✅ **Entity extras** (preset and Blockbench mobs): walk, fly (hover AI, no fall damage) or swim (water navigation, breathes water, spawns underwater); melee or ranged attacks (vanilla projectiles or your own, interval and range); taming (items, chance, follow/defend owner, sit); breeding (items, babies that grow up, optional tame-only); riding (steerable on walking mobs, seat height, optional tame-only); villager-style trades (economy trade table, two wanted items, restocks); ambient/hurt/death/footstep sounds (own or vanilla); random texture variants (render controller on `query.variant`). Built as component groups and events. ⬜ saddles/carrot-on-a-stick control, chests on mounts, flying mounts, trade tiers and villager levels, custom animations for babies/sitting.
 11. ✅ **Tags editor** for items and blocks: Tags field on every item/tool/food/armor/block/plant/crop with vanilla suggestions, a Tags tab listing every tag with its members (add/remove) and the recipes using it, `#tag` recipe ingredients, and "Player is holding an item tagged" / "Block has tag" conditions. **Block states**: on/off, number range (up to 16) or list states; rules that change texture, light, break time, slipperiness, map colour or collision when states match (exported as permutations); "Set block state", "Cycle block state" steps and "Block state is" condition; one-click "Change on click" procedure. ⬜ tagging vanilla items (not possible in Bedrock), rules that swap models or bone visibility.
-12. ⬜ **Localization editor** for multiple languages.
-13. ⬜ **Music discs** (`jukebox_playable` + jukebox song definitions).
+12. ⏸ **Localization editor** for multiple languages (skipped for now, back after item 14).
+13. ✅ **Music discs**: upload an .ogg (checked, length read automatically), icon template, volume and comparator signal. Bedrock's stable `minecraft:record` only accepts the vanilla disc sound events, so each disc plays through one vanilla disc's slot (picked automatically or by hand, clashes reported) and the resource pack points that slot at the song; the editor and export explain that the vanilla disc plays the song too. ⬜ own sound events once Mojang's beta record format is stable, discs in loot tables (creeper drops).
 14. ⬜ Brewing recipes.
 
 ## Phase 3: closing Bedrock gaps with scripting 🔧
@@ -163,6 +164,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.9.0** (Phase 2, item 13): Music discs with your own .ogg song, automatic length, volume, comparator signal and a disc icon template. Each disc plays through a vanilla disc's sound slot (Bedrock's stable record component only allows those). 120 tests.
 
 - **0.8.0** (Phase 2, item 11): Tags and block states. Tags field on all items and blocks, a Tags tab, `#tag` recipe ingredients and tag conditions; custom block states with rules (texture, light, break time, slipperiness, map colour, collision) and Set/Cycle block state steps plus a "Block state is" condition. Example: a Ruby Lamp that switches on and off when clicked. 115 tests.
 

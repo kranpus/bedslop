@@ -410,7 +410,7 @@ export function genPlant(ctx: GenContext, p: PlantElement) {
 
 // ---------- Items ----------
 
-function itemBase(ctx: GenContext, el: { name: string; displayName: string }, iconKey: string, extra: Record<string, unknown>, category: string, group = "") {
+export function itemBase(ctx: GenContext, el: { name: string; displayName: string }, iconKey: string, extra: Record<string, unknown>, category: string, group = "") {
   const id = ctx.id(el.name);
   const langKey = `item.${id}.name`;
   ctx.lang.push(`${langKey}=${el.displayName}`);

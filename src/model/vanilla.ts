@@ -118,3 +118,10 @@ export const COMMON_BLOCK_TAGS = [
   "minecraft:is_pickaxe_item_destructible", "minecraft:is_axe_item_destructible", "minecraft:is_shovel_item_destructible",
   "minecraft:is_hoe_item_destructible", "minecraft:stone_tier_destructible", "minecraft:iron_tier_destructible", "minecraft:diamond_tier_destructible",
 ];
+
+/** Vanilla disc sound slots a custom disc can play through (Bedrock's stable record component only accepts these). */
+export const DISC_SLOTS = [
+  "record.13", "record.11", "record.ward", "record.wait", "record.mall", "record.stal", "record.strad", "record.mellohi", "record.far",
+  "record.chirp", "record.blocks", "record.cat", "record.5", "record.relic", "record.otherside", "record.pigstep", "record.creator",
+  "record.precipice", "record.creator_music_box", "record.tears", "record.lava_chicken", "record.bounce",
+];

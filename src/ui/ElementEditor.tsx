@@ -12,6 +12,7 @@ import { FormEditor } from "./editors/FormEditor";
 import { CropEditor, ProjectileEditor } from "./editors/RangedEditors";
 import { StructureEditor } from "./editors/StructureEditor";
 import { ParticleEditor } from "./editors/ParticleEditor";
+import { DiscEditor } from "./editors/DiscEditor";
 
 /** Warnings for the whole project, computed lazily so typing stays smooth. */
 export function useWarnings() {
@@ -43,6 +44,7 @@ function Body({ el }: { el: ModElement }) {
     case "crop": return <CropEditor el={el} patch={patch} />;
     case "structure": return <StructureEditor el={el} patch={patch} />;
     case "particle": return <ParticleEditor el={el} patch={patch} />;
+    case "disc": return <DiscEditor el={el} patch={patch} />;
   }
 }
 

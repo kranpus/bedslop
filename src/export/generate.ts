@@ -1,5 +1,6 @@
 import { genStructure } from "./structure";
 import { genParticle } from "./particle";
+import { genDisc } from "./disc";
 import type { CommandElement, ModElement, Project } from "../model/types";
 import { genArmor, genBlock, genFood, genItem, genPlant, genTool } from "./content";
 import { GenContext, type FileMap, type Warning, compareVersion, dataUrlToBytes, vec } from "./context";
@@ -118,6 +119,7 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
       case "ore": genOre(ctx, el); break;
       case "structure": genStructure(ctx, el); break;
       case "particle": genParticle(ctx, el); break;
+      case "disc": genDisc(ctx, el); break;
       case "function": genFunction(ctx, el); break;
       case "sound": genSound(ctx, el); break;
       case "projectile": genProjectile(ctx, el); break;

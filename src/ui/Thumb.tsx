@@ -5,7 +5,7 @@ import { kindInfo } from "../model/registry";
 export function elementTexture(el: ModElement): string | undefined {
   switch (el.kind) {
     case "block": return el.textures.all ?? el.textures.side ?? el.textures.top ?? el.textures.north;
-    case "plant": case "item": case "tool": case "food": case "entity": return el.texture;
+    case "plant": case "item": case "tool": case "food": case "entity": case "disc": return el.texture;
     case "projectile": return el.look === "sprite" ? el.texture : undefined;
     case "crop": return el.stageTextures[el.stageTextures.length - 1] || el.seedsTexture || undefined;
     case "armor": return el.pieces.chestplate.texture || el.pieces.helmet.texture;

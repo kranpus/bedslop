@@ -44,7 +44,7 @@ export const PARITY: ParityRow[] = [
   { mcreator: "Block (stairs, slabs, doors, fences)", bedrock: "Geometry presets + states + scripts", status: "done", phase: 2, notes: "Slab, stairs, carpet, trapdoor, door, fence, wall, pane. Stair corners and fence gates not yet." },
   { mcreator: "Entity (tame, breed, ride, fly, trade)", bedrock: "Component groups + events", status: "done", phase: 2, notes: "Fly/swim, ranged attacks, taming, breeding, riding, trades, sounds and texture variants on preset and Blockbench mobs." },
   { mcreator: "Villager trades", bedrock: "Trade tables on custom traders", status: "done", phase: 2, notes: "Any custom mob can trade. Vanilla villagers' trades can't be edited." },
-  { mcreator: "Music disc", bedrock: "jukebox_playable + jukebox songs", status: "planned", phase: 2, notes: "" },
+  { mcreator: "Music disc", bedrock: "minecraft:record + sound definition", status: "done", phase: 2, notes: "Own .ogg songs; each plays through a vanilla disc sound slot, as stable Bedrock requires." },
   { mcreator: "Tags", bedrock: "Item/block tags", status: "done", phase: 2, notes: "Tags on all your items and blocks, Tags tab, #tag recipe ingredients, tag conditions. Vanilla items can't be tagged in Bedrock." },
   { mcreator: "Block states / properties", bedrock: "Block states + permutations", status: "done", phase: 2, notes: "On/off, number and list states; rules change texture, light, hardness, friction, map colour, collision; set/cycle steps." },
   { mcreator: "Localization", bedrock: "texts/*.lang", status: "partial", phase: 2, notes: "en_US is generated; multi-language editor in phase 2." },

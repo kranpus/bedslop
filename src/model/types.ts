@@ -2,6 +2,7 @@
 // Everything here is plain JSON so a project can be saved, exported and re-imported as-is.
 
 export type ElementKind =
+  | "disc"
   | "particle"
   | "structure"
   | "block"
@@ -641,6 +642,22 @@ export interface ParticleElement extends BaseElement {
   spin: number;
 }
 
+export interface DiscElement extends BaseElement {
+  kind: "disc";
+  /** The song, as an .ogg data URL. */
+  file: string;
+  fileName: string;
+  /** Length in seconds (jukeboxes and hoppers use it to know when the song ends). */
+  duration: number;
+  /** The vanilla disc sound this disc plays through, e.g. "record.13". That vanilla disc plays this song too. */
+  replaces: string;
+  texture: string;
+  /** Comparator signal from a jukebox playing it, 1-15. */
+  comparator: number;
+  /** 0-100. */
+  volume: number;
+}
+
 export type ModElement =
   | BlockElement
   | PlantElement
@@ -660,7 +677,8 @@ export type ModElement =
   | ProjectileElement
   | CropElement
   | StructureElement
-  | ParticleElement;
+  | ParticleElement
+  | DiscElement;
 
 export type ElementOf<K extends ElementKind> = Extract<ModElement, { kind: K }>;
 

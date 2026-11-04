@@ -23,6 +23,7 @@ export const TEMPLATES: TemplateInfo[] = [
   { id: "seeds", label: "Seeds", size: [16, 16], kind: "item" },
   { id: "orb", label: "Throwable orb", size: [16, 16], kind: "item" },
   { id: "bow", label: "Bow", size: [16, 16], kind: "item" },
+  { id: "disc", label: "Music disc", size: [16, 16], kind: "item" },
   { id: "arrow", label: "Arrow", size: [16, 16], kind: "item" },
   { id: "ingot", label: "Ingot", size: [16, 16], kind: "item" },
   { id: "dust", label: "Dust", size: [16, 16], kind: "item" },
@@ -235,6 +236,19 @@ export function drawTemplate(id: string, hex: string, seed = 1): Grid {
       g.set(7, 6, shade(base, 0.6));
       g.outline();
       break;
+    case "disc": {
+      // Dark vinyl with grooves and a coloured label, like the vanilla discs.
+      const vinyl: [number, number, number] = [34, 34, 40];
+      g.circle(7.5, 7.5, 6.8, (x, y) => {
+        const r = Math.hypot(x + 0.5 - 7.5, y + 0.5 - 7.5);
+        return shade(vinyl, (Math.round(r) % 2 ? 0.08 : -0.05) + diag(x, y, 0.2));
+      });
+      g.circle(7.5, 7.5, 3.2, (x, y) => shade(base, diag(x, y, 0.35)));
+      g.rect(7, 7, 8, 8, () => [20, 20, 24, 255]);
+      g.set(4, 3, [140, 140, 150, 255]);
+      g.set(3, 4, [110, 110, 120, 255]);
+      break;
+    }
     case "bow":
       g.line(4, 2, 7, 3, handle); g.line(7, 3, 11, 7, handle); g.line(11, 7, 12, 11, handle); g.line(12, 11, 13, 13, handle);
       g.line(5, 2, 8, 4, handle); g.line(11, 8, 12, 12, handle);

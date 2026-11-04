@@ -23,6 +23,7 @@ export const KINDS: KindInfo[] = [
   { kind: "entity", label: "Mob", blurb: "Living entities with a model, AI behaviour, drops, spawn egg and spawning.", group: "Content", glyph: "M", color: "#a0413b" },
   { kind: "projectile", label: "Projectile", blurb: "Something thrown or shot: damage, knockback, fire, effects. Use it from a throwable item or as bow ammo.", group: "Content", glyph: "➶", color: "#7a5a2a" },
   { kind: "crop", label: "Crop", blurb: "Plant seeds on farmland, watch it grow in stages, harvest the produce. Bone meal works too.", group: "Content", glyph: "C", color: "#6a8a2a" },
+  { kind: "disc", label: "Music disc", blurb: "Your own song on a disc that plays in jukeboxes.", group: "Content", glyph: "♫", color: "#3d3d5c" },
   { kind: "recipe", label: "Recipe", blurb: "Crafting table (shaped or shapeless), furnace, stonecutter or smithing.", group: "Content", glyph: "R", color: "#8c7a2c" },
   { kind: "loot", label: "Loot table", blurb: "Weighted drops for blocks, mobs and chests.", group: "Content", glyph: "L", color: "#9a6b1f" },
   { kind: "ore", label: "Ore generation", blurb: "Place veins of any block underground in the Overworld, Nether or End.", group: "World", glyph: "O", color: "#5c6470" },
@@ -112,6 +113,9 @@ export function createElement<K extends ElementKind>(kind: K, name: string, disp
       ...base, kind: "crop", stageTextures: ["", "", "", ""], look: "crop", growthChance: 33, boneMeal: true,
       produce: "", produceMin: 1, produceMax: 3, seedsTexture: "", seedsMax: 2, placeableOn: ["minecraft:farmland"],
     }),
+    disc: () => ({
+      ...base, kind: "disc", file: "", fileName: "", duration: 0, replaces: "", texture: "", comparator: 1, volume: 100,
+    }),
     particle: () => ({
       ...base, kind: "particle", sprite: "spark", texture: "", colorStart: "#ffe680", colorEnd: "#ff6a3d", alphaStart: 100, alphaEnd: 0,
       sizeStart: 0.25, sizeEnd: 0.05, blend: "blend", lit: false, mode: "burst", count: 24, rate: 20, duration: 1,
@@ -136,7 +140,7 @@ export function createElement<K extends ElementKind>(kind: K, name: string, disp
 /** All in-game identifiers an element registers (armor registers four). */
 export function identifiersOf(el: ModElement, ns: string): string[] {
   switch (el.kind) {
-    case "block": case "plant": case "item": case "tool": case "food": case "entity": case "projectile":
+    case "block": case "plant": case "item": case "tool": case "food": case "entity": case "projectile": case "disc":
       return [`${ns}:${el.name}`];
     case "crop":
       return [`${ns}:${el.name}`, `${ns}:${el.name}_seeds`];
