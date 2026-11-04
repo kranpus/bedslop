@@ -25,6 +25,7 @@ export const KINDS: KindInfo[] = [
   { kind: "crop", label: "Crop", blurb: "Plant seeds on farmland, watch it grow in stages, harvest the produce. Bone meal works too.", group: "Content", glyph: "C", color: "#6a8a2a" },
   { kind: "disc", label: "Music disc", blurb: "Your own song on a disc that plays in jukeboxes.", group: "Content", glyph: "♫", color: "#3d3d5c" },
   { kind: "enchantment", label: "Enchantment", blurb: "Your own enchantment: extra damage, life steal, fire, effects while worn, and more. Comes with an enchanted book.", group: "Content", glyph: "✧", color: "#5b3f9c" },
+  { kind: "effect", label: "Potion effect", blurb: "Your own status effect with a timer: Minecraft effects, damage or healing over time, particles and procedures. Optional potion to drink.", group: "Content", glyph: "⚗", color: "#2f6f8f" },
   { kind: "recipe", label: "Recipe", blurb: "Crafting table (shaped or shapeless), furnace, stonecutter or smithing.", group: "Content", glyph: "R", color: "#8c7a2c" },
   { kind: "loot", label: "Loot table", blurb: "Weighted drops for blocks, mobs and chests.", group: "Content", glyph: "L", color: "#9a6b1f" },
   { kind: "ore", label: "Ore generation", blurb: "Place veins of any block underground in the Overworld, Nether or End.", group: "World", glyph: "O", color: "#5c6470" },
@@ -114,6 +115,11 @@ export function createElement<K extends ElementKind>(kind: K, name: string, disp
       ...base, kind: "crop", stageTextures: ["", "", "", ""], look: "crop", growthChance: 33, boneMeal: true,
       produce: "", produceMin: 1, produceMax: 3, seedsTexture: "", seedsMax: 2, placeableOn: ["minecraft:farmland"],
     }),
+    effect: () => ({
+      ...base, kind: "effect", color: "d", maxLevel: 2, showTimer: true, milkCures: true,
+      steps: [{ id: uid(), type: "vanilla", effect: "speed", stronger: true, amount: 0, perLevel: 0 }],
+      potion: true, potionTexture: "", potionSeconds: 60, potionLevel: 1,
+    }),
     enchantment: () => ({
       ...base, kind: "enchantment", maxLevel: 3, targets: ["sword"], extraItems: [], book: true, bookTexture: "",
       effects: [{ id: uid(), when: "hit", type: "damage", amount: 2, perLevel: 1 }],
@@ -151,6 +157,8 @@ export function identifiersOf(el: ModElement, ns: string): string[] {
       return [`${ns}:${el.name}`, `${ns}:${el.name}_seeds`];
     case "enchantment":
       return el.book ? [`${ns}:${el.name}_book`] : [];
+    case "effect":
+      return el.potion ? [`${ns}:${el.name}_potion`] : [];
     case "armor":
       return (Object.keys(el.pieces) as (keyof typeof el.pieces)[])
         .filter((s) => el.pieces[s].enabled)

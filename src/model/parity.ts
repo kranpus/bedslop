@@ -53,7 +53,7 @@ export const PARITY: ParityRow[] = [
   { mcreator: "Creative tab", bedrock: "Item catalog groups", status: "done", phase: 2, notes: "Your own collapsible groups with icons inside the four creative tabs (1.21.60+). Whole new tabs don't exist in Bedrock." },
   // Phase 3: Bedrock gaps covered by scripting
   { mcreator: "Enchantment", bedrock: "Script-simulated", status: "done", phase: 3, notes: "Run by script: stored on the item with a tooltip line; hit, break and worn effects; enchanted books. Not in the enchanting table or anvil." },
-  { mcreator: "Potion effect", bedrock: "Script-simulated", status: "workaround", phase: 3, notes: "No custom effects; simulate with timed scripts and HUD text." },
+  { mcreator: "Potion effect", bedrock: "Script-simulated", status: "done", phase: 3, notes: "Run by script with an on-screen timer: Minecraft effect bundles, damage/heal over time, particles, procedures, milk cure, potion items." },
   { mcreator: "Achievement / advancement", bedrock: "Script-simulated", status: "workaround", phase: 3, notes: "Track with dynamic properties, announce with titles/toasts." },
   { mcreator: "Overlay", bedrock: "JSON UI / title + actionbar", status: "workaround", phase: 3, notes: "Simple overlays via actionbar/title; full HUD via JSON UI." },
   { mcreator: "Key binding", bedrock: "Input API / sneak + item combos", status: "workaround", phase: 3, notes: "No custom key bindings on Bedrock." },

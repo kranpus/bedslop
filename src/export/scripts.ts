@@ -707,6 +707,14 @@ export function buildScript(ctx: GenContext): string | null {
   }
   if (stubs.length) sections += "\n// Missing references\n" + stubs.join("\n") + "\n";
   const structures = new Set(ctx.project.elements.filter((e) => e.kind === "structure").map((e) => e.name));
+  // Custom effect steps need the effects script, which only exists when the project has effects.
+  const fxNames = new Set(ctx.project.elements.filter((e) => e.kind === "effect").map((e) => e.name));
+  for (const m of new Set([...sections.matchAll(/bcFx(?:Give|Remove|Level)\(BC\.who\(ctx, "[^"]*"\), "([^"]*)"/g)].map((m) => m[1]))) {
+    if (!fxNames.has(m)) ctx.warn(undefined, `A step uses the custom effect "${m}", which doesn't exist (renamed or deleted?).`, "error");
+  }
+  if (!fxNames.size && /bcFx(Give|Remove|Level)\(/.test(sections)) {
+    sections += "\n// Missing references\nfunction bcFxGive(e, name, seconds, level) {}\nfunction bcFxRemove(e, name) {}\nfunction bcFxLevel(e, name) { return 0; }\n";
+  }
   // Enchantment steps need the enchantment script, which only exists when the project has enchantments.
   const enchantments = new Set(ctx.project.elements.filter((e) => e.kind === "enchantment").map((e) => e.name));
   for (const m of new Set([...sections.matchAll(/bcEnchant(?:Held\(ctx|Level\(BC\.heldStack\(ctx\.player\)), "([^"]*)"/g)].map((m) => m[1]))) {

@@ -24,6 +24,7 @@ export const TEMPLATES: TemplateInfo[] = [
   { id: "orb", label: "Throwable orb", size: [16, 16], kind: "item" },
   { id: "bow", label: "Bow", size: [16, 16], kind: "item" },
   { id: "disc", label: "Music disc", size: [16, 16], kind: "item" },
+  { id: "potion", label: "Potion bottle", size: [16, 16], kind: "item" },
   { id: "arrow", label: "Arrow", size: [16, 16], kind: "item" },
   { id: "ingot", label: "Ingot", size: [16, 16], kind: "item" },
   { id: "dust", label: "Dust", size: [16, 16], kind: "item" },
@@ -236,6 +237,17 @@ export function drawTemplate(id: string, hex: string, seed = 1): Grid {
       g.set(7, 6, shade(base, 0.6));
       g.outline();
       break;
+    case "potion": {
+      // Glass bottle with a cork, filled with the chosen colour.
+      const glass: RGBA = [215, 230, 240, 200];
+      g.rect(6, 1, 9, 2, () => shade(WOOD, 0.1));
+      g.rect(7, 3, 8, 5, () => glass);
+      g.circle(7.5, 10.5, 4.6, (x, y) => (y < 8 ? glass : shade(base, diag(x, y, 0.4) + noise(0.05))));
+      g.set(5, 9, [255, 255, 255, 230]);
+      g.set(5, 10, [255, 255, 255, 180]);
+      g.outline(0.55);
+      break;
+    }
     case "disc": {
       // Dark vinyl with grooves and a coloured label, like the vanilla discs.
       const vinyl: [number, number, number] = [34, 34, 40];

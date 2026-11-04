@@ -2,6 +2,7 @@ import { genStructure } from "./structure";
 import { genParticle } from "./particle";
 import { genDisc } from "./disc";
 import { genEnchantments } from "./enchant";
+import { genCustomEffects } from "./effects";
 import { genCreativeGroups } from "./creative";
 import type { CommandElement, ModElement, Project } from "../model/types";
 import { genArmor, genBlock, genFood, genItem, genPlant, genTool } from "./content";
@@ -150,6 +151,7 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
       case "particle": genParticle(ctx, el); break;
       case "disc": genDisc(ctx, el); break;
       case "enchantment": break; // all enchantments share one script section, made below
+      case "effect": break; // same for custom effects
       case "function": genFunction(ctx, el); break;
       case "sound": genSound(ctx, el); break;
       case "projectile": genProjectile(ctx, el); break;
@@ -165,6 +167,7 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
   genCommands(ctx, commands);
   genBlockScripts(ctx);
   genEnchantments(ctx);
+  genCustomEffects(ctx);
   genCreativeGroups(ctx);
 
   // Features in use that need a newer game or Script API than the project targets.

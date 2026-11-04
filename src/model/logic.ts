@@ -5,7 +5,7 @@ import type { TriggerType } from "./types";
 
 export type ParamKind =
   | "text" | "longtext" | "number" | "bool" | "item" | "block" | "entity" | "effect" | "sound"
-  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle" | "enchantment" | "objective";
+  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle" | "enchantment" | "objective" | "custom_effect";
 
 export interface ParamSpec {
   key: string;
@@ -221,6 +221,23 @@ export const ACTIONS: ActionSpec[] = [
     code: (g) => `BC.explode(ctx, ${S(g.f("at"))}, ${g.e("power")}, ${!!g.f("fire")}, ${!!g.f("breaks")});`,
   },
   {
+    type: "give_custom_effect", label: "Give custom effect", group: "Entities",
+    params: [
+      who(),
+      { key: "effect", label: "Effect", kind: "custom_effect", default: "" },
+      { key: "seconds", label: "Seconds", kind: "number", default: 30 },
+      { key: "level", label: "Level", kind: "number", default: 1 },
+    ],
+    summary: (p) => `Give ${p.who} ${p.effect || "(effect)"} ${p.level} for ${p.seconds}s`,
+    code: (g) => (g.f("effect") ? `bcFxGive(BC.who(ctx, ${S(g.f("who"))}), ${S(g.f("effect"))}, ${g.e("seconds")}, ${g.e("level")});` : "// No effect selected"),
+  },
+  {
+    type: "remove_custom_effect", label: "Remove custom effect", group: "Entities",
+    params: [who(), { key: "effect", label: "Effect", kind: "custom_effect", default: "" }],
+    summary: (p) => `Remove ${p.effect || "(effect)"} from ${p.who}`,
+    code: (g) => (g.f("effect") ? `bcFxRemove(BC.who(ctx, ${S(g.f("who"))}), ${S(g.f("effect"))});` : "// No effect selected"),
+  },
+  {
     type: "enchant_held", label: "Enchant held item", group: "Items",
     params: [
       { key: "enchantment", label: "Enchantment", kind: "enchantment", default: "" },
@@ -390,6 +407,12 @@ export const CONDITIONS: ConditionSpec[] = [
   {
     type: "holding", label: "Player is holding item", params: [{ key: "item", label: "Item", kind: "item", default: "minecraft:stick" }],
     summary: (p) => `player holds ${p.item}`, code: (g) => `BC.held(ctx.player) === ${S(g.f("item"))}`,
+  },
+  {
+    type: "has_custom_effect", label: "Has custom effect",
+    params: [who(), { key: "effect", label: "Effect", kind: "custom_effect", default: "" }],
+    summary: (p) => `${p.who} has ${p.effect || "(effect)"}`,
+    code: (g) => `bcFxLevel(BC.who(ctx, ${S(g.f("who"))}), ${S(g.f("effect"))}) > 0`,
   },
   {
     type: "held_enchant", label: "Held item has enchantment",

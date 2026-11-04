@@ -78,6 +78,18 @@ function ParamInput({ spec, value, onChange, slots }: { spec: ParamSpec; value: 
         </Field>
       );
     }
+    case "custom_effect": {
+      const own = project.elements.filter((e) => e.kind === "effect");
+      return (
+        <Field label={spec.label}>
+          <select value={String(v)} onChange={(e) => onChange(e.target.value)}>
+            <option value="">{own.length ? "Choose…" : "No custom effects yet"}</option>
+            {own.map((e) => <option key={e.id} value={e.name}>{e.displayName}</option>)}
+            {v && !own.some((e) => e.name === v) && <option value={String(v)}>{String(v)} (missing)</option>}
+          </select>
+        </Field>
+      );
+    }
     case "variable": case "procedure": case "form": case "structure": case "enchantment": {
       const names = spec.kind === "variable"
         ? (project.variables ?? []).map((x) => x.name)
@@ -240,6 +252,7 @@ function BlocksSection({ el, patch, isCommand }: { el: ProcedureElement | Comman
         particles={project.elements.filter((e) => e.kind === "particle").map((e) => e.name)}
         enchantments={project.elements.filter((e) => e.kind === "enchantment").map((e) => e.name)}
         objectives={(project.scoreboards ?? []).map((b) => b.name)}
+        effects={project.elements.filter((e) => e.kind === "effect").map((e) => e.name)}
         args={isCommand ? ((el as CommandElement).args ?? []).map((a) => a.name) : []}
         isCommand={isCommand}
       />

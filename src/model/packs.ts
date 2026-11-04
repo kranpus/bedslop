@@ -354,6 +354,15 @@ export function exampleProject(p: Project): Project {
   const sight = createElement("enchantment", "ruby_sight", "Ruby Sight");
   Object.assign(sight, { maxLevel: 1, targets: ["helmet"], effects: [{ id: uid(), when: "equipped", type: "self_effect", effect: "night_vision", amount: 0, perLevel: 0 }] });
 
+  // A custom effect with a potion to drink.
+  const rush = createElement("effect", "ruby_rush", "Ruby Rush");
+  Object.assign(rush, { color: "c", maxLevel: 2, potionSeconds: 90, steps: [
+    { id: uid(), type: "vanilla", effect: "speed", stronger: true, amount: 0, perLevel: 0 },
+    { id: uid(), type: "vanilla", effect: "haste", stronger: true, amount: 0, perLevel: 0 },
+    { id: uid(), type: "particles", particle: "ruby_sparkle", amount: 0, perLevel: 0 },
+  ] });
+  rush.potionTexture = tex("ruby_rush_potion", "potion", "#e0475c", "item");
+
   // Brewing: a ruby turns an awkward potion into Regeneration II.
   const brew = createElement("recipe", "ruby_regeneration", "Ruby regeneration brew");
   Object.assign(brew, { recipeType: "brewing", brewMode: "mix", input: "minecraft:potion_type:awkward", reagent: "ruby:ruby", result: "minecraft:potion_type:strong_regeneration" });
@@ -407,9 +416,10 @@ export function exampleProject(p: Project): Project {
   merchant.trades!.push(
     { wants: "ruby:ruby", wantsCount: 12, wants2: "minecraft:book", wants2Count: 1, gives: "ruby:vampire_book", givesCount: 1, maxUses: 3 },
     { wants: "ruby:ruby", wantsCount: 8, gives: "ruby:ruby_sight_book", givesCount: 1, maxUses: 3 },
+    { wants: "ruby:ruby", wantsCount: 3, wants2: "minecraft:glass_bottle", wants2Count: 1, gives: "ruby:ruby_rush_potion", givesCount: 1, maxUses: 6 },
   );
 
-  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle, lamp, lampClick, brew, vampire, sight];
+  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle, lamp, lampClick, brew, vampire, sight, rush];
   p.textures = textures;
   p.packIcon = textures.find((t) => t.name === "ruby")?.id ?? "";
   return p;

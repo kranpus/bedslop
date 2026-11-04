@@ -2,6 +2,7 @@
 // Everything here is plain JSON so a project can be saved, exported and re-imported as-is.
 
 export type ElementKind =
+  | "effect"
   | "enchantment"
   | "disc"
   | "particle"
@@ -740,6 +741,35 @@ export interface CreativeGroup {
   members: string[];
 }
 
+/** Something a custom effect does while active. Numbers: amount at level I, plus perLevel for each level above. */
+export interface CustomEffectStep {
+  id: string;
+  /** vanilla: keep a Minecraft effect on; damage/heal: every second; particles: every second; procedure: every `every` seconds; on_start/on_end: once. */
+  type: "vanilla" | "damage" | "heal" | "particles" | "procedure" | "on_start" | "on_end";
+  amount: number;
+  perLevel: number;
+  effect?: string;
+  stronger?: boolean;
+  particle?: string;
+  procedure?: string;
+  every?: number;
+}
+
+export interface CustomEffectElement extends BaseElement {
+  kind: "effect";
+  /** Minecraft colour code letter for the on-screen timer (e.g. "d" pink, "a" green, "c" red). */
+  color: string;
+  maxLevel: number;
+  showTimer: boolean;
+  milkCures: boolean;
+  steps: CustomEffectStep[];
+  /** Adds a drinkable potion item that gives this effect. */
+  potion: boolean;
+  potionTexture: string;
+  potionSeconds: number;
+  potionLevel: number;
+}
+
 export type ModElement =
   | BlockElement
   | PlantElement
@@ -761,7 +791,8 @@ export type ModElement =
   | StructureElement
   | ParticleElement
   | DiscElement
-  | EnchantmentElement;
+  | EnchantmentElement
+  | CustomEffectElement;
 
 export type ElementOf<K extends ElementKind> = Extract<ModElement, { kind: K }>;
 

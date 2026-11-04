@@ -531,3 +531,5 @@ table.vars td:nth-child(5) { min-width: 0; }
 .tr-table { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 .tr-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 @media (max-width: 640px) { .tr-row { grid-template-columns: 1fr; } }
+.fx-timer-preview { display: inline-block; align-self: flex-start; padding: 6px 14px; background: rgba(0, 0, 0, 0.72); border-radius: 3px; font-family: var(--font-mono); font-size: 14px; }
+.fx-timer-preview .fx-time { color: #aaaaaa; }
