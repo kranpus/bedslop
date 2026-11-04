@@ -47,6 +47,8 @@ export class GenContext {
   readonly uiDefs: string[] = [];
   /** Storage blocks with a themed screen: container title -> background texture path. */
   readonly containerThemes: { title: string; texture: string }[] = [];
+  /** Storage blocks that open like a chest: block id -> sounds. Their "opened" state is <ns>:opened. */
+  readonly chestLids: { id: string; open: string; close: string }[] = [];
   readonly terrain: Record<string, { textures: string }> = {};
   readonly itemAtlas: Record<string, { textures: string }> = {};
   readonly blockSounds: Record<string, { sound: string }> = {};

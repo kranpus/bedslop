@@ -118,6 +118,9 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
       else if (!ctx.containerThemes.some((t) => t.title === title)) ctx.containerThemes.push({ title, texture: tex });
     }
     need("1.26.20", "storage blocks", "1.26.60");
+    if (b.lid?.enabled) {
+      ctx.chestLids.push({ id, open: b.lid.openSound, close: b.lid.closeSound });
+    }
   }
 
   // Redstone.
@@ -190,8 +193,20 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
     });
   }
 
+  if (fn === "storage" && b.lid?.enabled) states[`${ctx.ns}:opened`] = [false, true];
   const custom = customStateParts(ctx, b, states, rm);
   Object.assign(states, custom.states);
+  if (fn === "storage" && b.lid?.enabled) {
+    // The lid: parts that only show while closed, and parts that only show while open.
+    const opened = `q.block_state('${ctx.ns}:opened')`;
+    const closedParts = b.lid.closedParts.filter(Boolean), openParts = b.lid.openParts.filter(Boolean);
+    if (b.geometry !== "custom" || b.shape) { if (closedParts.length || openParts.length) ctx.warn(b, "chooses lid parts, but only Blockbench models have parts. The lid won't move.", "info"); }
+    else {
+      for (const bone of closedParts) custom.hidden.set(bone, [...(custom.hidden.get(bone) ?? []), opened]);
+      for (const bone of openParts) custom.hidden.set(bone, [...(custom.hidden.get(bone) ?? []), `!${opened}`]);
+      if (!closedParts.length && !openParts.length) ctx.warn(b, "opens like a chest, but no lid parts are chosen, so only the sounds play.", "info");
+    }
+  }
   if (custom.hidden.size && typeof components["minecraft:geometry"] === "string") {
     // Each part shows unless one of its rules matches.
     const known = new Set((JSON.parse(b.customGeometry || "{}")["minecraft:geometry"]?.[0]?.bones ?? []).map((x: { name: string }) => x.name));

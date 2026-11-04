@@ -104,6 +104,7 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [ ] Custom effects: timer counts down; Minecraft effects stay on and are removed at the end; damage/heal ticks; potion gives it; milk cures; mobs keep effects after a reload
 - [ ] HUD/overlays: layout matches the editor at different GUI scales; live text and bars update; invisible data titles never flash; overlays show/hide and time out; works alongside other HUD packs
 - [ ] Form layouts: grid forms show tiles with icons and text, buttons click the right option, scrolling works with many buttons, close button works; forms without a layout still look vanilla; own-background layout draws title and close button; check on touch and with a controller
+- [ ] Chest lids: lid opens on the first viewer and closes after the last; sounds play once; facing kept; breaking an open chest doesn't leave a stuck count
 - [ ] Container themes: a storage block's background shows only on its own screen (not on chests), lines up with the slots for 9/27/54 slots, and the title with a curly apostrophe still matches
 - [ ] Custom effect list: effects show on the left with colours, levels and timers, the list clears when they end, and "above the hotbar" effects still use the action bar
 - [ ] Manual animation slots: "When attacking" (`variable.attack_time`), "When hurt" and "When dying" fire at the right moment; one-shot controllers replay on each attack; "Match walking speed" stops foot sliding
@@ -176,6 +177,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.17.1**: Storage blocks can open like a chest: while anyone looks inside, an "opened" state swaps the Blockbench model's lid parts (guessed from names like top_closed / top_opened) and open/close sounds play. Viewers are counted per block so one player leaving doesn't shut it on another. Rebuilds hand-made chests like pa:custom_chest without writing a script. 191 tests.
 
 - **0.17.0** (Phase 3): Custom form layouts (a grid of tiles with your own sizes, colours and optional background image) and themed container screens (a background image for storage blocks), both made with JSON UI. Custom potion effects now show in a list on the left of the screen by default. Example: the Ruby shop is a 2-column grid. 186 tests.
 

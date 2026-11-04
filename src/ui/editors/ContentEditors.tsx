@@ -6,6 +6,7 @@ import { ModelPreview } from "../ModelPreview";
 import { convertBbmodel, isBbmodel } from "../../export/bbmodel";
 import { previewGeometry } from "../../export/shapes";
 import type {
+  ChestLid,
   BlockShape,
   ArmorElement, ArmorSlot, BlockElement, BlockFace, FoodElement, ItemElement, PlantElement, ToolElement, ToolType,
 } from "../../model/types";
@@ -568,6 +569,48 @@ function VersionNeed({ el }: { el: BlockElement }) {
   );
 }
 
+/** Storage blocks that open like a chest: lid parts and sounds. */
+function ChestLidFields({ el, patch }: { el: BlockElement; patch: Patch<BlockElement> }) {
+  const ns = useStore((s) => s.project!.namespace);
+  const bones = useMemo(() => {
+    if (el.geometry !== "custom" || el.shape) return [] as string[];
+    try { return (JSON.parse(el.customGeometry || "{}")["minecraft:geometry"]?.[0]?.bones ?? []).map((b: { name: string }) => b.name) as string[]; } catch { return [] as string[]; }
+  }, [el.geometry, el.shape, el.customGeometry]);
+  const lid = el.lid;
+  const set = (p: Partial<ChestLid>) => patch({ lid: { ...lid!, ...p } });
+  const turnOn = (on: boolean) => {
+    if (!on) return patch({ lid: lid ? { ...lid, enabled: false } : undefined });
+    // Guess the lid parts from their names, like "top_closed" and "top_opened".
+    patch({ lid: lid ? { ...lid, enabled: true } : {
+      enabled: true, closedParts: bones.filter((b) => /clos|shut/i.test(b)), openParts: bones.filter((b) => /open/i.test(b)),
+      openSound: "random.chestopen", closeSound: "random.chestclosed",
+    } });
+  };
+  const sounds = [{ value: "", label: "No sound" }, ...["random.chestopen", "random.chestclosed", "random.barrel.open", "random.barrel.close", "random.shulkerboxopen", "random.shulkerboxclosed", "random.enderchestopen", "random.enderchestclosed", "random.door_open", "random.door_close"].map((v) => ({ value: v, label: v }))];
+  return (
+    <>
+      <Toggle label="Opens like a chest" value={!!lid?.enabled} onChange={turnOn}
+        help={`While anyone is looking inside, the block's "opened" state (${ns}:opened) is on: the lid swaps and a sound plays. Players are counted, so one leaving doesn't shut it on another.`} />
+      {lid?.enabled && (
+        <>
+          {bones.length > 0 ? (
+            <Grid>
+              <ChipList label="Parts shown while closed" values={lid.closedParts} onChange={(closedParts) => set({ closedParts })} suggestions={bones} placeholder="part name…" help="E.g. the shut lid." />
+              <ChipList label="Parts shown while open" values={lid.openParts} onChange={(openParts) => set({ openParts })} suggestions={bones} placeholder="part name…" help="E.g. the raised lid." />
+            </Grid>
+          ) : (
+            <p className="field-help">Import a Blockbench model (under Shape) with two lid parts, one shut and one raised, to animate the lid. Without one, only the sounds play.</p>
+          )}
+          <Grid>
+            <Select label="Sound when opened" value={lid.openSound} onChange={(openSound) => set({ openSound })} options={sounds} />
+            <Select label="Sound when closed" value={lid.closeSound} onChange={(closeSound) => set({ closeSound })} options={sounds} />
+          </Grid>
+        </>
+      )}
+    </>
+  );
+}
+
 function BlockFunctionSection({ el, patch }: { el: BlockElement; patch: Patch<BlockElement> }) {
   const ns = useStore((s) => s.project!.namespace);
   const recipes = useStore((s) => s.project!.elements);
@@ -599,6 +642,7 @@ function BlockFunctionSection({ el, patch }: { el: BlockElement; patch: Patch<Bl
           <TexturePicker label="Screen background (optional)" kind="other" value={el.containerBackground || undefined} suggestedName={`${el.name}_screen`} onChange={(containerBackground) => patch({ containerBackground })}
             help="Drawn behind the title and slots in the top half of its screen (about 176 × 80 pixels for 27 slots). Each block needs its own title for this to work." />
           {el.containerBackground && <button type="button" className="btn ghost small" onClick={() => patch({ containerBackground: "" })}>Use the normal background</button>}
+          <ChestLidFields el={el} patch={patch} />
         </>
       )}
       {fn !== "none" && <VersionNeed el={el} />}

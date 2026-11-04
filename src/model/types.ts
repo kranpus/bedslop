@@ -78,6 +78,17 @@ export interface BlockStateRule {
   hideBones?: string[];
 }
 
+/** A storage block that opens and closes like a chest. */
+export interface ChestLid {
+  enabled: boolean;
+  /** Custom models: parts shown only while closed / only while open. */
+  closedParts: string[];
+  openParts: string[];
+  /** Sounds when the first player opens it and the last one closes it ("" = silent). */
+  openSound: string;
+  closeSound: string;
+}
+
 export interface BlockElement extends BaseElement {
   kind: "block";
   /** Tags other add-ons, recipes and procedures can test for (e.g. "minecraft:stone"). */
@@ -121,6 +132,8 @@ export interface BlockElement extends BaseElement {
   /** Storage: number of slots (1-54) and the title shown on its screen. */
   slotCount?: number;
   containerTitle?: string;
+  /** Storage: animate like a chest while someone has it open (an "opened" state, model parts and sounds). */
+  lid?: ChestLid;
   /** Redstone output power 0-15 (0 = none). */
   redstonePower?: number;
   /** "always": constant signal; "toggle": right-click switches it on and off, like a lever. */

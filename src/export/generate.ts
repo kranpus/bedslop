@@ -5,6 +5,7 @@ import { genEnchantments } from "./enchant";
 import { genCustomEffects } from "./effects";
 import { genHuds } from "./hud";
 import { genScreens } from "./screens";
+import { genChestLids } from "./chest";
 import { genCreativeGroups } from "./creative";
 import type { CommandElement, ModElement, Project } from "../model/types";
 import { genArmor, genBlock, genFood, genItem, genPlant, genTool } from "./content";
@@ -184,6 +185,7 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
   }
 
   genScreens(ctx);
+  genChestLids(ctx);
   if (ctx.uiDefs.length) ctx.rp("ui/_ui_defs.json", { ui_defs: ctx.uiDefs });
 
   const script = buildScript(ctx);
