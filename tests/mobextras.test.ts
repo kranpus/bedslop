@@ -138,3 +138,43 @@ describe("mob extras", () => {
     expect(generateAddon(p).warnings.some((w) => w.level === "error" && w.message.includes(`"ember"`))).toBe(true);
   });
 });
+
+describe("mount and trade extras", () => {
+  const p = createProject("Mounts");
+  p.namespace = "mnt";
+  const pig = createElement("entity", "hog", "Hog");
+  Object.assign(pig, { model: "quadruped", rideable: true, needsSaddle: true, steerItem: "minecraft:carrot_on_a_stick", chestSlots: 15, breedItems: ["minecraft:carrot"] });
+  const ghast = createElement("entity", "cloud", "Cloud");
+  Object.assign(ghast, { movement: "fly", rideable: true });
+  const trader = createElement("entity", "smith", "Smith");
+  trader.trades = [
+    { wants: "minecraft:emerald", wantsCount: 1, gives: "minecraft:iron_ingot", givesCount: 2, maxUses: 8 },
+    { wants: "minecraft:emerald", wantsCount: 9, gives: "minecraft:diamond", givesCount: 1, maxUses: 3, level: 3 },
+  ];
+  p.elements.push(pig, ghast, trader);
+  const { files } = generateAddon(p);
+  const ent = (n: string) => JSON.parse(files.get(`BP/entities/${n}.json`) as string)["minecraft:entity"];
+
+  it("saddles, steers with an item and carries a chest", () => {
+    const h = ent("hog");
+    const saddled = h.component_groups["bc:saddled"];
+    expect(saddled["minecraft:item_controllable"]).toEqual({ control_items: "minecraft:carrot_on_a_stick" });
+    expect(saddled["minecraft:inventory"]).toEqual({ inventory_size: 15, container_type: "horse" });
+    expect(saddled["minecraft:rideable"]).toBeDefined();
+    expect(h.components["minecraft:rideable"]).toBeUndefined();
+    const filters = h.component_groups["bc:unsaddled"]["minecraft:interact"].interactions[0].on_interact.filters.all_of;
+    expect(filters.map((f: any) => f.test)).toEqual(["has_equipment", "has_component"]);
+    expect(h.events["bc:on_saddled"]).toEqual({ remove: { component_groups: ["bc:unsaddled"] }, add: { component_groups: ["bc:saddled"] } });
+    expect(h.events["minecraft:entity_spawned"].sequence[0].add.component_groups).toEqual(["bc:adult", "bc:unsaddled"]);
+  });
+
+  it("flies with the rider steering", () => {
+    expect(ent("cloud").components["minecraft:input_air_controlled"]).toEqual({});
+  });
+
+  it("unlocks trades by level", () => {
+    const t = JSON.parse(files.get("BP/trading/mnt_smith_trades.json") as string).tiers;
+    expect(t.map((x: any) => x.total_exp_required)).toEqual([0, 70]);
+    expect(t[1].trades[0]).toMatchObject({ reward_exp: true, trader_exp: 8 });
+  });
+});

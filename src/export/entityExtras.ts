@@ -124,11 +124,40 @@ export function applyExtras(ctx: GenContext, e: EntityElement, id: string, c: Co
       "minecraft:rideable": { seat_count: 1, family_types: ["player"], interact_text: "action.interact.mount", seats: [{ position: [0, seat, 0] }] },
     };
     if (e.steerable ?? true) {
-      if (movement === "walk") ride["minecraft:input_ground_controlled"] = {};
-      else ctx.warn(e, `is set to be steered, but riders can only steer walking mobs. It will ${movement} around with them instead.`, "info");
+      if (e.steerItem) {
+        // Held item steers, like a carrot on a stick; using it gives a short speed boost.
+        Object.assign(ride, {
+          "minecraft:item_controllable": { control_items: e.steerItem },
+          "minecraft:behavior.controlled_by_player": { priority: 0 },
+          "minecraft:boostable": { speed_multiplier: 1.35, duration: 3, boost_items: [{ item: e.steerItem, damage: 1 }] },
+        });
+      } else if (movement === "walk") ride["minecraft:input_ground_controlled"] = {};
+      else if (movement === "fly") {
+        ride["minecraft:input_air_controlled"] = {};
+        ctx.requires.push({ engine: "1.21.90", reason: `${e.displayName}: flying mount`, elementId: e.id });
+      } else ctx.warn(e, "is set to be steered, but riders can't steer swimming mobs. It will swim around with them instead.", "info");
     }
-    if (tameable && e.rideNeedsTame) add("bc:tamed", ride);
-    else if (breeding) add("bc:adult", ride);
+    const slots = clampInt(e.chestSlots ?? 0, 0, 54);
+    if (slots) Object.assign(ride, { "minecraft:inventory": { inventory_size: slots, container_type: "horse" }, "minecraft:is_chested": {} });
+    // Where riding is unlocked: by a saddle, by taming, by growing up, or always.
+    const rideGroup: Group | null = e.needsSaddle ? null : tameable && e.rideNeedsTame ? "bc:tamed" : breeding ? "bc:adult" : null;
+    if (e.needsSaddle) {
+      // Saddling: the interaction lives in its own group (removed once saddled). Filters keep babies and,
+      // if riding needs taming, untamed mobs from being saddled.
+      groups["bc:saddled"] = { "minecraft:is_saddled": {}, ...ride };
+      const must = [
+        { test: "has_equipment", subject: "other", domain: "hand", value: "saddle" },
+        ...(tameable && e.rideNeedsTame ? [{ test: "has_component", subject: "self", value: "minecraft:is_tamed" }] : []),
+        ...(breeding ? [{ test: "has_component", subject: "self", operator: "!=", value: "minecraft:is_baby" }] : []),
+      ];
+      groups["bc:unsaddled"] = {
+        "minecraft:interact": { interactions: [{
+          on_interact: { filters: { all_of: must }, event: "bc:on_saddled", target: "self" },
+          use_item: true, swing: true, play_sounds: "saddle", interact_text: "action.interact.saddle",
+        }] },
+      };
+      events["bc:on_saddled"] = { remove: { component_groups: ["bc:unsaddled"] }, add: { component_groups: ["bc:saddled"] } };
+    } else if (rideGroup) add(rideGroup, ride);
     else Object.assign(c, ride);
   }
 
@@ -137,16 +166,21 @@ export function applyExtras(ctx: GenContext, e: EntityElement, id: string, c: Co
   if (trades.length) {
     const table = `trading/${ctx.ns}_${e.name}_trades.json`;
     const item = (name: string, n: number) => ({ item: name, quantity: clampInt(n, 1, 64) });
+    // Levels unlock like a villager's: Novice, Apprentice, Journeyman, Expert, Master.
+    const EXP = [0, 10, 70, 150, 250];
+    const levelled = trades.some((t) => (t.level ?? 1) > 1);
+    const tiers = [1, 2, 3, 4, 5].map((lv) => trades.filter((t) => clampInt(t.level ?? 1, 1, 5) === lv)).map((ts, i) => ({ ts, i })).filter(({ ts }) => ts.length);
     ctx.bp(table, {
-      tiers: [{
-        total_exp_required: 0,
-        trades: trades.map((t) => ({
+      tiers: tiers.map(({ ts, i }) => ({
+        total_exp_required: EXP[i],
+        trades: ts.map((t) => ({
           wants: [item(t.wants, t.wantsCount), ...(t.wants2 ? [item(t.wants2, t.wants2Count ?? 1)] : [])],
           gives: [item(t.gives, t.givesCount)],
           max_uses: clampInt(t.maxUses, 1, 1000),
-          reward_exp: false,
+          reward_exp: levelled,
+          ...(levelled ? { trader_exp: 2 + i * 3 } : {}),
         })),
-      }],
+      })),
     });
     Object.assign(c, {
       "minecraft:economy_trade_table": { display_name: `entity.${id}.name`, table, new_screen: true, persist_trades: true },
@@ -194,11 +228,11 @@ export function applyExtras(ctx: GenContext, e: EntityElement, id: string, c: Co
   }
 
   // ----- Spawn and birth events -----
-  const startGroups = [...(breeding ? ["bc:adult"] : []), ...(tameable ? ["bc:wild"] : [])];
+  const startGroups = [...(breeding ? ["bc:adult"] : []), ...(tameable ? ["bc:wild"] : []), ...(groups["bc:unsaddled"] ? ["bc:unsaddled"] : [])];
   const pickVariant = variantGroups.length ? [{ randomize: variantGroups.map((g) => ({ weight: 1, add: { component_groups: [g] } })) }] : [];
   const spawned = [...(startGroups.length ? [{ add: { component_groups: startGroups } }] : []), ...pickVariant];
   if (spawned.length) events["minecraft:entity_spawned"] = { sequence: spawned };
-  if (breeding) events["minecraft:entity_born"] = { sequence: [{ add: { component_groups: ["bc:baby", ...(tameable ? ["bc:wild"] : [])] } }, ...pickVariant] };
+  if (breeding) events["minecraft:entity_born"] = { sequence: [{ add: { component_groups: ["bc:baby", ...(tameable ? ["bc:wild"] : []), ...(groups["bc:unsaddled"] ? ["bc:unsaddled"] : [])] } }, ...pickVariant] };
 
   return { groups, events, textures, renderController };
 }

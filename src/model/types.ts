@@ -268,6 +268,8 @@ export interface TradeEntry {
   givesCount: number;
   /** Times the trade can be used before the trader restocks. */
   maxUses: number;
+  /** Trader level (1-5) that unlocks it. Trading earns the trader experience, like villagers. */
+  level?: number;
 }
 
 export interface EntityElement extends BaseElement {
@@ -338,6 +340,12 @@ export interface EntityElement extends BaseElement {
   steerable?: boolean;
   /** Seat height in blocks. */
   seatHeight?: number;
+  /** Has to be saddled (with a saddle) before it can be ridden. */
+  needsSaddle?: boolean;
+  /** Steered by holding this item, like a pig with a carrot on a stick (empty = the rider steers directly). */
+  steerItem?: string;
+  /** Carries a chest you can open while riding (slots, 0 = none). */
+  chestSlots?: number;
   attackStyle?: "melee" | "ranged";
   /** Projectile element name, or a vanilla id such as minecraft:arrow. */
   projectile?: string;

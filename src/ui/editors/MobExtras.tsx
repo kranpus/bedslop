@@ -75,7 +75,16 @@ export function MobExtras({ el, patch }: { el: EntityElement; patch: Patch<Entit
         <Toggle label="Players can ride it" value={!!el.rideable} onChange={(rideable) => patch({ rideable })} />
         {el.rideable && (
           <Grid>
-            {movement === "walk" && <Toggle label="Rider steers" value={el.steerable ?? true} onChange={(steerable) => patch({ steerable })} help="Like a horse. Off: it wanders with the rider on, like a pig without a carrot." />}
+            {movement !== "swim" && <Toggle label="Rider steers" value={el.steerable ?? true} onChange={(steerable) => patch({ steerable })}
+              help={movement === "fly" ? "Like a happy ghast: look to steer, jump to rise. Needs Minecraft 1.21.90." : "Like a horse. Off: it wanders with the rider on."} />}
+            {(el.steerable ?? true) && (
+              <Field label="Steer with an item (optional)" help="Like a pig: the rider holds this to steer, and using it gives a speed boost. Empty = steer directly.">
+                <IdInput value={el.steerItem ?? ""} onChange={(steerItem) => patch({ steerItem }, "steer")} placeholder="minecraft:carrot_on_a_stick" />
+              </Field>
+            )}
+            <Toggle label="Needs a saddle" value={!!el.needsSaddle} onChange={(needsSaddle) => patch({ needsSaddle })} help="Players use a saddle on it first; the saddle is used up." />
+            <Slider label="Chest slots" min={0} max={54} value={el.chestSlots ?? 0} onChange={(chestSlots) => patch({ chestSlots }, "chest")}
+              format={(v) => (v ? `${v} slots` : "no chest")} help="Like a donkey with a chest: open your inventory while riding to reach it." />
             {tameable && <Toggle label="Only once tamed" value={!!el.rideNeedsTame} onChange={(rideNeedsTame) => patch({ rideNeedsTame })} />}
             <Slider label="Seat height" min={0} max={4} step={0.05} value={el.seatHeight ?? Math.round(Math.max(0.5, el.height * 0.85) * 100) / 100} onChange={(seatHeight) => patch({ seatHeight }, "seat")} format={(v) => `${v} blocks`} />
           </Grid>
@@ -95,6 +104,8 @@ export function MobExtras({ el, patch }: { el: EntityElement; patch: Patch<Entit
               <Field label="Gives"><IdInput value={t.gives} onChange={(gives) => setTrade(i, { gives })} /></Field>
               <Num label="×" min={1} max={64} value={t.givesCount} onChange={(givesCount) => setTrade(i, { givesCount })} />
               <Num label="Uses before restock" min={1} value={t.maxUses} onChange={(maxUses) => setTrade(i, { maxUses })} />
+              <Select label="Unlocks at" value={String(t.level ?? 1)} onChange={(v) => setTrade(i, { level: Number(v) })}
+                options={["Novice", "Apprentice", "Journeyman", "Expert", "Master"].map((l, k) => ({ value: String(k + 1), label: l }))} />
               <button type="button" className="btn ghost small" onClick={() => patch({ trades: trades.filter((_, k) => k !== i) })}>Remove</button>
             </div>
           </div>
