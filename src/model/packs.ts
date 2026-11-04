@@ -343,6 +343,23 @@ export function exampleProject(p: Project): Project {
   bush.seedsTexture = tex("ruby_berry_crop_seeds", "seeds", "#c9a25a", "item");
   bush.produce = "ruby:ruby_berry";
 
+  // A lamp with a custom "lit" state that toggles on right-click.
+  const lamp = createElement("block", "ruby_lamp", "Ruby Lamp");
+  lamp.textures.all = tex("ruby_lamp_off", "glass", "#7a1f2b", "block");
+  lamp.sound = "glass";
+  lamp.hardness = 0.3;
+  lamp.tags = ["ruby:ruby_blocks"];
+  lamp.customStates = [{ name: "lit", type: "bool" }];
+  lamp.stateRules = [{ id: uid(), when: [{ state: "lit", value: "true" }], light: 15, texture: tex("ruby_lamp_on", "storage", "#ff6b7d", "block") }];
+  const lampClick = createElement("procedure", "ruby_lamp_click", "Ruby Lamp: switch");
+  lampClick.trigger = "block_interact";
+  lampClick.filter = "ruby:ruby_lamp";
+  lampClick.actions = [
+    { id: uid(), type: "cycle_block_state", params: { at: "block", state: "lit" }, chance: 100 },
+    { id: uid(), type: "sound", params: { sound: "random.click", at: "block" }, chance: 100 },
+  ];
+  for (const e of [slab, stairs, wall]) e.tags = ["ruby:ruby_blocks"];
+
   // A structure with a loot chest that generates in plains and forests.
   const shrine = createElement("structure", "ruby_shrine", "Ruby Shrine");
   const bytes = rubyShrine(p.namespace);
@@ -372,7 +389,7 @@ export function exampleProject(p: Project): Project {
     { wants: "ruby:ruby", wantsCount: 8, wants2: "minecraft:stick", wants2Count: 1, gives: "ruby:ruby_wand", givesCount: 1, maxUses: 2 },
   ];
 
-  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle];
+  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle, lamp, lampClick];
   p.textures = textures;
   p.packIcon = textures.find((t) => t.name === "ruby")?.id ?? "";
   return p;

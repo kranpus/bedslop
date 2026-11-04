@@ -219,6 +219,22 @@ export const ACTIONS: ActionSpec[] = [
     code: (g) => `BC.explode(ctx, ${S(g.f("at"))}, ${g.e("power")}, ${!!g.f("fire")}, ${!!g.f("breaks")});`,
   },
   {
+    type: "set_block_state", label: "Set block state", group: "World",
+    params: [
+      at("block"),
+      { key: "state", label: "State", kind: "text", default: "lit" },
+      { key: "value", label: "Value", kind: "text", default: "true" },
+    ],
+    summary: (p) => `Set ${p.state} = ${p.value}`,
+    code: (g) => `BC.setState(ctx, ${S(g.f("at"))}, String(${g.e("state")}), ${g.e("value")});`,
+  },
+  {
+    type: "cycle_block_state", label: "Cycle block state", group: "World",
+    params: [at("block"), { key: "state", label: "State", kind: "text", default: "stage" }],
+    summary: (p) => `Next ${p.state}`,
+    code: (g) => `BC.cycleState(ctx, ${S(g.f("at"))}, String(${g.e("state")}));`,
+  },
+  {
     type: "spawn_particle", label: "Spawn particles", group: "World",
     params: [
       { key: "particle", label: "Particle effect", kind: "particle", default: "" },
@@ -330,6 +346,19 @@ export const CONDITIONS: ConditionSpec[] = [
   {
     type: "holding", label: "Player is holding item", params: [{ key: "item", label: "Item", kind: "item", default: "minecraft:stick" }],
     summary: (p) => `player holds ${p.item}`, code: (g) => `BC.held(ctx.player) === ${S(g.f("item"))}`,
+  },
+  {
+    type: "holding_tag", label: "Player is holding an item tagged", params: [{ key: "tag", label: "Item tag", kind: "text", default: "minecraft:is_sword" }],
+    summary: (p) => `held item has tag ${p.tag}`, code: (g) => `BC.heldStack(ctx.player)?.hasTag(String(${g.e("tag")})) === true`,
+  },
+  {
+    type: "block_has_tag", label: "Block has tag", params: [{ key: "tag", label: "Block tag", kind: "text", default: "minecraft:stone" }],
+    summary: (p) => `block has tag ${p.tag}`, code: (g) => `BC.blockAt(ctx, "block")?.hasTag(String(${g.e("tag")})) === true`,
+  },
+  {
+    type: "block_state_is", label: "Block state is",
+    params: [{ key: "state", label: "State", kind: "text", default: "lit" }, { key: "value", label: "Value", kind: "text", default: "true" }],
+    summary: (p) => `${p.state} is ${p.value}`, code: (g) => `String(BC.getState(ctx, "block", String(${g.e("state")}))) === String(${g.e("value")})`,
   },
   {
     type: "has_tag", label: "Has tag", params: [who(), { key: "tag", label: "Tag", kind: "text", default: "my_tag" }],

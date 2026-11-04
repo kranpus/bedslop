@@ -103,3 +103,18 @@ export const VANILLA_MOB_SOUNDS = (
   "mob.irongolem.death mob.irongolem.walk mob.endermen.idle mob.endermen.hit mob.endermen.death mob.creeper.say mob.creeper.death " +
   "mob.wither.ambient mob.camel.ambient mob.frog.ambient mob.goat.ambient"
 ).split(" ");
+
+/** Vanilla item tags that mean something to the game or are widely used by recipes. */
+export const COMMON_ITEM_TAGS = [
+  "minecraft:planks", "minecraft:logs", "minecraft:wool", "minecraft:coals", "minecraft:arrow", "minecraft:is_food", "minecraft:is_meat",
+  "minecraft:is_fish", "minecraft:is_tool", "minecraft:is_sword", "minecraft:is_pickaxe", "minecraft:is_axe", "minecraft:is_shovel", "minecraft:is_hoe",
+  "minecraft:is_armor", "minecraft:trim_materials", "minecraft:transform_materials", "minecraft:stone_tool_materials",
+  "minecraft:stone_crafting_materials", "minecraft:wooden_slabs", "minecraft:sand", "minecraft:boats",
+];
+
+/** Vanilla block tags (tools, crops and terrain checks use these). */
+export const COMMON_BLOCK_TAGS = [
+  "stone", "wood", "metal", "dirt", "sand", "gravel", "grass", "log", "plant", "minecraft:crop",
+  "minecraft:is_pickaxe_item_destructible", "minecraft:is_axe_item_destructible", "minecraft:is_shovel_item_destructible",
+  "minecraft:is_hoe_item_destructible", "minecraft:stone_tier_destructible", "minecraft:iron_tier_destructible", "minecraft:diamond_tier_destructible",
+];

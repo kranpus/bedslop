@@ -50,8 +50,34 @@ export type BlockFace = "all" | "top" | "bottom" | "side" | "north" | "south" | 
 
 export type BlockShape = "cube" | "slab" | "stairs" | "carpet" | "trapdoor" | "door" | "fence" | "wall" | "pane";
 
+/** A state you add to a block, e.g. "lit" (on/off), "stage" (0-3) or "colour" (red/green/blue). */
+export interface CustomBlockState {
+  name: string;
+  type: "bool" | "int" | "enum";
+  min?: number;
+  max?: number;
+  options?: string[];
+}
+
+/** When the block's states match, change how it looks or behaves. */
+export interface BlockStateRule {
+  id: string;
+  /** All must match. Values are written as text: "true", "2", "red". */
+  when: { state: string; value: string }[];
+  texture?: string;
+  light?: number;
+  mapColor?: string;
+  hardness?: number;
+  noCollision?: boolean;
+  friction?: number;
+}
+
 export interface BlockElement extends BaseElement {
   kind: "block";
+  /** Tags other add-ons, recipes and procedures can test for (e.g. "minecraft:stone"). */
+  tags?: string[];
+  customStates?: CustomBlockState[];
+  stateRules?: BlockStateRule[];
   textureMode: BlockTextureMode;
   textures: Partial<Record<BlockFace, string>>;
   renderMethod: "opaque" | "alpha_test" | "blend";
@@ -100,6 +126,8 @@ export interface BlockElement extends BaseElement {
 }
 
 export interface PlantElement extends BaseElement {
+  /** Extra tags (recipes, procedures and other add-ons can test for them). */
+  tags?: string[];
   kind: "plant";
   texture: string;
   lightEmission: number;
@@ -136,6 +164,8 @@ export type ToolType = "pickaxe" | "axe" | "shovel" | "hoe" | "sword";
 export type ToolTier = "wooden" | "stone" | "iron" | "golden" | "diamond" | "netherite";
 
 export interface ToolElement extends BaseElement {
+  /** Extra tags (recipes, procedures and other add-ons can test for them). */
+  tags?: string[];
   kind: "tool";
   toolType: ToolType;
   texture: string;
@@ -157,6 +187,8 @@ export interface ArmorPiece {
 }
 
 export interface ArmorElement extends BaseElement {
+  /** Extra tags (recipes, procedures and other add-ons can test for them). */
+  tags?: string[];
   kind: "armor";
   pieces: Record<ArmorSlot, ArmorPiece>;
   /** 64x32 texture for helmet, chestplate, boots. */
@@ -177,6 +209,8 @@ export interface EffectEntry {
 }
 
 export interface FoodElement extends BaseElement {
+  /** Extra tags (recipes, procedures and other add-ons can test for them). */
+  tags?: string[];
   kind: "food";
   texture: string;
   nutrition: number;
@@ -519,6 +553,8 @@ export interface ProjectileElement extends BaseElement {
 }
 
 export interface CropElement extends BaseElement {
+  /** Extra tags (recipes, procedures and other add-ons can test for them). */
+  tags?: string[];
   kind: "crop";
   /** One texture per growth stage (2-8), youngest first. */
   stageTextures: string[];

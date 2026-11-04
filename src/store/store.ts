@@ -4,7 +4,7 @@ import type { ElementKind, ModElement, Project, TextureAsset } from "../model/ty
 import { createElement, slugify, uid } from "../model/registry";
 import { createProject, migrateProject } from "../model/project";
 
-export type View = "home" | "element" | "textures" | "variables" | "settings" | "export" | "roadmap";
+export type View = "home" | "element" | "textures" | "variables" | "tags" | "settings" | "export" | "roadmap";
 
 export interface ProjectMeta {
   id: string;

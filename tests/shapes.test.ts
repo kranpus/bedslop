@@ -175,6 +175,9 @@ describe("example project", () => {
     expect(shrine.containers.map((c) => c.loot)).toEqual(["loot_tables/chests/ruby_ruby_shrine_loot.json"]);
     expect(shrine.counts[0][0]).toBe("minecraft:stone_bricks");
     expect(files.has("RP/particles/ruby_sparkle.json")).toBe(true);
+    const lamp = JSON.parse(files.get("BP/blocks/ruby_lamp.json") as string)["minecraft:block"];
+    expect(lamp.description.states).toEqual({ "ruby:lit": [false, true] });
+    expect(lamp.permutations.at(-1).components["minecraft:light_emission"]).toBe(15);
     expect(files.get("BP/scripts/main.js")).toContain(`BC.particle(ctx, "ruby_sparkle"`);
     expect(typecheckScript(files.get("BP/scripts/main.js") as string)).toEqual([]);
   });

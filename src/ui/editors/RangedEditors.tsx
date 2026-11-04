@@ -6,6 +6,7 @@ import { TexturePicker } from "../TexturePicker";
 import { useStore } from "../../store/store";
 import { GeometryUpload } from "./ContentEditors";
 import type { Patch } from "./types";
+import { TagField } from "../TagField";
 
 /** Effect rows shared by projectiles (and anything else that applies effects). */
 export function EffectsList({ effects, onChange, empty = "No effects." }: { effects: EffectEntry[]; onChange: (e: EffectEntry[], key?: string) => void; empty?: string }) {
@@ -172,6 +173,7 @@ export function CropEditor({ el, patch }: { el: CropElement; patch: Patch<CropEl
           help="Higher grows faster. About 33% is close to wheat on wet farmland." />
         <Toggle label="Bone meal speeds it up" value={el.boneMeal} onChange={(boneMeal) => patch({ boneMeal })} />
         <ChipList label="Can be planted on" values={el.placeableOn} onChange={(placeableOn) => patch({ placeableOn })} kind="block" suggestions={["minecraft:farmland", "minecraft:grass_block", "minecraft:dirt", "minecraft:soul_sand"]} />
+        <TagField kind="block" values={el.tags ?? []} onChange={(tags) => patch({ tags })} />
       </Section>
       <Section title="Harvest" hint="Breaking a young crop gives back one seed. A grown one drops the produce and extra seeds.">
         <Grid>

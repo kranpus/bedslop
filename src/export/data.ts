@@ -3,6 +3,9 @@ import { FORMATS, GenContext, dataUrlToBytes } from "./context";
 import { clampInt, round } from "./content";
 
 /** Shrinks a 3x3 grid to its bounding box and assigns a key letter per distinct item. */
+/** A recipe ingredient: an item id, or "#tag" for any item with that tag. */
+export const ingredient = (v: string) => (v.startsWith("#") ? { tag: v.slice(1) } : { item: v });
+
 export function shapedPattern(grid: string[]) {
   const rows = [0, 1, 2].map((r) => grid.slice(r * 3, r * 3 + 3));
   const usedRows = rows.map((r) => r.some(Boolean));
@@ -23,7 +26,7 @@ export function shapedPattern(grid: string[]) {
     }
     pattern.push(line);
   }
-  const key = Object.fromEntries([...keyOf].map(([item, k]) => [k, { item }]));
+  const key = Object.fromEntries([...keyOf].map(([item, k]) => [k, ingredient(item)]));
   return { pattern, key };
 }
 
@@ -45,7 +48,7 @@ export function genRecipe(ctx: GenContext, r: RecipeElement) {
       break;
     }
     case "shapeless": {
-      const ingredients = r.grid.filter(Boolean).map((item) => ({ item }));
+      const ingredients = r.grid.filter(Boolean).map(ingredient);
       if (!ingredients.length) return ctx.warn(r, "has no ingredients, so it was skipped.", "error");
       body = { "minecraft:recipe_shapeless": { description: { identifier }, tags: stations(r), ingredients, result } };
       break;

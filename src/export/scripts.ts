@@ -70,6 +70,41 @@ export const RUNTIME = `const BC = {
     }
   },
   randInt(a, b) { const lo = Math.ceil(Math.min(Number(a), Number(b))), hi = Math.floor(Math.max(Number(a), Number(b))); return lo + Math.floor(Math.random() * (hi - lo + 1)); },
+  /** The block at a place in the context (procedure blocks are positions). */
+  blockAt(ctx, a) {
+    const l = BC.at(ctx, a);
+    if (!l) return undefined;
+    try { return BC.dim(ctx).getBlock({ x: Math.floor(l.x), y: Math.floor(l.y), z: Math.floor(l.z) }); } catch { return undefined; }
+  },
+  stateKey(name) { return String(name).includes(":") ? String(name) : NAMESPACE + ":" + name; },
+  getState(ctx, a, name) {
+    const b = BC.blockAt(ctx, a);
+    return b ? b.permutation.getState(/** @type {any} */ (BC.stateKey(name))) : undefined;
+  },
+  setState(ctx, a, name, value) {
+    const b = BC.blockAt(ctx, a);
+    if (!b) return;
+    const key = BC.stateKey(name);
+    const cur = b.permutation.getState(/** @type {any} */ (key));
+    if (cur === undefined) return;
+    const v = typeof cur === "boolean" ? value === true || String(value) === "true" || String(value) === "1"
+      : typeof cur === "number" ? Number(value) : String(value);
+    try { b.setPermutation(b.permutation.withState(/** @type {any} */ (key), /** @type {any} */ (v))); } catch { /* not a valid value */ }
+  },
+  cycleState(ctx, a, name) {
+    const b = BC.blockAt(ctx, a);
+    if (!b) return;
+    const key = BC.stateKey(name);
+    const cur = b.permutation.getState(/** @type {any} */ (key));
+    const values = BlockStates.get(key)?.validValues;
+    if (cur === undefined || !values?.length) return;
+    const next = values[(values.indexOf(cur) + 1) % values.length];
+    b.setPermutation(b.permutation.withState(/** @type {any} */ (key), /** @type {any} */ (next)));
+  },
+  heldStack(p) {
+    if (!p || p.typeId !== "minecraft:player") return undefined;
+    return p.getComponent("minecraft:inventory")?.container?.getItem(p.selectedSlotIndex);
+  },
   held(p) {
     if (!p || p.typeId !== "minecraft:player") return undefined;
     return p.getComponent("minecraft:inventory")?.container?.getItem(p.selectedSlotIndex)?.typeId;

@@ -15,6 +15,8 @@ import { TexturePicker } from "../TexturePicker";
 import { useStore } from "../../store/store";
 import type { Patch } from "./types";
 import { ItemUseSection } from "./RangedEditors";
+import { BlockStatesSection } from "./BlockStatesSection";
+import { TagField } from "../TagField";
 
 // ---------- Block ----------
 
@@ -147,6 +149,7 @@ export function BlockEditor({ el, patch }: { el: BlockElement; patch: Patch<Bloc
             format={(v) => (v <= 0.1 ? "ice-like" : v >= 0.6 ? "sticky" : v === 0.4 ? "normal" : v.toFixed(2))} help="Friction. 0.4 is normal; lower is more slippery." />
         </Grid>
         <Toggle label="Can catch fire" value={el.flammable} onChange={(flammable) => patch({ flammable })} />
+        <TagField kind="block" values={el.tags ?? []} onChange={(tags) => patch({ tags })} />
       </Section>
       <Section title="Drops">
         <Segmented value={el.drops} onChange={(drops) => patch({ drops })} options={[
@@ -154,6 +157,7 @@ export function BlockEditor({ el, patch }: { el: BlockElement; patch: Patch<Bloc
         ]} />
         {el.drops === "loot" && <LootSelect value={el.lootTable} onChange={(lootTable) => patch({ lootTable })} />}
       </Section>
+      <BlockStatesSection el={el} patch={patch} />
       <BlockFunctionSection el={el} patch={patch} />
       <RedstoneSection el={el} patch={patch} />
       <CreativeSection el={el} patch={patch} />
@@ -234,6 +238,7 @@ export function PlantEditor({ el, patch }: { el: PlantElement; patch: Patch<Plan
       </Section>
       <Section title="Placement">
         <ChipList label="Can be placed on" values={el.placeableOn} onChange={(placeableOn) => patch({ placeableOn })} kind="block" help="The plant pops off if the block below is removed." />
+        <TagField kind="block" values={el.tags ?? []} onChange={(tags) => patch({ tags })} />
       </Section>
       <Section title="World generation">
         <Toggle label="Grows naturally in the Overworld" value={el.generate} onChange={(generate) => patch({ generate })} />
@@ -258,7 +263,7 @@ export function ItemEditor({ el, patch }: { el: ItemElement; patch: Patch<ItemEl
           <Num label="Max stack size" min={1} max={64} value={el.maxStack} onChange={(maxStack) => patch({ maxStack }, "stack")} />
           <Num label="Furnace fuel" suffix="seconds" value={el.fuelSeconds} onChange={(fuelSeconds) => patch({ fuelSeconds }, "fuel")} help="0 = not a fuel. Coal burns 80 s." />
         </Grid>
-        <ChipList label="Tags" values={el.tags} onChange={(tags) => patch({ tags })} suggestions={["minecraft:is_food", "minecraft:is_tool", "minecraft:transform_materials", "minecraft:trim_materials"]} help="Used by recipes and other add-ons to find similar items." />
+        <TagField kind="item" values={el.tags} onChange={(tags) => patch({ tags })} />
       </Section>
       <ItemUseSection el={el} patch={patch} />
       <CreativeSection el={el} patch={patch} />
@@ -295,6 +300,7 @@ export function ToolEditor({ el, patch }: { el: ToolElement; patch: Patch<ToolEl
           <IdField label="Repaired with" value={el.repairItem} onChange={(repairItem) => patch({ repairItem }, "repair")} />
         </Grid>
         <Toggle label="Enchanted glint" value={el.glint} onChange={(glint) => patch({ glint })} />
+        <TagField kind="item" values={el.tags ?? []} onChange={(tags) => patch({ tags })} />
       </Section>
     </>
   );
@@ -339,6 +345,7 @@ export function ArmorEditor({ el, patch }: { el: ArmorElement; patch: Patch<Armo
           <Num label="Enchantability" value={el.enchantability} onChange={(enchantability) => patch({ enchantability }, "ench")} />
           <IdField label="Repaired with" value={el.repairItem} onChange={(repairItem) => patch({ repairItem }, "repair")} />
         </Grid>
+        <TagField kind="item" values={el.tags ?? []} onChange={(tags) => patch({ tags })} />
       </Section>
     </>
   );
@@ -365,6 +372,7 @@ export function FoodEditor({ el, patch }: { el: FoodElement; patch: Patch<FoodEl
           <Num label="Max stack size" min={1} max={64} value={el.maxStack} onChange={(maxStack) => patch({ maxStack }, "stack")} />
         </Grid>
         <Toggle label="Can eat when not hungry" value={el.canAlwaysEat} onChange={(canAlwaysEat) => patch({ canAlwaysEat })} />
+        <TagField kind="item" values={el.tags ?? []} onChange={(tags) => patch({ tags })} />
       </Section>
       <Section title="Effects when eaten">
         {el.effects.map((fx, i) => (

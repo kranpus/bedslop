@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { FunctionElement, LootElement, OreElement, Project, RecipeElement, SoundElement } from "../../model/types";
 import { identifiersOf } from "../../model/registry";
 import { useStore } from "../../store/store";
 import { elementTexture } from "../Thumb";
 import { ChipList, Field, Grid, IdField, IdInput, Num, Section, Segmented, Select, Slider, Toggle } from "../fields";
 import type { Patch } from "./types";
+import { projectTags } from "../TagField";
+import { COMMON_ITEM_TAGS } from "../../model/vanilla";
 
 /** Finds the texture for an id like "myaddon:ruby_helmet" so recipe slots can show icons. */
 function iconFor(project: Project, id: string): string | undefined {
@@ -24,7 +26,7 @@ function iconFor(project: Project, id: string): string | undefined {
 function Slot({ id, onClick, big, label }: { id: string; onClick?: () => void; big?: boolean; label?: string }) {
   const project = useStore((s) => s.project!);
   const icon = id ? iconFor(project, id) : undefined;
-  const short = id.split(":").pop()?.replace(/_/g, " ");
+  const short = (id.startsWith("#") ? "#" : "") + id.split(":").pop()?.replace(/_/g, " ");
   return (
     <button type="button" className={`slot${big ? " big" : ""}${id ? " filled" : ""}`} onClick={onClick} title={id || label || "Empty"} aria-label={id ? `Slot: ${id}` : label ?? "Empty slot"}>
       {icon ? <img className="pixel" src={icon} alt="" /> : id ? <span className="slot-text">{short}</span> : null}
@@ -34,6 +36,11 @@ function Slot({ id, onClick, big, label }: { id: string; onClick?: () => void; b
 
 export function RecipeEditor({ el, patch }: { el: RecipeElement; patch: Patch<RecipeElement> }) {
   const [brush, setBrush] = useState("");
+  const project = useStore((s) => s.project!);
+  const itemTags = useMemo(() => Array.from(new Set([
+    ...[...projectTags(project).entries()].filter(([, v]) => v.kind === "item").map(([k]) => k.split("|")[1]),
+    ...COMMON_ITEM_TAGS,
+  ])), [project]);
   const setSlot = (i: number) => {
     const grid = [...el.grid];
     grid[i] = grid[i] === brush ? "" : brush;
@@ -52,7 +59,7 @@ export function RecipeEditor({ el, patch }: { el: RecipeElement; patch: Patch<Re
       {(el.recipeType === "shaped" || el.recipeType === "shapeless") && (
         <Section title="Ingredients" hint="Type or pick an item, then click slots to place it. Click again to remove.">
           <div className="row wrap">
-            <Field label="Item to place"><IdInput value={brush} onChange={setBrush} /></Field>
+            <Field label="Item to place" help="Or #tag for any item with that tag, e.g. #minecraft:planks."><IdInput value={brush} onChange={setBrush} tags={itemTags} /></Field>
             <button type="button" className="btn small ghost" onClick={() => patch({ grid: Array(9).fill("") })}>Clear grid</button>
           </div>
           <div className="crafting">

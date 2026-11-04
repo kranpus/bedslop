@@ -1,6 +1,6 @@
 // Projectiles, throwable/bow/ammo items, and crops.
 import type { CropElement, ItemElement, ProjectileElement } from "../model/types";
-import { FORMATS, GenContext, geometryIdentifier } from "./context";
+import { FORMATS, GenContext, blockTagComponents, geometryIdentifier } from "./context";
 import { clampInt, round } from "./content";
 
 export function genProjectile(ctx: GenContext, p: ProjectileElement) {
@@ -205,6 +205,7 @@ export function genCrop(ctx: GenContext, c: CropElement) {
         "minecraft:placement_filter": { conditions: [{ allowed_faces: ["up"], block_filter: c.placeableOn.length ? c.placeableOn : ["minecraft:farmland"] }] },
         "minecraft:loot": `loot_tables/blocks/${ctx.ns}_${c.name}_young.json`,
         [component]: {},
+        ...blockTagComponents(c.tags),
       },
       permutations: Array.from({ length: stages }, (_, i) => ({
         condition: `q.block_state('${state}') == ${i}`,

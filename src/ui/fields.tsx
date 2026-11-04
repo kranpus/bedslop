@@ -132,8 +132,10 @@ export function useCustomIds(kind: IdKind) {
   }, [project, kind]);
 }
 
-export function IdInput({ value, onChange, kind = "item", placeholder, onEnter }: {
+export function IdInput({ value, onChange, kind = "item", placeholder, onEnter, tags }: {
   value: string; onChange: (v: string) => void; kind?: IdKind; placeholder?: string; onEnter?: (v: string) => void;
+  /** Also suggest "#tag" values (recipe ingredients). */
+  tags?: string[];
 }) {
   const listId = useId();
   const custom = useCustomIds(kind);
@@ -141,6 +143,7 @@ export function IdInput({ value, onChange, kind = "item", placeholder, onEnter }
   const ns = useStore((s) => s.project?.namespace);
   const fixup = (v: string) => {
     const t = v.trim().toLowerCase();
+    if (t.startsWith("#")) return t;
     if (t && !t.includes(":")) {
       // "ruby" -> "myns:ruby" if it exists, otherwise "minecraft:ruby".
       return custom.includes(`${ns}:${t}`) ? `${ns}:${t}` : `minecraft:${t}`;
@@ -154,6 +157,7 @@ export function IdInput({ value, onChange, kind = "item", placeholder, onEnter }
         onKeyDown={(e) => { if (e.key === "Enter" && onEnter) { e.preventDefault(); onEnter(fixup(e.currentTarget.value)); } }} />
       <datalist id={listId}>
         {custom.map((id) => <option key={id} value={id}>Your add-on</option>)}
+        {tags?.map((t) => <option key={t} value={`#${t}`}>Any item with this tag</option>)}
         {vanilla.map((id) => <option key={id} value={id} />)}
       </datalist>
     </>

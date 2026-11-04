@@ -1,8 +1,9 @@
 // Blocks, plants, items, tools, armor and food.
 import type {
+  CustomBlockState,
   ArmorElement, ArmorSlot, BlockElement, FoodElement, ItemElement, PlantElement, ToolElement,
 } from "../model/types";
-import { FORMATS, GenContext, geometryIdentifier, maxVersion } from "./context";
+import { FORMATS, GenContext, blockTagComponents, cleanTags, geometryIdentifier, maxVersion } from "./context";
 import { shapeParts } from "./shapes";
 import { rangedItemComponents } from "./ranged";
 
@@ -80,6 +81,7 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
     else ctx.warn(b, "is set to drop a loot table, but none is selected. It will drop itself.");
   }
   for (const tag of TOOL_TAGS[b.bestTool]) components[`tag:${tag}`] = {};
+  Object.assign(components, blockTagComponents(b.tags));
 
   // Hitbox for custom models.
   if (b.geometry === "custom" && modelBox) {
@@ -171,6 +173,9 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
     });
   }
 
+  const custom = customStateParts(ctx, b, states, rm);
+  Object.assign(states, custom.states);
+
   const block: Record<string, unknown> = {
     description: { identifier: id, menu_category: menu(b.category, b.group), ...(Object.keys(states).length ? { states } : {}) } as Record<string, unknown>,
     components,
@@ -204,6 +209,7 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
   if (Object.keys(onComponents).length) {
     block.permutations = [...((block.permutations as unknown[]) ?? []), { condition: `q.block_state('${onState}')`, components: onComponents }];
   }
+  if (custom.permutations.length) block.permutations = [...((block.permutations as unknown[]) ?? []), ...custom.permutations];
   ctx.bp(`blocks/${b.name}.json`, { format_version: format, "minecraft:block": block });
   ctx.blockSounds[id] = { sound: b.sound };
   ctx.lang.push(`tile.${id}.name=${b.displayName}`);
@@ -229,6 +235,65 @@ export function modelFit(geometryJson: string): string | null {
   } catch {
     return null;
   }
+}
+
+/** Valid custom state names: lower case letters, digits and underscores. */
+const STATE_NAME = /^[a-z][a-z0-9_]{0,31}$/;
+
+/** The values a custom state can take, in order (the first is the default). */
+export function stateValues(st: CustomBlockState): (string | number | boolean)[] {
+  if (st.type === "bool") return [false, true];
+  if (st.type === "int") {
+    const lo = Math.round(Math.min(st.min ?? 0, st.max ?? 3)), hi = Math.round(Math.max(st.min ?? 0, st.max ?? 3));
+    return Array.from({ length: Math.min(16, hi - lo + 1) }, (_, i) => lo + i);
+  }
+  return Array.from(new Set((st.options ?? []).map((o) => o.trim().toLowerCase().replace(/[^a-z0-9_]/g, "_")).filter(Boolean)));
+}
+
+/** Molang test for one state value, e.g. q.block_state('ns:lit') == true. */
+function stateTest(key: string, st: CustomBlockState, raw: string): string | null {
+  const v = String(raw).trim().toLowerCase();
+  const values = stateValues(st);
+  if (st.type === "bool") return v === "true" || v === "1" ? `q.block_state('${key}')` : `!q.block_state('${key}')`;
+  if (st.type === "int") return values.includes(Number(v)) ? `q.block_state('${key}') == ${Number(v)}` : null;
+  return values.includes(v) ? `q.block_state('${key}') == '${v}'` : null;
+}
+
+/** States and permutations the user added to a block. */
+function customStateParts(ctx: GenContext, b: BlockElement, existing: Record<string, unknown>, rm: string) {
+  const states: Record<string, unknown> = {};
+  const defs = new Map<string, CustomBlockState>();
+  for (const st of b.customStates ?? []) {
+    const key = `${ctx.ns}:${st.name}`;
+    if (!STATE_NAME.test(st.name)) { ctx.warn(b, `state "${st.name}" needs a name of lower-case letters, digits and _ (starting with a letter). It was skipped.`, "error"); continue; }
+    if (key in existing || defs.has(st.name)) { ctx.warn(b, `state "${st.name}" is already used by this block (its shape, redstone or another state). Rename it.`, "error"); continue; }
+    const values = stateValues(st);
+    if (values.length < 2) { ctx.warn(b, `state "${st.name}" needs at least two values.`, "error"); continue; }
+    if (st.type === "int" && Math.abs((st.max ?? 3) - (st.min ?? 0)) >= 16) ctx.warn(b, `state "${st.name}" can have at most 16 numbers, so it stops at ${values[values.length - 1]}.`);
+    states[key] = values;
+    defs.set(st.name, st);
+  }
+  const permutations: { condition: string; components: Record<string, unknown> }[] = [];
+  (b.stateRules ?? []).forEach((r, i) => {
+    const tests: string[] = [];
+    for (const w of r.when) {
+      const st = defs.get(w.state);
+      const t = st ? stateTest(`${ctx.ns}:${w.state}`, st, w.value) : null;
+      if (!t) { ctx.warn(b, `rule ${i + 1} checks ${w.state} = ${w.value}, which isn't one of the block's states or values. The rule was skipped.`, "error"); return; }
+      tests.push(t);
+    }
+    if (!tests.length) return;
+    const c: Record<string, unknown> = {};
+    if (r.texture) { const key = ctx.terrainKey(r.texture); if (key) c["minecraft:material_instances"] = { "*": { texture: key, render_method: rm } }; }
+    if (r.light != null) c["minecraft:light_emission"] = clampInt(r.light, 0, 15);
+    if (r.mapColor) c["minecraft:map_color"] = r.mapColor;
+    if (r.hardness != null) c["minecraft:destructible_by_mining"] = r.hardness < 0 ? false : { seconds_to_destroy: round(r.hardness) };
+    if (r.noCollision) c["minecraft:collision_box"] = false;
+    if (r.friction != null) c["minecraft:friction"] = round(Math.min(0.9, Math.max(0, r.friction)));
+    if (!Object.keys(c).length) { ctx.warn(b, `rule ${i + 1} doesn't change anything yet.`, "info"); return; }
+    permutations.push({ condition: tests.join(" && "), components: c });
+  });
+  return { states, permutations };
 }
 
 /** The space a custom block model fills, as a collision/selection box (block pixels, x/z -8..8, y 0..16). */
@@ -298,6 +363,7 @@ export function genPlant(ctx: GenContext, p: PlantElement) {
     "minecraft:destructible_by_explosion": { explosion_resistance: 0 },
     "minecraft:light_dampening": 0,
     "minecraft:flammable": { catch_chance_modifier: 60, destroy_chance_modifier: 100 },
+    ...blockTagComponents(p.tags),
     "minecraft:map_color": "#4f8a3a",
     "minecraft:placement_filter": {
       conditions: [{ allowed_faces: ["up"], block_filter: p.placeableOn.length ? p.placeableOn : ["minecraft:grass_block"] }],
@@ -366,7 +432,7 @@ export function genItem(ctx: GenContext, it: ItemElement) {
   if (it.glint) extra["minecraft:glint"] = { value: true };
   if (it.handEquipped) extra["minecraft:hand_equipped"] = { value: true };
   if (it.fuelSeconds > 0) extra["minecraft:fuel"] = { duration: round(it.fuelSeconds) };
-  if (it.tags.length) extra["minecraft:tags"] = { tags: it.tags };
+  if (cleanTags(it.tags).length) extra["minecraft:tags"] = { tags: cleanTags(it.tags) };
   Object.assign(extra, rangedItemComponents(ctx, it));
   ctx.bp(`items/${it.name}.json`, itemBase(ctx, it, key, extra, it.category, it.group));
 }
@@ -393,7 +459,7 @@ export function genTool(ctx: GenContext, t: ToolElement) {
       use_efficiency: true,
       destroy_speeds: [{ block: { tags: DIG[t.toolType] }, speed: Math.max(1, Math.round(t.toolType === "sword" ? 15 : t.miningSpeed)) }],
     },
-    "minecraft:tags": { tags: ["minecraft:is_tool", `minecraft:is_${t.toolType}`, `minecraft:${t.tier}_tier`] },
+    "minecraft:tags": { tags: cleanTags(["minecraft:is_tool", `minecraft:is_${t.toolType}`, `minecraft:${t.tier}_tier`, ...(t.tags ?? [])]) },
   };
   if (t.toolType === "sword") extra["minecraft:can_destroy_in_creative"] = { value: false };
   if (t.glint) extra["minecraft:glint"] = { value: true };
@@ -430,7 +496,7 @@ export function genArmor(ctx: GenContext, a: ArmorElement) {
       "minecraft:wearable": { slot: info.slot, protection: clampInt(piece.protection, 0, 100) },
       "minecraft:durability": { max_durability: durability },
       "minecraft:enchantable": { slot: info.ench, value: clampInt(a.enchantability, 0, 100) },
-      "minecraft:tags": { tags: ["minecraft:is_armor"] },
+      "minecraft:tags": { tags: cleanTags(["minecraft:is_armor", ...(a.tags ?? [])]) },
     };
     if (a.repairItem) extra["minecraft:repairable"] = { repair_items: [{ items: [a.repairItem], repair_amount: Math.ceil(durability / 4) }] };
     ctx.bp(`items/${name}.json`, itemBase(ctx, { name, displayName: `${a.displayName} ${info.label}` }, key, extra, "equipment"));
@@ -466,6 +532,7 @@ export function genFood(ctx: GenContext, f: FoodElement) {
     "minecraft:use_modifiers": { use_duration: round(Math.max(0.1, f.useDuration)), movement_modifier: 0.35 },
   };
   if (f.glint) extra["minecraft:glint"] = { value: true };
+  if (cleanTags(f.tags).length) extra["minecraft:tags"] = { tags: cleanTags(["minecraft:is_food", ...(f.tags ?? [])]) };
   ctx.bp(`items/${f.name}.json`, itemBase(ctx, f, key, extra, "items"));
   const fx = f.effects.filter((e) => e.effect);
   if (fx.length) {

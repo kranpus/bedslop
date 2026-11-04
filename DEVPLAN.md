@@ -94,6 +94,7 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [ ] Structures generate where expected (surface sink, underground range, biome tags, rarity); chest `LootTable` paths fill on first open; "Place structure" rotates and centres correctly; custom blocks inside structures load
 - [ ] Particles: billboard size matches the preview (exported as half-width); colours/opacity fade; bouncing and vanishing on blocks; custom texture shows whole; "Spawn particles" height offset
 - [ ] Mob extras: taming chance and sitting; breeding makes babies that grow up; rider steers a walking mount; flyers hover and swimmers stay in water; ranged mobs fire own projectiles; trade screen opens and restocks; sounds play; variants differ between spawns
+- [ ] Tags: `#tag` shaped/shapeless recipes accept tagged items; tag conditions; custom block states persist, rules apply, set/cycle steps work on placed blocks
 - [ ] Manual animation slots: "When attacking" (`variable.attack_time`), "When hurt" and "When dying" fire at the right moment; one-shot controllers replay on each attack; "Match walking speed" stops foot sliding
 
 ## Phase 2: visual scripting and advanced content ⬜
@@ -113,7 +114,7 @@ Ordered by user value:
 8. ✅ **Structures**: import a `.mcstructure` (own little-endian NBT reader/writer, checked against prismarine-nbt), coloured-cube 3D preview with block counts, a loot table per chest/barrel (own or vanilla; written into the file's block entities), natural generation via `minecraft:structure_template_feature` + feature rules (dimension, surface with sink or underground Y range, biome tags, rarity, facing, shift radius, grounded/unburied/overlap rules), and a "Place structure" step (`world.structureManager.place`, rotation, centred). The example has a Ruby Shrine with a loot chest. ⬜ data-driven jigsaw structures (still experimental in Bedrock), structure editing in the app, Java `.nbt` conversion.
 9. ✅ **Particles**: particle effect designer with a live 3D preview that simulates the game's motion rules (speed, gravity, drag, bouncing). Eight built-in white sprites (tinted) or your own texture; start/end colour, opacity and size; smooth or crisp; glow or take world light; burst or stream; ball/cube/flat-circle spawn area, outwards/up/inwards; lifetime, gravity, air resistance, spin; pass through, bounce or vanish on blocks. Seven presets. "Spawn particles" step for your effects and 25 vanilla ones; `/particle` works too. ⬜ flipbook animations, attaching particles to mobs/blocks (ambient), Molang curves.
 10. ✅ **Entity extras** (preset and Blockbench mobs): walk, fly (hover AI, no fall damage) or swim (water navigation, breathes water, spawns underwater); melee or ranged attacks (vanilla projectiles or your own, interval and range); taming (items, chance, follow/defend owner, sit); breeding (items, babies that grow up, optional tame-only); riding (steerable on walking mobs, seat height, optional tame-only); villager-style trades (economy trade table, two wanted items, restocks); ambient/hurt/death/footstep sounds (own or vanilla); random texture variants (render controller on `query.variant`). Built as component groups and events. ⬜ saddles/carrot-on-a-stick control, chests on mounts, flying mounts, trade tiers and villager levels, custom animations for babies/sitting.
-11. ⬜ **Tags editor** for items and blocks; **block states/permutations** editor.
+11. ✅ **Tags editor** for items and blocks: Tags field on every item/tool/food/armor/block/plant/crop with vanilla suggestions, a Tags tab listing every tag with its members (add/remove) and the recipes using it, `#tag` recipe ingredients, and "Player is holding an item tagged" / "Block has tag" conditions. **Block states**: on/off, number range (up to 16) or list states; rules that change texture, light, break time, slipperiness, map colour or collision when states match (exported as permutations); "Set block state", "Cycle block state" steps and "Block state is" condition; one-click "Change on click" procedure. ⬜ tagging vanilla items (not possible in Bedrock), rules that swap models or bone visibility.
 12. ⬜ **Localization editor** for multiple languages.
 13. ⬜ **Music discs** (`jukebox_playable` + jukebox song definitions).
 14. ⬜ Brewing recipes.
@@ -162,6 +163,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.8.0** (Phase 2, item 11): Tags and block states. Tags field on all items and blocks, a Tags tab, `#tag` recipe ingredients and tag conditions; custom block states with rules (texture, light, break time, slipperiness, map colour, collision) and Set/Cycle block state steps plus a "Block state is" condition. Example: a Ruby Lamp that switches on and off when clicked. 115 tests.
 
 - **0.7.2**: GitHub Pages works in either mode: a built copy of the app is committed in `site/` (`npm run build:site`), and the raw `index.html` forwards there when Pages publishes the repository as-is. `.nojekyll` skips GitHub's Jekyll step.
 

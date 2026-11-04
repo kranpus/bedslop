@@ -52,7 +52,7 @@ export class GenContext {
   readonly tickFunctions: string[] = [];
   /** Minimum game / Script API versions that features in use need, with the reason. */
   readonly requires: { engine?: string; api?: string; reason: string; elementId: string }[] = [];
-  readonly script: ScriptParts = { imports: new Set(["world", "system", "ItemStack"]), uiImports: new Set(), sections: [], tools: {}, foods: {}, blocks: [], redstone: [] };
+  readonly script: ScriptParts = { imports: new Set(["world", "system", "ItemStack", "BlockStates"]), uiImports: new Set(), sections: [], tools: {}, foods: {}, blocks: [], redstone: [] };
   private writtenTextures = new Map<string, string>();
 
   constructor(readonly project: Project) {
@@ -165,3 +165,13 @@ export function compareVersion(a: string | number[], b: string | number[]) {
   return 0;
 }
 export const maxVersion = (...vs: string[]) => vs.reduce((m, v) => (compareVersion(v, m) > 0 ? v : m));
+
+/** Clean, de-duplicated tag list. */
+export function cleanTags(tags: string[] | undefined): string[] {
+  return Array.from(new Set((tags ?? []).map((t) => t.trim().replace(/^#/, "")).filter(Boolean)));
+}
+
+/** Block tag components ("tag:<name>": {}) for a tag list. */
+export function blockTagComponents(tags: string[] | undefined): Record<string, unknown> {
+  return Object.fromEntries(cleanTags(tags).map((t) => [`tag:${t}`, {}]));
+}
