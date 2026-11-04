@@ -82,7 +82,7 @@ export class GenContext {
    * Writes a texture PNG into the resource pack (once) and returns its path without extension,
    * e.g. "textures/blocks/myaddon_ruby_ore". Returns "" when the texture is missing.
    */
-  writeTexture(id: string | undefined, folder: "blocks" | "items" | "entity" | "models/armor"): string {
+  writeTexture(id: string | undefined, folder: "blocks" | "items" | "entity" | "models/armor" | "ui"): string {
     const tex = this.texture(id);
     if (!tex) return "";
     const key = `${folder}|${tex.id}`;

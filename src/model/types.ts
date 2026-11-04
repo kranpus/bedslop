@@ -2,6 +2,7 @@
 // Everything here is plain JSON so a project can be saved, exported and re-imported as-is.
 
 export type ElementKind =
+  | "hud"
   | "effect"
   | "enchantment"
   | "disc"
@@ -770,6 +771,43 @@ export interface CustomEffectElement extends BaseElement {
   potionLevel: number;
 }
 
+export type HudAnchor = "top_left" | "top_middle" | "top_right" | "left_middle" | "center" | "right_middle" | "bottom_left" | "bottom_middle" | "bottom_right";
+
+/** One piece of a HUD or overlay, placed relative to an anchor (in UI pixels). */
+export interface HudWidget {
+  id: string;
+  /** image: a texture; text: fixed words; live: text with {variables}, {score:name} or {player} that updates; bar: fills from a value. */
+  type: "image" | "text" | "live" | "bar";
+  anchor: HudAnchor;
+  x: number;
+  y: number;
+  /** Size of images and bars. */
+  w: number;
+  h: number;
+  texture?: string;
+  /** Bar: the empty part of each segment (optional). */
+  emptyTexture?: string;
+  text?: string;
+  color?: string;
+  scale?: number;
+  shadow?: boolean;
+  /** Bar: what it shows. */
+  source?: "variable" | "score";
+  sourceName?: string;
+  /** Bar: the value that fills it completely. */
+  max?: number;
+  segments?: number;
+}
+
+export interface HudElement extends BaseElement {
+  kind: "hud";
+  /** hud: always on screen; overlay: shown and hidden by procedure steps. */
+  mode: "hud" | "overlay";
+  /** Overlay: darken the game behind it. */
+  dim: boolean;
+  widgets: HudWidget[];
+}
+
 export type ModElement =
   | BlockElement
   | PlantElement
@@ -792,7 +830,8 @@ export type ModElement =
   | ParticleElement
   | DiscElement
   | EnchantmentElement
-  | CustomEffectElement;
+  | CustomEffectElement
+  | HudElement;
 
 export type ElementOf<K extends ElementKind> = Extract<ModElement, { kind: K }>;
 

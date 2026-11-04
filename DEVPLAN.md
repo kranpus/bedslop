@@ -102,6 +102,7 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [ ] Leftovers round: stair corners join like vanilla; fence arms now face the right way; gates/buttons/plates power redstone; crops stop without water/daylight; picking resets the stage; crossbows load and fire; saddles, carrot-on-a-stick steering, mount chests and flying mounts; trade levels unlock; flipbook particles animate; block particles tick; state rules hide model parts; enchantment conflicts block combining; enum/item/block command arguments
 - [ ] Scoreboards: created and shown on world load; change/reset/show/hide steps; global scores; {score:name} text; work alongside /scoreboard
 - [ ] Custom effects: timer counts down; Minecraft effects stay on and are removed at the end; damage/heal ticks; potion gives it; milk cures; mobs keep effects after a reload
+- [ ] HUD/overlays: layout matches the editor at different GUI scales; live text and bars update; invisible data titles never flash; overlays show/hide and time out; works alongside other HUD packs
 - [ ] Manual animation slots: "When attacking" (`variable.attack_time`), "When hurt" and "When dying" fire at the right moment; one-shot controllers replay on each attack; "Match walking speed" stops foot sliding
 
 ## Phase 2: visual scripting and advanced content ✅
@@ -134,7 +135,7 @@ Bedrock has no data-driven version of these, so they're simulated with generated
 - ✅ **Custom enchantments**: stored on the item (dynamic property + tooltip lore line), up to level X, for swords/axes/tools/bows/armour pieces/anything plus chosen items. Effects scale per level: on hit (extra damage, fire, effect on target, life steal, lightning chance, run a procedure with {level}), on block break (XP, effect, procedure), while worn/held (constant effect). Enchanted book items (use to pick an item; another copy raises the level), "Enchant held item" step and "Held item has enchantment" check. Bow enchantments carry over to the arrow. ✅ enchantments that can't share an item (both ways). Books sell through any custom trader. ⛔ enchanting table / anvil (not scriptable).
 - ✅ **Custom potion effects**: stored on the player or mob (survives reloads), ticked once a second by script. While active: keep Minecraft effects on (optionally stronger per level), hurt or heal per second, particles, procedures every few seconds, on start and on end. Timer above the hotbar in a chosen colour, milk cure option, cleared on death. Optional drinkable potion (leaves a glass bottle). "Give custom effect" / "Remove custom effect" steps and "Has custom effect" check.
 - 🔧 Achievements / advancements (tracked per player, toast via title/actionbar)
-- 🔧 Overlays (actionbar/title first; JSON UI HUD later)
+- ✅ **HUDs and screen overlays (JSON UI editor)**: a visual screen canvas with images, text (with § formatting), live text ({variable}, {score:name}, {player}) and segmented bars from a variable or scoreboard, each pinned to one of nine anchors and dragged into place. HUD mode is always on screen; overlay mode is shown and hidden by procedure steps (optionally for N seconds, with a dimmed background). Generates RP/ui/_ui_defs.json, a hud_screen.json modification and the panels; live values travel from the script as invisible titles caught by "preserved title" data controls, one per tick per player. ⬜ next GUI types: custom form layouts (image grids, themed menus) and themed container screens.
 - 🔧 "Key bindings" via sneak/jump/item-use combos (Bedrock has no custom keys)
 - 🔧 Custom game rules as world dynamic properties + vanilla `gamerule` control
 - 🔧 Biomes where Bedrock supports data-driven biomes
@@ -171,6 +172,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.16.0** (Phase 3): JSON UI editor for HUDs and screen overlays: images, text, live text and bars on a drag-and-drop screen canvas; overlays shown and hidden by new procedure steps. Example: a "Ruby stats" counter and a "New wand!" overlay. 176 tests.
 
 - **0.15.0** (Phase 3): Custom potion effects run by script: Minecraft effect bundles, damage/heal over time, particles, procedures (every few seconds, on start, on end), an on-screen timer, milk cure, drinkable potion items, and give/remove/has steps. Potion bottle texture template. Example: Ruby Rush, sold by the Ruby Merchant. 168 tests.
 

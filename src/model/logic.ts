@@ -5,7 +5,7 @@ import type { TriggerType } from "./types";
 
 export type ParamKind =
   | "text" | "longtext" | "number" | "bool" | "item" | "block" | "entity" | "effect" | "sound"
-  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle" | "enchantment" | "objective" | "custom_effect";
+  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle" | "enchantment" | "objective" | "custom_effect" | "hud";
 
 export interface ParamSpec {
   key: string;
@@ -357,6 +357,18 @@ export const ACTIONS: ActionSpec[] = [
     ],
     summary: (p) => `Show ${p.objective || "(scoreboard)"} in the ${String(p.slot).toLowerCase()}`,
     code: (g) => (g.f("objective") ? `BC.showScore(${S(g.f("objective"))}, ${S(g.f("slot"))}, ${g.f("order") === "lowest first"});` : "// No scoreboard selected"),
+  },
+  {
+    type: "show_overlay", label: "Show screen overlay", group: "Chat & screen",
+    params: [{ key: "hud", label: "Overlay", kind: "hud", default: "" }, { key: "seconds", label: "For (0 = until hidden)", kind: "number", default: 0 }],
+    summary: (p) => `Show ${p.hud || "(overlay)"}${Number(p.seconds) > 0 ? ` for ${p.seconds}s` : ""}`,
+    code: (g) => (g.f("hud") ? `bcHudShow(ctx.player, ${S(g.f("hud"))}, true, ${g.e("seconds")});` : "// No overlay selected"),
+  },
+  {
+    type: "hide_overlay", label: "Hide screen overlay", group: "Chat & screen",
+    params: [{ key: "hud", label: "Overlay", kind: "hud", default: "" }],
+    summary: (p) => `Hide ${p.hud || "(overlay)"}`,
+    code: (g) => (g.f("hud") ? `bcHudShow(ctx.player, ${S(g.f("hud"))}, false, 0);` : "// No overlay selected"),
   },
   {
     type: "score_hide", label: "Hide scoreboard", group: "Chat & screen",

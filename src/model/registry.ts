@@ -35,6 +35,7 @@ export const KINDS: KindInfo[] = [
   { kind: "command", label: "Command", blurb: "A custom slash command, e.g. /myaddon:heal, that runs actions.", group: "Logic", glyph: "/", color: "#2c6a8c" },
   { kind: "function", label: "Function", blurb: "A .mcfunction file of vanilla commands, optionally run every tick.", group: "Logic", glyph: "ƒ", color: "#46607a" },
   { kind: "form", label: "Form (GUI)", blurb: "A menu of buttons, an input form or a yes/no dialog that runs actions.", group: "Logic", glyph: "▤", color: "#3c6e8f" },
+  { kind: "hud", label: "HUD / screen", blurb: "Design what's on screen: images, text, live values and bars on the HUD, or overlays that procedures show and hide (JSON UI).", group: "Logic", glyph: "▣", color: "#4a5a8a" },
   { kind: "sound", label: "Sound", blurb: "Import an .ogg sound to play from procedures and commands.", group: "Assets", glyph: "♪", color: "#7a4f86" },
 ];
 
@@ -114,6 +115,10 @@ export function createElement<K extends ElementKind>(kind: K, name: string, disp
     crop: () => ({
       ...base, kind: "crop", stageTextures: ["", "", "", ""], look: "crop", growthChance: 33, boneMeal: true,
       produce: "", produceMin: 1, produceMax: 3, seedsTexture: "", seedsMax: 2, placeableOn: ["minecraft:farmland"],
+    }),
+    hud: () => ({
+      ...base, kind: "hud", mode: "hud", dim: false,
+      widgets: [{ id: uid(), type: "live", anchor: "top_right", x: -6, y: 6, w: 0, h: 0, text: "Coins: {coins}", color: "#ffd84a", scale: 1, shadow: true }],
     }),
     effect: () => ({
       ...base, kind: "effect", color: "d", maxLevel: 2, showTimer: true, milkCures: true,

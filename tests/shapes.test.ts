@@ -180,6 +180,8 @@ describe("example project", () => {
     expect(JSON.parse(files.get("BP/recipes/ruby_regeneration.json") as string)["minecraft:recipe_brewing_mix"].reagent).toBe("ruby:ruby");
     expect(files.has("BP/items/vampire_book.json")).toBe(true);
     expect(files.has("BP/items/ruby_rush_potion.json")).toBe(true);
+    expect(files.has("RP/ui/ruby_hud.json")).toBe(true);
+    expect(files.get("BP/scripts/main.js")).toContain(`bcHudShow(ctx.player, "wand_bought", true, 3);`);
     expect(files.get("BP/scripts/main.js")).toContain(`particle: "ruby:ruby_sparkle"`);
     expect(files.get("BP/scripts/main.js")).toContain(`BC.setScore(ctx, "rubies_mined", "player", "add", 1);`);
     expect(files.get("BP/scripts/main.js")).toContain(`"ruby_sight": { title: "Ruby Sight"`);

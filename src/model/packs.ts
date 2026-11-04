@@ -304,6 +304,7 @@ export function exampleProject(p: Project): Project {
     { id: uid(), type: "set_var", params: { variable: "rubies_mined", op: "subtract", value: "20", who: "player" }, chance: 100 },
     { id: uid(), type: "give", params: { item: "ruby:ruby_wand", count: 1 }, chance: 100 },
     { id: uid(), type: "message", params: { text: "§aEnjoy your wand! {rubies_mined} left.", to: "player" }, chance: 100 },
+    { id: uid(), type: "show_overlay", params: { hud: "wand_bought", seconds: 3 }, chance: 100 },
   ];
   const shopCmd = createElement("command", "shop", "Shop command");
   shopCmd.description = "Opens the ruby shop";
@@ -353,6 +354,19 @@ export function exampleProject(p: Project): Project {
   ] });
   const sight = createElement("enchantment", "ruby_sight", "Ruby Sight");
   Object.assign(sight, { maxLevel: 1, targets: ["helmet"], effects: [{ id: uid(), when: "equipped", type: "self_effect", effect: "night_vision", amount: 0, perLevel: 0 }] });
+
+  // A HUD with a live counter, and an overlay the shop shows for a moment.
+  const rubyIcon = pack.elements.find((e) => e.kind === "item" && e.name === "ruby");
+  const stats = createElement("hud", "ruby_stats", "Ruby stats");
+  stats.widgets = [
+    { id: uid(), type: "image", anchor: "top_left", x: 4, y: 4, w: 12, h: 12, texture: rubyIcon && "texture" in rubyIcon ? rubyIcon.texture : "" },
+    { id: uid(), type: "live", anchor: "top_left", x: 20, y: 6, w: 0, h: 0, text: "Rubies mined: {score:rubies_mined}", color: "#ff8a9a", scale: 1, shadow: true },
+  ];
+  const bought = createElement("hud", "wand_bought", "Wand bought");
+  Object.assign(bought, { mode: "overlay", dim: true, widgets: [
+    { id: uid(), type: "text", anchor: "center", x: 0, y: -10, w: 0, h: 0, text: "§lNew wand!", color: "#ff5a6e", scale: 3, shadow: true },
+    { id: uid(), type: "text", anchor: "center", x: 0, y: 18, w: 0, h: 0, text: "Sneak and use it to zap", color: "#ffffff", scale: 1, shadow: true },
+  ] });
 
   // A custom effect with a potion to drink.
   const rush = createElement("effect", "ruby_rush", "Ruby Rush");
@@ -419,7 +433,7 @@ export function exampleProject(p: Project): Project {
     { wants: "ruby:ruby", wantsCount: 3, wants2: "minecraft:glass_bottle", wants2Count: 1, gives: "ruby:ruby_rush_potion", givesCount: 1, maxUses: 6 },
   );
 
-  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle, lamp, lampClick, brew, vampire, sight, rush];
+  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle, lamp, lampClick, brew, vampire, sight, rush, stats, bought];
   p.textures = textures;
   p.packIcon = textures.find((t) => t.name === "ruby")?.id ?? "";
   return p;

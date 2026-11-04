@@ -15,6 +15,7 @@ import { ParticleEditor } from "./editors/ParticleEditor";
 import { DiscEditor } from "./editors/DiscEditor";
 import { EnchantmentEditor } from "./editors/EnchantmentEditor";
 import { EffectEditor } from "./editors/EffectEditor";
+import { HudEditor } from "./editors/HudEditor";
 
 /** Warnings for the whole project, computed lazily so typing stays smooth. */
 export function useWarnings() {
@@ -49,6 +50,7 @@ function Body({ el }: { el: ModElement }) {
     case "disc": return <DiscEditor el={el} patch={patch} />;
     case "enchantment": return <EnchantmentEditor el={el} patch={patch} />;
     case "effect": return <EffectEditor el={el} patch={patch} />;
+    case "hud": return <HudEditor el={el} patch={patch} />;
   }
 }
 

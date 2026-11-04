@@ -55,7 +55,7 @@ export const PARITY: ParityRow[] = [
   { mcreator: "Enchantment", bedrock: "Script-simulated", status: "done", phase: 3, notes: "Run by script: stored on the item with a tooltip line; hit, break and worn effects; enchanted books. Not in the enchanting table or anvil." },
   { mcreator: "Potion effect", bedrock: "Script-simulated", status: "done", phase: 3, notes: "Run by script with an on-screen timer: Minecraft effect bundles, damage/heal over time, particles, procedures, milk cure, potion items." },
   { mcreator: "Achievement / advancement", bedrock: "Script-simulated", status: "workaround", phase: 3, notes: "Track with dynamic properties, announce with titles/toasts." },
-  { mcreator: "Overlay", bedrock: "JSON UI / title + actionbar", status: "workaround", phase: 3, notes: "Simple overlays via actionbar/title; full HUD via JSON UI." },
+  { mcreator: "Overlay", bedrock: "JSON UI (hud_screen) + script titles", status: "done", phase: 3, notes: "Visual editor: images, text, live values and bars on the HUD, or overlays shown and hidden by procedures." },
   { mcreator: "Key binding", bedrock: "Input API / sneak + item combos", status: "workaround", phase: 3, notes: "No custom key bindings on Bedrock." },
   { mcreator: "Scoreboard procedures", bedrock: "world.scoreboard", status: "done", phase: 3, notes: "Objectives on the Variables tab; change/reset/show/hide steps, score checks and blocks, {score:name} text." },
   { mcreator: "Game rule", bedrock: "Vanilla game rules only", status: "workaround", phase: 3, notes: "Can set vanilla rules from scripts; custom rules as world dynamic properties." },

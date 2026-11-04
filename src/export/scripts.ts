@@ -707,6 +707,14 @@ export function buildScript(ctx: GenContext): string | null {
   }
   if (stubs.length) sections += "\n// Missing references\n" + stubs.join("\n") + "\n";
   const structures = new Set(ctx.project.elements.filter((e) => e.kind === "structure").map((e) => e.name));
+  // Overlay steps need the HUD script, which only exists when the project has HUDs.
+  const overlays = new Set(ctx.project.elements.filter((e) => e.kind === "hud" && e.mode === "overlay").map((e) => e.name));
+  for (const m of new Set([...sections.matchAll(/bcHudShow\(ctx\.player, "([^"]*)"/g)].map((m) => m[1]))) {
+    if (!overlays.has(m)) ctx.warn(undefined, `A step shows or hides the overlay "${m}", which doesn't exist or isn't an overlay.`, "error");
+  }
+  if (!ctx.project.elements.some((e) => e.kind === "hud") && /bcHudShow\(/.test(sections)) {
+    sections += "\n// Missing references\nfunction bcHudShow(p, hud, on, seconds) {}\n";
+  }
   // Custom effect steps need the effects script, which only exists when the project has effects.
   const fxNames = new Set(ctx.project.elements.filter((e) => e.kind === "effect").map((e) => e.name));
   for (const m of new Set([...sections.matchAll(/bcFx(?:Give|Remove|Level)\(BC\.who\(ctx, "[^"]*"\), "([^"]*)"/g)].map((m) => m[1]))) {
