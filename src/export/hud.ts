@@ -6,7 +6,7 @@
 // title that starts with its prefix (the community "preserved title" technique), and labels, bars and
 // overlay panels read from it.
 
-import type { CustomEffectElement, HudAnchor, HudElement } from "../model/types";
+import type { AchievementElement, CustomEffectElement, HudAnchor, HudElement } from "../model/types";
 import { GenContext } from "./context";
 import { clampInt, round } from "./content";
 import { encodePng } from "./png";
@@ -52,7 +52,8 @@ export const fxOnLeft = (ctx: GenContext) =>
 export function genHuds(ctx: GenContext) {
   const huds = ctx.project.elements.filter((e): e is HudElement => e.kind === "hud");
   const fxList = fxOnLeft(ctx);
-  if (!huds.length && !fxList) return;
+  const advs = ctx.project.elements.filter((e): e is AchievementElement => e.kind === "achievement");
+  if (!huds.length && !fxList && !advs.length) return;
   const space = `bc_${ctx.ns}`;
   const channels: HudChannel[] = [];
   const defs: Record<string, unknown> = {};
@@ -136,11 +137,36 @@ export function genHuds(ctx: GenContext) {
     }
     defs.fx_list = { type: "stack_panel", orientation: "vertical", size: [160, FX_ROWS * 11], anchor_from: "left_middle", anchor_to: "left_middle", offset: [4, -20], controls: rows };
   }
+  if (advs.length) {
+    // Achievement toast in the top right: the script sends the achievement's name (for its icon) and the text.
+    const name = `bc:${ctx.ns}:adv:`, text = `bc:${ctx.ns}:advt:`;
+    const nameData = `${ctx.ns}_adv_data`, textData = `${ctx.ns}_advt_data`;
+    const icons = advs.flatMap((a) => {
+      const tex = a.icon ? ctx.writeTexture(a.icon, "ui") : "";
+      return tex ? [{ [`icon_${a.name}`]: {
+        type: "image", texture: tex, size: [16, 16], anchor_from: "left_middle", anchor_to: "left_middle", offset: [8, 0], layer: 32,
+        bindings: [{ binding_type: "view", source_control_name: nameData, source_property_name: `(#preserved_text = ${lit(name + a.name)})`, target_property_name: "#visible" }],
+      } }] : [];
+    });
+    defs.adv_toast = { type: "panel", size: [160, 32], anchor_from: "top_right", anchor_to: "top_right", offset: [-4, 4], controls: [
+      { [nameData]: dataControl(name) },
+      { [textData]: dataControl(text) },
+      { box: { type: "panel", size: ["100%", "100%"],
+        bindings: [{ binding_type: "view", source_control_name: nameData, source_property_name: `(not ((#preserved_text - ${lit(name)}) = ''))`, target_property_name: "#visible" }],
+        controls: [
+          { bg: { type: "image", texture: "textures/ui/hud_tip_text_background", size: ["100%", "100%"], alpha: 0.9, layer: 30 } },
+          ...icons,
+          { text: { type: "label", text: "#text", shadow: true, size: [icons.length ? "100% - 32px" : "100% - 12px", "default"], anchor_from: "left_middle", anchor_to: "left_middle", offset: [icons.length ? 28 : 8, 0], layer: 32,
+            bindings: [{ binding_type: "view", source_control_name: textData, source_property_name: `(#preserved_text - ${lit(text)})`, target_property_name: "#text" }] } },
+        ] } },
+    ] };
+  }
   ctx.rp(`ui/${ctx.ns}_hud.json`, {
     namespace: space,
     root: { type: "panel", size: ["100%", "100%"], controls: [
       ...huds.map((h) => ({ [`hud_${h.name}@${space}.hud_${h.name}`]: {} })),
       ...(fxList ? [{ [`fx_list@${space}.fx_list`]: {} }] : []),
+      ...(advs.length ? [{ [`adv_toast@${space}.adv_toast`]: {} }] : []),
     ] },
     ...defs,
   });

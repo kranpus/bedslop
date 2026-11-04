@@ -4,7 +4,7 @@ A web app for making Minecraft Bedrock add-ons without writing code. Think MCrea
 
 - **Content:** blocks (custom models, crafting stations, storage, redstone), plants, items, tools, armor, food, mobs (Blockbench import, animated 3D preview, or start from any vanilla mob), recipes, loot tables
 - **World:** ore generation, natural plant and mob spawning
-- **Logic:** procedures as simple "When → Only if → Do" steps or as Blockly blocks (loops, variables, math, waits), custom slash commands with arguments, global variables, forms (button menus, grids of tiles with your own look, input forms, yes/no dialogs) and HUD screens made with JSON UI, all compiled to the official Script API
+- **Logic:** procedures as simple "When → Only if → Do" steps or as Blockly blocks (loops, variables, math, waits), custom slash commands with arguments, global variables, forms (button menus, grids of tiles with your own look, input forms, yes/no dialogs) HUD screens made with JSON UI, and achievements with toasts and rewards, all compiled to the official Script API
 - **Art:** built-in pixel editor with 24 procedural templates, plus a Material Pack wizard that builds a full ore/tool/armor set from one name and colour
 - **Export:** a ready-to-import `.mcaddon` (or separate `.mcpack` files) with validation before you download
 

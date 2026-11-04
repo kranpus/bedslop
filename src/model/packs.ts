@@ -435,7 +435,19 @@ export function exampleProject(p: Project): Project {
     { wants: "ruby:ruby", wantsCount: 3, wants2: "minecraft:glass_bottle", wants2Count: 1, gives: "ruby:ruby_rush_potion", givesCount: 1, maxUses: 6 },
   );
 
-  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle, lamp, lampClick, brew, vampire, sight, rush, stats, bought];
+  // Achievements: a small tree, with a command to see them.
+  const rubyTex = rubyIcon && "texture" in rubyIcon ? rubyIcon.texture : "";
+  const firstRuby = createElement("achievement", "first_ruby", "Shiny!");
+  Object.assign(firstRuby, { description: "Find your first ruby", icon: rubyTex, trigger: "obtain_item", target: "ruby:ruby", count: 1 });
+  const deepMiner = createElement("achievement", "ruby_miner", "Ruby Miner");
+  Object.assign(deepMiner, { description: "Mine 20 ruby ore", parent: "first_ruby", icon: rubyTex, frame: "goal", trigger: "break_block", target: "ruby:ruby_ore", count: 20, rewardXp: 50 });
+  const golemSlayer = createElement("achievement", "golem_slayer", "Golem Slayer");
+  Object.assign(golemSlayer, { description: "Defeat a Ruby Golem", parent: "first_ruby", icon: wand.texture, frame: "challenge", trigger: "kill_mob", target: "ruby:ruby_golem", count: 1, secret: true, rewardItem: "ruby:ruby_wand", rewardCount: 1 });
+  const advCmd = createElement("command", "achievements", "Achievements command");
+  advCmd.description = "Shows your ruby achievements";
+  advCmd.actions = [{ id: uid(), type: "show_achievements", params: {}, chance: 100 }];
+
+  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle, lamp, lampClick, brew, vampire, sight, rush, stats, bought, firstRuby, deepMiner, golemSlayer, advCmd];
   p.textures = textures;
   p.packIcon = textures.find((t) => t.name === "ruby")?.id ?? "";
   return p;

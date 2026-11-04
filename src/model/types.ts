@@ -2,6 +2,7 @@
 // Everything here is plain JSON so a project can be saved, exported and re-imported as-is.
 
 export type ElementKind =
+  | "achievement"
   | "hud"
   | "effect"
   | "enchantment"
@@ -808,6 +809,33 @@ export interface CustomEffectElement extends BaseElement {
   potionLevel: number;
 }
 
+export type AchievementTrigger = "manual" | "obtain_item" | "break_block" | "place_block" | "kill_mob" | "use_item" | "variable" | "score" | "dimension";
+
+/** An advancement players earn, with a toast, a chat message and rewards. Stored on the player by script. */
+export interface AchievementElement extends BaseElement {
+  kind: "achievement";
+  description: string;
+  /** Item texture shown in the toast and the list. */
+  icon: string;
+  /** task: "Advancement Made!", goal: "Goal Reached!", challenge: "Challenge Complete!" (purple). */
+  frame: "task" | "goal" | "challenge";
+  /** Achievement it comes after in the list ("" = a root). */
+  parent: string;
+  /** Hidden in the list until earned. */
+  secret: boolean;
+  trigger: AchievementTrigger;
+  /** Item, block or mob id ("" = any), variable or scoreboard name, or dimension id. */
+  target: string;
+  /** How many (items held, blocks, kills, uses) or the value to reach. */
+  count: number;
+  rewardXp: number;
+  rewardItem: string;
+  rewardCount: number;
+  rewardProcedure: string;
+  /** Tell everyone in chat, like Java's "has made the advancement". */
+  announce: boolean;
+}
+
 export type HudAnchor = "top_left" | "top_middle" | "top_right" | "left_middle" | "center" | "right_middle" | "bottom_left" | "bottom_middle" | "bottom_right";
 
 /** One piece of a HUD or overlay, placed relative to an anchor (in UI pixels). */
@@ -846,6 +874,7 @@ export interface HudElement extends BaseElement {
 }
 
 export type ModElement =
+  | AchievementElement
   | BlockElement
   | PlantElement
   | ItemElement

@@ -54,7 +54,7 @@ export const PARITY: ParityRow[] = [
   // Phase 3: Bedrock gaps covered by scripting
   { mcreator: "Enchantment", bedrock: "Script-simulated", status: "done", phase: 3, notes: "Run by script: stored on the item with a tooltip line; hit, break and worn effects; enchanted books. Not in the enchanting table or anvil." },
   { mcreator: "Potion effect", bedrock: "Script-simulated", status: "done", phase: 3, notes: "Run by script, listed with timers on the left of the screen: Minecraft effect bundles, damage/heal over time, particles, procedures, milk cure, potion items." },
-  { mcreator: "Achievement / advancement", bedrock: "Script-simulated", status: "workaround", phase: 3, notes: "Track with dynamic properties, announce with titles/toasts." },
+  { mcreator: "Achievement / advancement", bedrock: "Script-simulated + JSON UI toast", status: "done", phase: 3, notes: "Tracked per player by script: item, block, mob, item-use, variable, score and dimension triggers or procedures; toast with icon, chat message, rewards, and an achievements list menu. Not the vanilla advancements screen." },
   { mcreator: "Overlay", bedrock: "JSON UI (hud_screen) + script titles", status: "done", phase: 3, notes: "Visual editor: images, text, live values and bars on the HUD, or overlays shown and hidden by procedures." },
   { mcreator: "Key binding", bedrock: "Input API / sneak + item combos", status: "workaround", phase: 3, notes: "No custom key bindings on Bedrock." },
   { mcreator: "Scoreboard procedures", bedrock: "world.scoreboard", status: "done", phase: 3, notes: "Objectives on the Variables tab; change/reset/show/hide steps, score checks and blocks, {score:name} text." },

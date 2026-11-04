@@ -563,3 +563,8 @@ table.vars td:nth-child(5) { min-width: 0; }
 .anchor-grid { display: grid; grid-template-columns: repeat(3, 26px); gap: 4px; }
 .anchor-grid button { width: 26px; height: 18px; border: 1px solid var(--line-strong); background: var(--surface); border-radius: 3px; cursor: pointer; }
 .anchor-grid button.on { background: var(--accent); border-color: var(--accent); }
+
+/* Achievement toast preview */
+.adv-toast { flex: none; align-self: flex-start; margin: 0 auto; width: 200px; display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.78); color: #fff; font-family: var(--font-mono); font-size: 12px; line-height: 1.4; text-shadow: 1px 1px 0 #3f3f3f; }
+.adv-toast img { width: 24px; height: 24px; }

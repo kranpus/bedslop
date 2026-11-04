@@ -723,6 +723,14 @@ export function buildScript(ctx: GenContext): string | null {
   if (!fxNames.size && /bcFx(Give|Remove|Level)\(/.test(sections)) {
     sections += "\n// Missing references\nfunction bcFxGive(e, name, seconds, level) {}\nfunction bcFxRemove(e, name) {}\nfunction bcFxLevel(e, name) { return 0; }\n";
   }
+  // Achievement steps need the achievements script, which only exists when the project has achievements.
+  const advNames = new Set(ctx.project.elements.filter((e) => e.kind === "achievement").map((e) => e.name));
+  for (const m of new Set([...sections.matchAll(/bcAdv(?:Grant|Revoke|Has)\(ctx\.player, "([^"]*)"/g)].map((m) => m[1]))) {
+    if (!advNames.has(m)) ctx.warn(undefined, `A step uses the achievement "${m}", which doesn't exist (renamed or deleted?).`, "error");
+  }
+  if (!advNames.size && /bcAdv(Grant|Revoke|Has|List)\(/.test(sections)) {
+    sections += "\n// Missing references\nfunction bcAdvGrant(p, name) {}\nfunction bcAdvRevoke(p, name) {}\nfunction bcAdvHas(p, name) { return false; }\nfunction bcAdvList(p) {}\n";
+  }
   // Enchantment steps need the enchantment script, which only exists when the project has enchantments.
   const enchantments = new Set(ctx.project.elements.filter((e) => e.kind === "enchantment").map((e) => e.name));
   for (const m of new Set([...sections.matchAll(/bcEnchant(?:Held\(ctx|Level\(BC\.heldStack\(ctx\.player\)), "([^"]*)"/g)].map((m) => m[1]))) {

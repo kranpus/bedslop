@@ -9,6 +9,7 @@ export function elementTexture(el: ModElement): string | undefined {
     case "projectile": return el.look === "sprite" ? el.texture : undefined;
     case "effect": return el.potionTexture || undefined;
     case "enchantment": return el.bookTexture || undefined;
+    case "achievement": return el.icon || undefined;
     case "crop": return el.stageTextures[el.stageTextures.length - 1] || el.seedsTexture || undefined;
     case "armor": return el.pieces.chestplate.texture || el.pieces.helmet.texture;
     default: return undefined;

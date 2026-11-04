@@ -5,7 +5,7 @@ import type { TriggerType } from "./types";
 
 export type ParamKind =
   | "text" | "longtext" | "number" | "bool" | "item" | "block" | "entity" | "effect" | "sound"
-  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle" | "enchantment" | "objective" | "custom_effect" | "hud";
+  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle" | "enchantment" | "objective" | "custom_effect" | "hud" | "achievement";
 
 export interface ParamSpec {
   key: string;
@@ -238,6 +238,23 @@ export const ACTIONS: ActionSpec[] = [
     code: (g) => (g.f("effect") ? `bcFxRemove(BC.who(ctx, ${S(g.f("who"))}), ${S(g.f("effect"))});` : "// No effect selected"),
   },
   {
+    type: "grant_achievement", label: "Give achievement", group: "Chat & screen",
+    params: [{ key: "achievement", label: "Achievement", kind: "achievement", default: "" }],
+    summary: (p) => `Give the player ${p.achievement || "(achievement)"}`,
+    code: (g) => (g.f("achievement") ? `bcAdvGrant(ctx.player, ${S(g.f("achievement"))});` : "// No achievement selected"),
+  },
+  {
+    type: "revoke_achievement", label: "Take away achievement", group: "Chat & screen",
+    params: [{ key: "achievement", label: "Achievement", kind: "achievement", default: "" }],
+    summary: (p) => `Take ${p.achievement || "(achievement)"} from the player`,
+    code: (g) => (g.f("achievement") ? `bcAdvRevoke(ctx.player, ${S(g.f("achievement"))});` : "// No achievement selected"),
+  },
+  {
+    type: "show_achievements", label: "Show achievements list", group: "Chat & screen", params: [],
+    summary: () => "Show the player's achievements",
+    code: () => `bcAdvList(ctx.player);`,
+  },
+  {
     type: "enchant_held", label: "Enchant held item", group: "Items",
     params: [
       { key: "enchantment", label: "Enchantment", kind: "enchantment", default: "" },
@@ -425,6 +442,12 @@ export const CONDITIONS: ConditionSpec[] = [
     params: [who(), { key: "effect", label: "Effect", kind: "custom_effect", default: "" }],
     summary: (p) => `${p.who} has ${p.effect || "(effect)"}`,
     code: (g) => `bcFxLevel(BC.who(ctx, ${S(g.f("who"))}), ${S(g.f("effect"))}) > 0`,
+  },
+  {
+    type: "has_achievement", label: "Player has achievement",
+    params: [{ key: "achievement", label: "Achievement", kind: "achievement", default: "" }],
+    summary: (p) => `player has ${p.achievement || "(achievement)"}`,
+    code: (g) => `bcAdvHas(ctx.player, ${S(g.f("achievement"))})`,
   },
   {
     type: "held_enchant", label: "Held item has enchantment",

@@ -1,3 +1,4 @@
+import { AchievementEditor } from "./editors/AchievementEditor";
 import { useDeferredValue, useMemo, useState } from "react";
 import type { ModElement } from "../model/types";
 import { identifiersOf, kindInfo, slugify } from "../model/registry";
@@ -51,6 +52,7 @@ function Body({ el }: { el: ModElement }) {
     case "enchantment": return <EnchantmentEditor el={el} patch={patch} />;
     case "effect": return <EffectEditor el={el} patch={patch} />;
     case "hud": return <HudEditor el={el} patch={patch} />;
+    case "achievement": return <AchievementEditor el={el} patch={patch} />;
   }
 }
 
