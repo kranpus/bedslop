@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useStore } from "./store/store";
 import { Sidebar } from "./ui/Sidebar";
 import { ElementEditor } from "./ui/ElementEditor";
-import { ExportView, Home, RoadmapView, SettingsView, TexturesView, TopBar } from "./ui/Views";
+import { ExportView, Home, RoadmapView, SettingsView, TexturesView, TopBar, VariablesView } from "./ui/Views";
 
 export default function App() {
   const { project, view, loaded, init } = useStore();
@@ -36,6 +36,7 @@ export default function App() {
         <main className="main">
           {view === "element" && <ElementEditor />}
           {view === "textures" && <TexturesView />}
+          {view === "variables" && <VariablesView />}
           {view === "settings" && <SettingsView />}
           {view === "export" && <ExportView />}
           {view === "roadmap" && <RoadmapView />}

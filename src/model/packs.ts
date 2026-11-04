@@ -237,7 +237,57 @@ export function exampleProject(p: Project): Project {
     { id: uid(), type: "message", params: { text: "§aYou feel restored, {player}.", to: "player" }, chance: 100 },
   ];
 
-  p.elements = [...pack.elements, golem, boar, berry, rose, wand, wandRecipe, zap, welcome, bonus, heal];
+  // Phase 2 showcase: a variable, a block-based procedure, a form and a command with an argument.
+  p.variables = [{ id: uid(), name: "rubies_mined", scope: "player", type: "number", initial: "0" }];
+  const n = (v: number) => ({ shadow: { type: "math_number", fields: { NUM: v } } });
+  const t = (v: string) => ({ shadow: { type: "text", fields: { TEXT: v } } });
+  const counter = createElement("procedure", "ruby_counter", "Ruby counter (blocks)");
+  counter.trigger = "block_break";
+  counter.filter = "ruby:ruby_ore";
+  counter.editor = "blocks";
+  counter.blocks = JSON.stringify({
+    blocks: { languageVersion: 0, blocks: [{
+      type: "bc_start", id: "start", x: 24, y: 24,
+      next: { block: {
+        type: "bc_act_set_var", fields: { variable: "rubies_mined", op: "add", who: "player" }, inputs: { value: t("1") },
+        next: { block: {
+          type: "controls_if",
+          inputs: {
+            IF0: { block: { type: "logic_compare", fields: { OP: "EQ" }, inputs: {
+              A: { block: { type: "math_modulo", inputs: { DIVIDEND: { block: { type: "bc_var_get", fields: { VAR: "rubies_mined", WHO: "player" } } }, DIVISOR: n(10) } } },
+              B: n(0),
+            } } },
+            DO0: { block: {
+              type: "bc_act_title", inputs: { text: t("{rubies_mined} rubies!"), subtitle: t("Keep digging, {player}") },
+              next: { block: { type: "bc_act_sound", fields: { at: "player", sound: "random.levelup" }, inputs: { volume: n(1), pitch: n(1.2) } } },
+            } },
+          },
+        } },
+      } },
+    }] },
+    variables: [],
+  });
+  const shop = createElement("form", "ruby_shop", "Ruby shop");
+  shop.title = "Ruby shop";
+  shop.body = "You've mined {rubies_mined} rubies, {player}.";
+  shop.buttons = [
+    { id: uid(), text: "Ruby Berry ×3", icon: berry.texture, actions: [{ id: uid(), type: "give", params: { item: "ruby:ruby_berry", count: 3 }, chance: 100 }] },
+    { id: uid(), text: "Ruby Wand (costs 20 mined)", icon: wand.texture, actions: [{ id: uid(), type: "run_procedure", params: { procedure: "buy_wand" }, chance: 100 }] },
+  ];
+  const buyWand = createElement("procedure", "buy_wand", "Buy wand");
+  buyWand.trigger = "manual";
+  buyWand.conditions = [{ id: uid(), type: "var_compare", params: { variable: "rubies_mined", op: "≥", value: "20", who: "player" }, negate: false }];
+  buyWand.actions = [
+    { id: uid(), type: "set_var", params: { variable: "rubies_mined", op: "subtract", value: "20", who: "player" }, chance: 100 },
+    { id: uid(), type: "give", params: { item: "ruby:ruby_wand", count: 1 }, chance: 100 },
+    { id: uid(), type: "message", params: { text: "§aEnjoy your wand! {rubies_mined} left.", to: "player" }, chance: 100 },
+  ];
+  const shopCmd = createElement("command", "shop", "Shop command");
+  shopCmd.description = "Opens the ruby shop";
+  shopCmd.args = [{ id: uid(), name: "bonus", type: "integer", optional: true }];
+  shopCmd.actions = [{ id: uid(), type: "show_form", params: { form: "ruby_shop" }, chance: 100 }];
+
+  p.elements = [...pack.elements, golem, boar, berry, rose, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd];
   p.textures = textures;
   p.packIcon = textures.find((t) => t.name === "ruby")?.id ?? "";
   return p;

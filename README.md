@@ -2,9 +2,9 @@
 
 A web app for making Minecraft Bedrock add-ons without writing code. Think MCreator, built for Bedrock and running in the browser.
 
-- **Content:** blocks, plants, items, tools, armor, food, mobs, recipes, loot tables
+- **Content:** blocks, plants, items, tools, armor, food, mobs (with Blockbench import and an animated 3D preview), recipes, loot tables
 - **World:** ore generation, natural plant and mob spawning
-- **Logic:** "When → Only if → Do" procedures and custom slash commands, compiled to the official Script API
+- **Logic:** procedures as simple "When → Only if → Do" steps or as Blockly blocks (loops, variables, math, waits), custom slash commands with arguments, global variables, and forms (button menus, input forms, yes/no dialogs), all compiled to the official Script API
 - **Art:** built-in pixel editor with 24 procedural templates, plus a Material Pack wizard that builds a full ore/tool/armor set from one name and colour
 - **Export:** a ready-to-import `.mcaddon` (or separate `.mcpack` files) with validation before you download
 

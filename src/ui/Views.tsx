@@ -9,7 +9,8 @@ import { packIconFrom } from "../textures/procedural";
 import { Field, Grid, Section, Select, Text } from "./fields";
 import { TexturePicker, readImageFile } from "./TexturePicker";
 import { TextureEditor } from "./TextureEditor";
-import type { TextureAsset } from "../model/types";
+import type { GlobalVariable, TextureAsset } from "../model/types";
+import { uid } from "../model/registry";
 import { elementTexture } from "./Thumb";
 
 // ---------- Home ----------
@@ -105,6 +106,7 @@ export function TopBar() {
       <nav className="tabs" aria-label="Workspace">
         {tab("element", "Elements")}
         {tab("textures", "Textures")}
+        {tab("variables", "Variables")}
         {tab("settings", "Settings")}
         {tab("roadmap", "Roadmap")}
       </nav>
@@ -392,3 +394,53 @@ export function RoadmapView() {
   );
 }
 
+
+// ---------- Variables ----------
+
+export function VariablesView() {
+  const project = useStore((s) => s.project!);
+  const update = useStore((s) => s.update);
+  const vars = project.variables ?? [];
+  const setVars = (variables: GlobalVariable[], key?: string) => update((p) => ({ ...p, variables }), key);
+  const set = (i: number, patch: Partial<GlobalVariable>, key?: string) => setVars(vars.map((v, k) => (k === i ? { ...v, ...patch } : v)), key);
+  const usedIn = (name: string) => project.elements.filter((e) => JSON.stringify(e).includes(`"${name}"`) || JSON.stringify(e).includes(`{${name}}`)).length;
+  return (
+    <div className="page narrow">
+      <header className="page-head">
+        <div>
+          <h1>Global variables</h1>
+          <p className="muted">Values saved in the world that procedures, commands and forms can read and change, like MCreator's global variables.</p>
+        </div>
+        <button className="btn primary" onClick={() => setVars([...vars, { id: uid(), name: `var${vars.length + 1}`, scope: "player", type: "number", initial: "0" }])}>Add variable</button>
+      </header>
+      {vars.length ? (
+        <div className="table-wrap">
+          <table className="parity vars">
+            <thead><tr><th>Name</th><th>Belongs to</th><th>Type</th><th>Starts as</th><th>Used in</th><th /></tr></thead>
+            <tbody>
+              {vars.map((v, i) => (
+                <tr key={v.id}>
+                  <td><input className="mono" value={v.name} aria-label="Variable name" onChange={(e) => set(i, { name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") }, `name-${v.id}`)} /></td>
+                  <td><select value={v.scope} aria-label="Belongs to" onChange={(e) => set(i, { scope: e.target.value as GlobalVariable["scope"] })}><option value="player">Each player</option><option value="world">The world</option></select></td>
+                  <td><select value={v.type} aria-label="Type" onChange={(e) => set(i, { type: e.target.value as GlobalVariable["type"], initial: e.target.value === "number" ? "0" : e.target.value === "boolean" ? "false" : "" })}><option value="number">Number</option><option value="text">Text</option><option value="boolean">True / false</option></select></td>
+                  <td>{v.type === "boolean"
+                    ? <select value={v.initial} aria-label="Starting value" onChange={(e) => set(i, { initial: e.target.value })}><option value="false">false</option><option value="true">true</option></select>
+                    : <input className="mono" value={v.initial} aria-label="Starting value" onChange={(e) => set(i, { initial: e.target.value }, `init-${v.id}`)} />}</td>
+                  <td className="muted">{usedIn(v.name) || "–"}</td>
+                  <td><button className="btn small ghost" onClick={() => setVars(vars.filter((_, k) => k !== i))}>Delete</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="empty-state"><h2>No variables yet</h2><p>Add one to count kills, store a player's coins, remember if a boss was beaten, or save form answers.</p></div>
+      )}
+      <ul className="hint-list">
+        <li><strong>Each player</strong> variables are kept per player (like coins). <strong>The world</strong> variables are shared (like “boss defeated”).</li>
+        <li>Change them with the “Change a variable” step, check them with “Variable compares to”, or use the variable blocks.</li>
+        <li>Show them in any text as <span className="mono">{"{name}"}</span>, e.g. “You have {"{coins}"} coins”.</li>
+      </ul>
+    </div>
+  );
+}

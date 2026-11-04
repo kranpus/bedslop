@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { ACTIONS, CONDITIONS, TRIGGERS, actionSpec, conditionSpec, defaultParams, triggerSpec, type ParamSpec } from "../../model/logic";
 import { uid } from "../../model/registry";
-import type { Action, CommandElement, Condition, ProcedureElement } from "../../model/types";
+import type { Action, CommandArg, CommandArgType, CommandElement, Condition, ProcedureElement } from "../../model/types";
 import { EFFECTS, VANILLA_SOUNDS } from "../../model/vanilla";
 import { GenContext } from "../../export/context";
 import { genCommands, genProcedure } from "../../export/scripts";
 import { useStore } from "../../store/store";
-import { Field, IdInput, Num, Section, Select, Text, Toggle } from "../fields";
+import { Field, IdInput, Num, Section, Segmented, Select, Text, Toggle } from "../fields";
+import { BlocklyEditor } from "../BlocklyEditor";
+import { simpleToWorkspace } from "../../export/blocks";
 import type { Patch } from "./types";
 
 interface Slots { target: boolean; block: boolean }
@@ -50,6 +52,21 @@ function ParamInput({ spec, value, onChange, slots }: { spec: ParamSpec; value: 
       ]} />;
     case "select":
       return <Select label={spec.label} value={String(v)} onChange={onChange} options={spec.options ?? []} />;
+    case "variable": case "procedure": case "form": {
+      const names = spec.kind === "variable"
+        ? (project.variables ?? []).map((x) => x.name)
+        : project.elements.filter((e) => e.kind === spec.kind).map((e) => e.name);
+      const empty = { variable: "Add one on the Variables tab", procedure: "No procedures yet", form: "No forms yet" }[spec.kind];
+      return (
+        <Field label={spec.label}>
+          <select value={String(v)} onChange={(e) => onChange(e.target.value)}>
+            <option value="">{names.length ? "Choose…" : empty}</option>
+            {names.map((n) => <option key={n} value={n}>{n}</option>)}
+            {v && !names.includes(String(v)) && <option value={String(v)}>{String(v)} (missing)</option>}
+          </select>
+        </Field>
+      );
+    }
     default:
       return <Text label={spec.label} value={String(v)} onChange={onChange} />;
   }
@@ -59,7 +76,7 @@ function usesMissingSlot(params: Record<string, unknown>, slots: Slots) {
   return Object.values(params).some((v) => (v === "target" && !slots.target) || (v === "block" && !slots.block));
 }
 
-function ConditionList({ conditions, onChange, slots }: { conditions: Condition[]; onChange: (c: Condition[]) => void; slots: Slots }) {
+export function ConditionList({ conditions, onChange, slots }: { conditions: Condition[]; onChange: (c: Condition[]) => void; slots: Slots }) {
   const set = (i: number, c: Partial<Condition>) => onChange(conditions.map((x, k) => (k === i ? { ...x, ...c } : x)));
   return (
     <div className="logic-list">
@@ -94,7 +111,7 @@ function ConditionList({ conditions, onChange, slots }: { conditions: Condition[
   );
 }
 
-function ActionList({ actions, onChange, slots }: { actions: Action[]; onChange: (a: Action[]) => void; slots: Slots }) {
+export function ActionList({ actions, onChange, slots }: { actions: Action[]; onChange: (a: Action[]) => void; slots: Slots }) {
   const set = (i: number, a: Partial<Action>) => onChange(actions.map((x, k) => (k === i ? { ...x, ...a } : x)));
   const move = (i: number, d: number) => {
     const j = i + d;
@@ -103,7 +120,7 @@ function ActionList({ actions, onChange, slots }: { actions: Action[]; onChange:
     [next[i], next[j]] = [next[j], next[i]];
     onChange(next);
   };
-  const groups = ["Chat & screen", "Entities", "Items", "World", "Advanced"].map((g) => ({
+  const groups = [...new Set(ACTIONS.map((a) => a.group))].map((g) => ({
     name: g, items: ACTIONS.filter((a) => a.group === g).map((a) => ({ value: a.type, label: a.label })),
   }));
   return (
@@ -165,6 +182,42 @@ function CodePreview({ build }: { build: () => string }) {
   );
 }
 
+type LogicPatch = (p: { editor?: "simple" | "blocks"; blocks?: string }, key?: string) => void;
+
+function EditorSwitch({ el, patch }: { el: ProcedureElement | CommandElement; patch: LogicPatch }) {
+  const mode = el.editor ?? "simple";
+  return (
+    <div className="row between editor-switch">
+      <Segmented value={mode} onChange={(editor) => {
+        // First switch to blocks: carry the simple steps over.
+        if (editor === "blocks" && !el.blocks) patch({ editor, blocks: simpleToWorkspace(el.conditions, el.actions) });
+        else patch({ editor });
+      }} options={[{ value: "simple", label: "Simple steps" }, { value: "blocks", label: "Blocks" }]} />
+      <span className="field-help">{mode === "blocks" ? "Drag blocks from the left. Use variables, loops, math and waits." : "A list of conditions and steps. Switch to Blocks for loops, variables and math."}</span>
+    </div>
+  );
+}
+
+function BlocksSection({ el, patch, isCommand }: { el: ProcedureElement | CommandElement; patch: LogicPatch; isCommand?: boolean }) {
+  const project = useStore((s) => s.project!);
+  const setView = useStore((s) => s.setView);
+  return (
+    <Section title="Blocks" hint="Text can include {player}, {target}, {variable names} and {argument names}.">
+      <BlocklyEditor
+        resetKey={el.id}
+        value={el.blocks ?? ""}
+        onChange={(blocks) => patch({ blocks }, "blocks")}
+        variables={(project.variables ?? []).map((v) => v.name)}
+        procedures={project.elements.filter((e) => e.kind === "procedure" && e.id !== el.id).map((e) => e.name)}
+        forms={project.elements.filter((e) => e.kind === "form").map((e) => e.name)}
+        args={isCommand ? ((el as CommandElement).args ?? []).map((a) => a.name) : []}
+        isCommand={isCommand}
+      />
+      <button type="button" className="btn small ghost" onClick={() => setView("variables")}>Manage global variables…</button>
+    </Section>
+  );
+}
+
 export function ProcedureEditor({ el, patch }: { el: ProcedureElement; patch: Patch<ProcedureElement> }) {
   const project = useStore((s) => s.project!);
   const trig = triggerSpec(el.trigger);
@@ -185,20 +238,35 @@ export function ProcedureEditor({ el, patch }: { el: ProcedureElement; patch: Pa
         )}
         {el.trigger === "tick" && <Num label="Every" suffix="ticks" min={1} value={el.intervalTicks} onChange={(intervalTicks) => patch({ intervalTicks }, "ticks")} help="20 ticks = 1 second" />}
       </Section>
-      <Section title="Only if" hint="All conditions must be true. Leave empty to always run.">
-        <ConditionList conditions={el.conditions} onChange={(conditions) => patch({ conditions })} slots={slots} />
-      </Section>
-      <Section title="Do" hint="Steps run in order. Text can include {player} and {target}.">
-        <ActionList actions={el.actions} onChange={(actions) => patch({ actions })} slots={slots} />
-      </Section>
+      <EditorSwitch el={el} patch={patch as never} />
+      {(el.editor ?? "simple") === "blocks" ? (
+        <BlocksSection el={el} patch={patch as never} />
+      ) : (
+        <>
+          <Section title="Only if" hint="All conditions must be true. Leave empty to always run.">
+            <ConditionList conditions={el.conditions} onChange={(conditions) => patch({ conditions })} slots={slots} />
+          </Section>
+          <Section title="Do" hint="Steps run in order. Text can include {player}, {target} and {variable names}.">
+            <ActionList actions={el.actions} onChange={(actions) => patch({ actions })} slots={slots} />
+          </Section>
+        </>
+      )}
       <CodePreview build={build} />
     </>
   );
 }
 
+const ARG_TYPES: { value: CommandArgType; label: string }[] = [
+  { value: "integer", label: "Whole number" }, { value: "float", label: "Decimal number" }, { value: "string", label: "Text" },
+  { value: "boolean", label: "true / false" }, { value: "player", label: "Player (becomes the target)" },
+];
+
 export function CommandEditor({ el, patch }: { el: CommandElement; patch: Patch<CommandElement> }) {
   const project = useStore((s) => s.project!);
-  const slots = { target: false, block: false };
+  const slots = { target: (el.args ?? []).some((a) => a.type === "player"), block: false };
+  const args = el.args ?? [];
+  const setArg = (i: number, p: Partial<CommandArg>, key?: string) => patch({ args: args.map((a, k) => (k === i ? { ...a, ...p } : a)) }, key);
+  const usage = `/${project.namespace}:${el.name}${[...args].sort((a, b) => Number(a.optional) - Number(b.optional)).map((a) => (a.optional ? ` [${a.name}]` : ` <${a.name}>`)).join("")}`;
   const build = () => {
     const ctx = new GenContext(project);
     genCommands(ctx, [el]);
@@ -206,7 +274,7 @@ export function CommandEditor({ el, patch }: { el: CommandElement; patch: Patch<
   };
   return (
     <>
-      <Section title="Command" hint={`Players type /${project.namespace}:${el.name}`}>
+      <Section title="Command" hint={`Players type ${usage}`}>
         <Text label="Description (shown in command suggestions)" wide value={el.description} onChange={(description) => patch({ description }, "desc")} />
         <Select label="Who can use it" value={el.permission} onChange={(permission) => patch({ permission })} options={[
           { value: "any", label: "Everyone" }, { value: "game_directors", label: "Operators (game directors)" },
@@ -214,12 +282,30 @@ export function CommandEditor({ el, patch }: { el: CommandElement; patch: Patch<
         ]} />
         <Toggle label="Requires cheats to be on" value={el.cheatsRequired} onChange={(cheatsRequired) => patch({ cheatsRequired })} />
       </Section>
-      <Section title="Only if">
-        <ConditionList conditions={el.conditions} onChange={(conditions) => patch({ conditions })} slots={slots} />
+      <Section title="Arguments" hint="Values typed after the command. Use them in text as {name}, or with the “argument” block.">
+        {args.map((a, i) => (
+          <div className="row effect-row" key={a.id}>
+            <Field label="Name"><input className="mono" value={a.name} onChange={(e) => setArg(i, { name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") }, `arg-${a.id}`)} /></Field>
+            <Select label="Type" value={a.type} onChange={(type) => setArg(i, { type })} options={ARG_TYPES} />
+            <Toggle label="Optional" value={a.optional} onChange={(optional) => setArg(i, { optional })} />
+            <button type="button" className="btn ghost small" onClick={() => patch({ args: args.filter((_, k) => k !== i) })}>Remove</button>
+          </div>
+        ))}
+        <button type="button" className="btn small" onClick={() => patch({ args: [...args, { id: uid(), name: `arg${args.length + 1}`, type: "integer", optional: false }] })}>Add argument</button>
       </Section>
-      <Section title="Do">
-        <ActionList actions={el.actions} onChange={(actions) => patch({ actions })} slots={slots} />
-      </Section>
+      <EditorSwitch el={el} patch={patch as never} />
+      {(el.editor ?? "simple") === "blocks" ? (
+        <BlocksSection el={el} patch={patch as never} isCommand />
+      ) : (
+        <>
+          <Section title="Only if">
+            <ConditionList conditions={el.conditions} onChange={(conditions) => patch({ conditions })} slots={slots} />
+          </Section>
+          <Section title="Do">
+            <ActionList actions={el.actions} onChange={(actions) => patch({ actions })} slots={slots} />
+          </Section>
+        </>
+      )}
       <CodePreview build={build} />
     </>
   );

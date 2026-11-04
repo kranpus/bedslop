@@ -81,15 +81,19 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [x] `.bbmodel` import matches Blockbench's own Bedrock export (checked on a real Blockbench 5 project: 11/11 bones, 137/137 keyframes identical)
 - [ ] `.bbmodel` import in game: rotated cubes and per-face UVs (not covered by the real-project check)
 - [ ] Automatic walk/look animations on custom models look natural
+- [ ] Forms open from item use and commands; input form values land in variables; the busy-retry works when opened from chat
+- [ ] Command arguments (number and player) parse and appear in `{name}`
+- [ ] Variables persist across world reloads (dynamic properties)
 - [ ] Manual animation slots: "When attacking" (`variable.attack_time`), "When hurt" and "When dying" fire at the right moment; one-shot controllers replay on each attack; "Match walking speed" stops foot sliding
 
 ## Phase 2: visual scripting and advanced content ⬜
 
 Ordered by user value:
 
-1. ⬜ **Blockly procedure editor** alongside the simple builder (both compile to the same Script API code). Variables: world, player and entity scoped, stored as dynamic properties. Loops, math, text, lists, if/else, wait (`system.runTimeout`).
-2. ⬜ **Forms (MCreator GUIs)** via `@minecraft/server-ui`: action forms (buttons → procedures), modal forms (text, slider, dropdown, toggle → variables), message forms. "Open form" action.
-3. ⬜ **Command arguments**: typed parameters (player, number, text, item, enum) usable inside actions.
+1. ✅ **Blockly procedure editor** alongside the simple builder (both compile to the same Script API code; switching to blocks carries the simple steps over). Every step and condition is a block, plus if/else, repeat/while/for loops (guarded at 10,000 iterations), math, text, waits (`system.runTimeout`), "for each player", event values, local variables and global variables. The block JSON compiles without Blockly, so export stays testable. ⬜ lists, entity-scoped variables, custom block colours/themes for dark mode.
+2. ✅ **Forms (MCreator GUIs)** via `@minecraft/server-ui`: button menus with icons, input forms (text, slider, dropdown, toggle, label → variables and `{key}` values), yes/no dialogs; "Show form" step; retries when the player is busy; live in-app preview.
+3. ✅ **Command arguments**: whole number, decimal, text, true/false and player (becomes the target); required or optional; usable as `{name}` and with the "argument" block. ⬜ item/block/enum argument types.
+   ✅ **Global variables** (world or per player, number/text/true-false) stored as dynamic properties; "Change a variable" step, "Variable compares to" condition, `{name}` in any text. ✅ "Run manually" trigger + "Run another procedure" step for reusable procedures.
 4. 🟡 **3D previews** (three.js): ✅ mobs with live animations, controllers and game-state toggles. ⬜ blocks with custom models, items in hand, armor on a player.
 5. ⬜ **Projectiles and ranged items**: throwables, bows/shooters, custom projectile entities with on-hit procedures.
 6. ⬜ **Special block shapes**: slabs, stairs, fences, walls, doors, trapdoors, panes, carpets (geometry presets + block states + scripts).
@@ -146,6 +150,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.2.0** (Phase 2, part 1): Blockly block editor for procedures and commands; global variables; forms (menus, input forms, yes/no dialogs); command arguments; "run manually" trigger and "run another procedure" step; missing procedure/form references reported. Example project shows a block-based counter, a shop form and a command with an argument. 43 tests, generated scripts type-checked against `@minecraft/server` 2.1.0 and `@minecraft/server-ui` 2.0.0.
 
 - **0.1.7**: Fix `.bbmodel` import: Blockbench 5 projects keep bone names, pivots and rotations in a separate `groups` list, which was ignored, so bones pivoted around the wrong point and limbs flew apart. Keyframes are now converted from Blockbench's axes to Bedrock's (rotation X/Y and position X inverted, like Blockbench's exporter) and snapped to the animation's frame rate. Verified against a real project: output is identical to Blockbench's own export.
 
