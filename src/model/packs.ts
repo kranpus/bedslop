@@ -297,6 +297,8 @@ export function exampleProject(p: Project): Project {
     { id: uid(), text: "Ruby Berry ×3", icon: berry.texture, actions: [{ id: uid(), type: "give", params: { item: "ruby:ruby_berry", count: 3 }, chance: 100 }] },
     { id: uid(), text: "Ruby Wand (costs 20 mined)", icon: wand.texture, actions: [{ id: uid(), type: "run_procedure", params: { procedure: "buy_wand" }, chance: 100 }] },
   ];
+  // A grid of tiles instead of Minecraft's list of buttons.
+  shop.layout = { style: "grid", columns: 2, tileWidth: 96, tileHeight: 60, iconSize: 28, width: 225, height: 150, showBody: true, textColor: "#303030", titleColor: "#ffffff" };
   const buyWand = createElement("procedure", "buy_wand", "Buy wand");
   buyWand.trigger = "manual";
   buyWand.conditions = [{ id: uid(), type: "var_compare", params: { variable: "rubies_mined", op: "≥", value: "20", who: "player" }, negate: false }];

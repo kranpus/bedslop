@@ -4,6 +4,7 @@ import { genDisc } from "./disc";
 import { genEnchantments } from "./enchant";
 import { genCustomEffects } from "./effects";
 import { genHuds } from "./hud";
+import { genScreens } from "./screens";
 import { genCreativeGroups } from "./creative";
 import type { CommandElement, ModElement, Project } from "../model/types";
 import { genArmor, genBlock, genFood, genItem, genPlant, genTool } from "./content";
@@ -181,6 +182,9 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
       ctx.warnings.push({ elementId: r.elementId, level: "error", message: `${r.reason} need Script API ${r.api} or newer (project uses ${project.scriptApi}). Change it in Settings.` });
     }
   }
+
+  genScreens(ctx);
+  if (ctx.uiDefs.length) ctx.rp("ui/_ui_defs.json", { ui_defs: ctx.uiDefs });
 
   const script = buildScript(ctx);
   if (script) ctx.bp("scripts/main.js", script);

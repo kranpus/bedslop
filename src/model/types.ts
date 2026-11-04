@@ -84,6 +84,8 @@ export interface BlockElement extends BaseElement {
   tags?: string[];
   customStates?: CustomBlockState[];
   stateRules?: BlockStateRule[];
+  /** Storage blocks: background image for the container screen (JSON UI). */
+  containerBackground?: string;
   /** Gives off this particle effect (own effect name or a vanilla id) every particleEvery seconds. */
   particle?: string;
   particleEvery?: number;
@@ -542,6 +544,26 @@ export interface FormElement extends BaseElement {
   noText: string;
   yesActions: Action[];
   noActions: Action[];
+  /** Menus only: a custom look made with JSON UI. */
+  layout?: FormLayout;
+}
+
+/** A custom look for a menu form. */
+export interface FormLayout {
+  /** default: Minecraft's list; grid: buttons as tiles (icon above text). */
+  style: "default" | "grid";
+  columns: number;
+  tileWidth: number;
+  tileHeight: number;
+  iconSize: number;
+  /** Form size in UI pixels. */
+  width: number;
+  height: number;
+  /** Own background image instead of Minecraft's dialog frame. */
+  background?: string;
+  titleColor?: string;
+  textColor?: string;
+  showBody: boolean;
 }
 
 /** A value saved in the world (or on each player) that procedures can read and change. */
@@ -762,6 +784,8 @@ export interface CustomEffectElement extends BaseElement {
   color: string;
   maxLevel: number;
   showTimer: boolean;
+  /** Where the timer shows: a list on the left of the screen (default), or above the hotbar. */
+  timerPlace?: "left" | "actionbar";
   milkCures: boolean;
   steps: CustomEffectStep[];
   /** Adds a drinkable potion item that gives this effect. */

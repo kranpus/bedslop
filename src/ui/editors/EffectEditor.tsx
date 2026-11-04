@@ -28,19 +28,27 @@ export function EffectEditor({ el, patch }: { el: CustomEffectElement; patch: Pa
   const particles = project.elements.filter((e) => e.kind === "particle");
   const setStep = (i: number, p: Partial<CustomEffectStep>) => patch({ steps: el.steps.map((x, k) => (k === i ? { ...x, ...p } : x)) }, `st-${i}`);
   const color = COLORS.find((c) => c.code === el.color) ?? COLORS[0];
+  const place = el.timerPlace ?? "left";
   const levels = Array.from({ length: Math.max(1, el.maxLevel) }, (_, i) => i + 1);
 
   return (
     <>
-      <Section title="Effect" hint="Bedrock has no custom status effects, so this one is run by the add-on's script and shown as a timer above the hotbar.">
+      <Section title="Effect" hint="Bedrock has no custom status effects, so this one is run by the add-on's script and shown with a timer on screen.">
         <Grid>
           <Select label="Timer colour" value={el.color} onChange={(c) => patch({ color: c })} options={COLORS.map((c) => ({ value: c.code, label: c.label }))} />
           <Slider label="Highest level" min={1} max={10} value={el.maxLevel} onChange={(maxLevel) => patch({ maxLevel }, "max")} format={roman} />
         </Grid>
-        <div className="fx-timer-preview" aria-label="Timer preview">
-          <span style={{ color: color.hex }}>{el.displayName}{el.maxLevel > 1 ? " II" : ""}</span> <span className="fx-time">0:42</span>
-        </div>
-        <Toggle label="Show the timer" value={el.showTimer} onChange={(showTimer) => patch({ showTimer })} help="Players see the name, level and time left above the hotbar." />
+        <Toggle label="Show the timer" value={el.showTimer} onChange={(showTimer) => patch({ showTimer })} help="Players see the name, level and time left." />
+        {el.showTimer && (
+          <>
+            <Select label="Timer goes" value={place} onChange={(timerPlace) => patch({ timerPlace })} options={[
+              { value: "left", label: "In a list on the left of the screen" }, { value: "actionbar", label: "Above the hotbar" },
+            ]} help={place === "left" ? "Like Minecraft's own effect list. Up to 6 effects show at once." : "Shares the space used by action bar messages."} />
+            <div className={`fx-timer-preview${place === "left" ? " left" : ""}`} aria-label="Timer preview">
+              <span style={{ color: color.hex }}>{el.displayName}{el.maxLevel > 1 ? " II" : ""}</span> <span className="fx-time">0:42</span>
+            </div>
+          </>
+        )}
         <Toggle label="Milk cures it" value={el.milkCures} onChange={(milkCures) => patch({ milkCures })} />
       </Section>
 

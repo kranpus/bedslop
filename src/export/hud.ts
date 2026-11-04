@@ -6,7 +6,7 @@
 // title that starts with its prefix (the community "preserved title" technique), and labels, bars and
 // overlay panels read from it.
 
-import type { HudAnchor, HudElement } from "../model/types";
+import type { CustomEffectElement, HudAnchor, HudElement } from "../model/types";
 import { GenContext } from "./context";
 import { clampInt, round } from "./content";
 import { encodePng } from "./png";
@@ -43,9 +43,16 @@ const place = (a: HudAnchor, x: number, y: number) => ({ anchor_from: a, anchor_
 
 export interface HudChannel { prefix: string; kind: "live" | "bar" | "show"; hud: string; text?: string; source?: "variable" | "score"; name?: string; max?: number; segments?: number }
 
+/** Rows in the custom effects list on the left of the screen. */
+export const FX_ROWS = 6;
+/** Whether custom effects use the list on the left of the screen. */
+export const fxOnLeft = (ctx: GenContext) =>
+  ctx.project.elements.some((e) => e.kind === "effect" && (e as CustomEffectElement).showTimer && ((e as CustomEffectElement).timerPlace ?? "left") === "left");
+
 export function genHuds(ctx: GenContext) {
   const huds = ctx.project.elements.filter((e): e is HudElement => e.kind === "hud");
-  if (!huds.length) return;
+  const fxList = fxOnLeft(ctx);
+  if (!huds.length && !fxList) return;
   const space = `bc_${ctx.ns}`;
   const channels: HudChannel[] = [];
   const defs: Record<string, unknown> = {};
@@ -114,12 +121,30 @@ export function genHuds(ctx: GenContext) {
     // 1×1 half-transparent black, stretched over the screen behind overlays.
     ctx.rp(`textures/ui/${ctx.ns}_dim.png`, encodePng(1, 1, new Uint8Array([0, 0, 0, 140])));
   }
+  if (fxList) {
+    // Custom effects: a list on the left, like vanilla's effect icons on the right.
+    const rows: Record<string, unknown>[] = [];
+    for (let k = 0; k < FX_ROWS; k++) {
+      const prefix = `bc:${ctx.ns}:fx${k}:`;
+      rows.push({ [`fx${k}`]: { type: "panel", size: ["100%c", 11], controls: [
+        { [`fx${k}_data`]: dataControl(prefix) },
+        { [`fx${k}_text`]: {
+          type: "label", text: "#text", shadow: true, size: ["default", "default"], layer: 11, anchor_from: "left_middle", anchor_to: "left_middle",
+          bindings: [{ binding_type: "view", source_control_name: `fx${k}_data`, source_property_name: `(#preserved_text - ${lit(prefix)})`, target_property_name: "#text" }],
+        } },
+      ] } });
+    }
+    defs.fx_list = { type: "stack_panel", orientation: "vertical", size: [160, FX_ROWS * 11], anchor_from: "left_middle", anchor_to: "left_middle", offset: [4, -20], controls: rows };
+  }
   ctx.rp(`ui/${ctx.ns}_hud.json`, {
     namespace: space,
-    root: { type: "panel", size: ["100%", "100%"], controls: huds.map((h) => ({ [`hud_${h.name}@${space}.hud_${h.name}`]: {} })) },
+    root: { type: "panel", size: ["100%", "100%"], controls: [
+      ...huds.map((h) => ({ [`hud_${h.name}@${space}.hud_${h.name}`]: {} })),
+      ...(fxList ? [{ [`fx_list@${space}.fx_list`]: {} }] : []),
+    ] },
     ...defs,
   });
-  ctx.rp("ui/_ui_defs.json", { ui_defs: [`ui/${ctx.ns}_hud.json`] });
+  ctx.uiDefs.push(`ui/${ctx.ns}_hud.json`);
   ctx.rp("ui/hud_screen.json", {
     namespace: "hud",
     root_panel: { modifications: [{ array_name: "controls", operation: "insert_back", value: [{ [`${space}_root@${space}.root`]: {} }] }] },
@@ -135,6 +160,12 @@ function bcHudState(p) {
   let st = BC_HUD_STATE.get(p.id);
   if (!st) { st = { sent: {}, queue: new Map(), shown: {} }; BC_HUD_STATE.set(p.id, st); }
   return st;
+}
+/** Queues a value for one of the player's screen channels (sent if it changed). */
+function bcHudPut(p, prefix, v) {
+  const st = bcHudState(p);
+  if (st.sent[prefix] !== v) st.queue.set(prefix, v);
+  else st.queue.delete(prefix);
 }
 /** Shows or hides an overlay for a player (seconds > 0 hides it again after that long). */
 function bcHudShow(p, hud, on, seconds) {

@@ -43,6 +43,10 @@ export class GenContext {
   readonly files: FileMap = new Map();
   readonly warnings: Warning[] = [];
   readonly lang: string[] = [];
+  /** Our JSON UI files, listed in RP/ui/_ui_defs.json. */
+  readonly uiDefs: string[] = [];
+  /** Storage blocks with a themed screen: container title -> background texture path. */
+  readonly containerThemes: { title: string; texture: string }[] = [];
   readonly terrain: Record<string, { textures: string }> = {};
   readonly itemAtlas: Record<string, { textures: string }> = {};
   readonly blockSounds: Record<string, { sound: string }> = {};

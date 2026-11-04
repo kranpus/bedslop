@@ -5,6 +5,7 @@ import type { CustomEffectElement, CustomEffectStep } from "../model/types";
 import { fnName } from "../model/logic";
 import type { GenContext } from "./context";
 import { clampInt, itemBase, round } from "./content";
+import { FX_ROWS, fxOnLeft } from "./hud";
 
 const S = JSON.stringify;
 
@@ -29,10 +30,11 @@ export function genCustomEffects(ctx: GenContext) {
         "minecraft:glint": { value: true },
       }, "items", "minecraft:itemGroup.name.potion"));
     }
-    return `  ${S(fx.name)}: { title: ${S(fx.displayName)}, color: ${S(/^[0-9a-f]$/.test(fx.color) ? fx.color : "d")}, max: ${clampInt(fx.maxLevel, 1, 10)}, timer: ${!!fx.showTimer}, milk: ${!!fx.milkCures}, steps: [${steps.join(", ")}] }`;
+    return `  ${S(fx.name)}: { title: ${S(fx.displayName)}, color: ${S(/^[0-9a-f]$/.test(fx.color) ? fx.color : "d")}, max: ${clampInt(fx.maxLevel, 1, 10)}, timer: ${!!fx.showTimer}, left: ${(fx.timerPlace ?? "left") === "left"}, milk: ${!!fx.milkCures}, steps: [${steps.join(", ")}] }`;
   });
 
   ctx.script.imports.add("EntityDamageCause");
+  const left = fxOnLeft(ctx);
   ctx.script.sections.push(`// ----- Custom potion effects -----
 /** name -> { title, color, max, timer, milk, steps }. Step numbers: amount at level I, plus per for each level above. */
 const BC_FX = {
@@ -105,8 +107,12 @@ function bcFxTick(e) {
   if (!e.isValid) return;
   bcFxWrite(e, map);
   if (e.typeId === "minecraft:player") {
-    const shown = Object.entries(map).filter(([n]) => BC_FX[n]?.timer);
-    if (shown.length) e.onScreenDisplay.setActionBar(shown.map(([n, [lv, s]]) => "§" + BC_FX[n].color + BC_FX[n].title + (BC_FX[n].max > 1 ? " " + bcRomanFx(lv) : "") + " §7" + Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0")).join("   "));
+    const line = ([n, [lv, s]]) => "§" + BC_FX[n].color + BC_FX[n].title + (BC_FX[n].max > 1 ? " " + bcRomanFx(lv) : "") + " §7" + Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+    const bar = Object.entries(map).filter(([n]) => BC_FX[n]?.timer && !BC_FX[n].left);
+    if (bar.length) e.onScreenDisplay.setActionBar(bar.map(line).join("   "));${left ? `
+    // The list on the left of the screen.
+    const rows = Object.entries(map).filter(([n]) => BC_FX[n]?.timer && BC_FX[n].left).map(line);
+    for (let k = 0; k < ${FX_ROWS}; k++) bcHudPut(e, "bc:${ctx.ns}:fx" + k + ":", rows[k] ?? "");` : ""}
   }
 }
 system.runInterval(() => {

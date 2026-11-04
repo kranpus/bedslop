@@ -1,4 +1,5 @@
 // Forms (MCreator GUIs) → @minecraft/server-ui code.
+import { formMarker, layoutForms } from "./screens";
 import { fnName } from "../model/logic";
 import type { FormElement } from "../model/types";
 import type { GenContext } from "./context";
@@ -21,7 +22,10 @@ export function genForm(ctx: GenContext, f: FormElement) {
     case "menu": {
       ctx.script.uiImports.add("ActionFormData");
       if (!f.buttons.length) ctx.warn(f, "has no buttons yet.");
-      build = `const form = new ActionFormData().title(BC.fmt(ctx, ${S(f.title)})).body(BC.fmt(ctx, ${S(f.body)}));\n` +
+      // A custom layout is picked by an invisible marker at the start of the title.
+      const li = layoutForms(ctx.project.elements.filter((e): e is FormElement => e.kind === "form")).findIndex((x) => x.id === f.id);
+      const marker = li >= 0 ? `${S(formMarker(li))} + ` : "";
+      build = `const form = new ActionFormData().title(${marker}BC.fmt(ctx, ${S(f.title)})).body(BC.fmt(ctx, ${S(f.body)}));\n` +
         f.buttons.map((b) => {
           const path = icon(b.icon);
           return `form.button(BC.fmt(ctx, ${S(b.text)})${path ? `, ${S(path)}` : ""});\n`;

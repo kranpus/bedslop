@@ -1,19 +1,52 @@
 import { uid } from "../../model/registry";
-import type { FormButton, FormElement, FormField } from "../../model/types";
+import type { FormButton, FormElement, FormField, FormLayout } from "../../model/types";
 import { GenContext } from "../../export/context";
 import { genForm } from "../../export/forms";
 import { useStore } from "../../store/store";
-import { Field, Grid, Num, Section, Segmented, Select, Text } from "../fields";
+import { Color, Field, Grid, Num, Section, Segmented, Select, Slider, Text, Toggle } from "../fields";
 import { TexturePicker } from "../TexturePicker";
 import { ActionList } from "./LogicEditor";
 import type { Patch } from "./types";
 
 const noSlots = { target: false, block: false };
 
+export const DEFAULT_LAYOUT: FormLayout = {
+  style: "grid", columns: 3, tileWidth: 64, tileHeight: 56, iconSize: 24, width: 225, height: 200, showBody: true, textColor: "#303030", titleColor: "#ffffff",
+};
+
+/** The grid layout at Minecraft's GUI scale (about 1.2× so it's readable). */
+function GridPreview({ el, l }: { el: FormElement; l: FormLayout }) {
+  const textures = useStore((s) => s.project!.textures);
+  const url = (id?: string) => (id ? textures.find((t) => t.id === id)?.dataUrl : undefined);
+  const bg = url(l.background);
+  const k = Math.min(1.3, 320 / l.width);
+  const px = (n: number) => `${n * k}px`;
+  return (
+    <div className={`form-grid-preview${bg ? " own-bg" : ""}`} aria-label="Form preview"
+      style={{ width: px(l.width), height: px(l.height), backgroundImage: bg ? `url(${bg})` : undefined }}>
+      <div className="form-grid-title" style={{ color: bg ? l.titleColor || "#fff" : undefined, height: px(bg ? 22 : 18) }}>{el.title || "Untitled"}<span className="form-grid-x">✕</span></div>
+      <div className="form-grid-scroll">
+        {l.showBody && el.body && <p className="form-grid-body" style={{ color: l.textColor || "#303030" }}>{el.body}</p>}
+        <div className="form-grid-tiles" style={{ width: px(l.columns * l.tileWidth), gridTemplateColumns: `repeat(${l.columns}, ${px(l.tileWidth)})` }}>
+          {el.buttons.map((b) => (
+            <div key={b.id} className="form-grid-tile" style={{ height: px(l.tileHeight) }}>
+              <span className="form-grid-btn">
+                {url(b.icon) ? <img className="pixel" src={url(b.icon)} alt="" style={{ width: px(l.iconSize), height: px(l.iconSize) }} /> : <span style={{ height: px(l.iconSize) }} />}
+                <span className="form-grid-label" style={{ color: l.textColor || "#303030" }}>{b.text || " "}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Mock of how the form looks in game, so layout is clear before exporting. */
 function FormPreview({ el }: { el: FormElement }) {
   const textures = useStore((s) => s.project!.textures);
   const icon = (id: string) => textures.find((t) => t.id === id)?.dataUrl;
+  if (el.formType === "menu" && el.layout?.style === "grid") return <GridPreview el={el} l={el.layout} />;
   return (
     <div className="form-preview" aria-label="Form preview">
       <div className="form-title">{el.title || "Untitled"}</div>
@@ -80,6 +113,8 @@ export function FormEditor({ el, patch }: { el: FormElement; patch: Patch<FormEl
           <FormPreview el={el} />
         </div>
       </Section>
+
+      {el.formType === "menu" && <LayoutSection el={el} patch={patch} />}
 
       {el.formType === "menu" && (
         <Section title="Buttons" hint="Each button runs its own steps. Use “Run another procedure” for bigger logic.">
@@ -171,5 +206,42 @@ export function FormEditor({ el, patch }: { el: FormElement; patch: Patch<FormEl
       )}
       <details className="code-preview"><summary className="btn small ghost">Show generated JavaScript</summary><pre className="code-block"><code>{build()}</code></pre></details>
     </>
+  );
+}
+
+/** Custom look for menus: a grid of tiles, own size and background (made with JSON UI). */
+function LayoutSection({ el, patch }: { el: FormElement; patch: Patch<FormElement> }) {
+  const l = el.layout;
+  const grid = l?.style === "grid";
+  const set = (p: Partial<FormLayout>, key?: string) => patch({ layout: { ...DEFAULT_LAYOUT, ...l, ...p } }, key);
+  const tooWide = grid && l.columns * l.tileWidth > l.width - 12;
+  return (
+    <Section title="Look" hint="Menus can use Minecraft's normal list of buttons, or a grid of tiles with their own size and background.">
+      <Segmented value={grid ? "grid" : "default"} onChange={(style) => set({ style })} options={[
+        { value: "default", label: "Normal list" }, { value: "grid", label: "Grid of tiles" },
+      ]} />
+      {grid && (
+        <>
+          <Grid>
+            <Slider label="Columns" min={1} max={8} value={l.columns} onChange={(columns) => set({ columns }, "cols")} />
+            <Slider label="Icon size" min={8} max={Math.min(l.tileWidth, l.tileHeight)} value={Math.min(l.iconSize, l.tileWidth, l.tileHeight)} onChange={(iconSize) => set({ iconSize }, "icon")} format={(v) => `${v}px`} />
+            <Num label="Tile width" suffix="px" min={24} max={400} value={l.tileWidth} onChange={(tileWidth) => set({ tileWidth }, "tw")} />
+            <Num label="Tile height" suffix="px" min={24} max={400} value={l.tileHeight} onChange={(tileHeight) => set({ tileHeight }, "th")} />
+            <Num label="Form width" suffix="px" min={120} max={600} value={l.width} onChange={(width) => set({ width }, "w")} />
+            <Num label="Form height" suffix="px" min={100} max={400} value={l.height} onChange={(height) => set({ height }, "h")} />
+          </Grid>
+          {tooWide && <p className="warn-text">{l.columns} tiles of {l.tileWidth}px are wider than the form. Make the form wider or the tiles smaller.</p>}
+          <Toggle label="Show the text above the tiles" value={l.showBody} onChange={(showBody) => set({ showBody })} />
+          <Grid>
+            <Color label="Text colour" value={l.textColor || "#303030"} onChange={(textColor) => set({ textColor }, "tc")} />
+            {l.background && <Color label="Title colour" value={l.titleColor || "#ffffff"} onChange={(titleColor) => set({ titleColor }, "tic")} />}
+          </Grid>
+          <TexturePicker label="Background (optional)" kind="other" value={l.background || undefined} suggestedName={`${el.name}_background`} onChange={(background) => set({ background })}
+            help="Empty = Minecraft's grey dialog. Your image is stretched to the form's size, with the title and a close button on top." />
+          {l.background && <button type="button" className="btn ghost small" onClick={() => set({ background: "" })}>Use Minecraft's dialog</button>}
+          <p className="field-help">Sizes are in Minecraft's screen pixels: the normal form is 225 × 200. Players must have the add-on's resource pack for the custom look.</p>
+        </>
+      )}
+    </Section>
   );
 }

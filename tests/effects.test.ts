@@ -35,7 +35,7 @@ describe("custom potion effects", () => {
   });
 
   it("writes the effect table and a drinkable potion", () => {
-    expect(js).toContain(`"ruby_rush": { title: "Ruby Rush", color: "c", max: 3, timer: true, milk: true, steps: [`);
+    expect(js).toContain(`"ruby_rush": { title: "Ruby Rush", color: "c", max: 3, timer: true, left: true, milk: true, steps: [`);
     expect(js).toContain(`{ type: "procedure", amount: 0, per: 0, every: 3, run: (ctx) => proc_tick(ctx) }`);
     expect(js).toContain(`const BC_FX_POTIONS = {"brw:ruby_rush_potion":["ruby_rush",60,1]};`);
     const potion = JSON.parse(files.get("BP/items/ruby_rush_potion.json") as string)["minecraft:item"].components;

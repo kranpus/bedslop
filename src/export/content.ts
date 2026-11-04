@@ -108,7 +108,15 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
     const tags = (b.craftingTags?.length ? b.craftingTags : [id]).slice(0, 64);
     components["minecraft:crafting_table"] = { crafting_tags: tags, table_name: b.tableName || b.displayName };
   } else if (fn === "storage") {
-    components["minecraft:block_entity"] = { container: { slot_count: clampInt(b.slotCount ?? 27, 1, 54), title: (b.containerTitle || b.displayName).slice(0, 256) } };
+    // Straight quotes can't be matched by the themed screen, so they become curly ones there.
+    const title = (b.containerTitle || b.displayName).slice(0, 256).replace(/'/g, b.containerBackground ? "’" : "'");
+    components["minecraft:block_entity"] = { container: { slot_count: clampInt(b.slotCount ?? 27, 1, 54), title } };
+    if (b.containerBackground) {
+      const tex = ctx.writeTexture(b.containerBackground, "ui");
+      if (!tex) ctx.warn(b, "has a screen background that no longer exists.");
+      else if (ctx.containerThemes.some((t) => t.title === title && t.texture !== tex)) ctx.warn(b, `shares the screen title “${title}” with another storage block, so they show the same background. Give it its own title.`);
+      else if (!ctx.containerThemes.some((t) => t.title === title)) ctx.containerThemes.push({ title, texture: tex });
+    }
     need("1.26.20", "storage blocks", "1.26.60");
   }
 

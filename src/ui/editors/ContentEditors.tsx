@@ -596,6 +596,9 @@ function BlockFunctionSection({ el, patch }: { el: BlockElement; patch: Patch<Bl
             <Text label="Title on its screen" value={el.containerTitle ?? ""} onChange={(containerTitle) => patch({ containerTitle }, "ctitle")} placeholder={el.displayName} />
           </Grid>
           <p className="field-help">Right-click opens a chest screen. Uses Bedrock's built-in block containers.</p>
+          <TexturePicker label="Screen background (optional)" kind="other" value={el.containerBackground || undefined} suggestedName={`${el.name}_screen`} onChange={(containerBackground) => patch({ containerBackground })}
+            help="Drawn behind the title and slots in the top half of its screen (about 176 × 80 pixels for 27 slots). Each block needs its own title for this to work." />
+          {el.containerBackground && <button type="button" className="btn ghost small" onClick={() => patch({ containerBackground: "" })}>Use the normal background</button>}
         </>
       )}
       {fn !== "none" && <VersionNeed el={el} />}

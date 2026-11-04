@@ -712,7 +712,7 @@ export function buildScript(ctx: GenContext): string | null {
   for (const m of new Set([...sections.matchAll(/bcHudShow\(ctx\.player, "([^"]*)"/g)].map((m) => m[1]))) {
     if (!overlays.has(m)) ctx.warn(undefined, `A step shows or hides the overlay "${m}", which doesn't exist or isn't an overlay.`, "error");
   }
-  if (!ctx.project.elements.some((e) => e.kind === "hud") && /bcHudShow\(/.test(sections)) {
+  if (!/function bcHudShow\(/.test(sections) && /bcHudShow\(/.test(sections)) {
     sections += "\n// Missing references\nfunction bcHudShow(p, hud, on, seconds) {}\n";
   }
   // Custom effect steps need the effects script, which only exists when the project has effects.
