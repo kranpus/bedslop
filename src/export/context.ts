@@ -33,7 +33,7 @@ export interface ScriptParts {
   tools: Record<string, [number, number]>;
   foods: Record<string, [string, number, number, number][]>;
   /** Blocks with script behaviour (lever toggles, redstone input), keyed by block id. */
-  blocks: { id: string; component: string; toggleState?: string; litState?: string; input: boolean }[];
+  blocks: { id: string; component: string; toggleState?: string; litState?: string; input: boolean; shape?: "slab" | "trapdoor" | "door" | "connect"; group?: string; crop?: { stages: number; chance: number; boneMeal: boolean } }[];
   /** Procedures started by redstone: [function name, true = powered / false = unpowered, block id or ""]. */
   redstone: [string, boolean, string][];
 }
@@ -118,8 +118,10 @@ export class GenContext {
     for (const el of this.project.elements) {
       if (el.kind === "armor") {
         for (const [slot, piece] of Object.entries(el.pieces)) if (piece.enabled) ids.add(this.id(`${el.name}_${slot}`));
-      } else if (["block", "plant", "item", "tool", "food", "entity"].includes(el.kind)) {
+      } else if (["block", "plant", "item", "tool", "food", "entity", "projectile"].includes(el.kind)) {
         ids.add(this.id(el.name));
+      } else if (el.kind === "crop") {
+        ids.add(this.id(el.name)).add(this.id(`${el.name}_seeds`));
       }
     }
     return ids;

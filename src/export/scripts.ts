@@ -190,6 +190,19 @@ export function genProcedure(ctx: GenContext, p: ProcedureElement) {
     case "manual":
       hook = "";
       break;
+    case "projectile_hit_entity":
+    case "projectile_hit_block": {
+      const entity = p.trigger === "projectile_hit_entity";
+      hook = `world.afterEvents.${entity ? "projectileHitEntity" : "projectileHitBlock"}.subscribe((ev) => {
+  let type;
+  try { type = ev.projectile.typeId; } catch {}
+${f ? `  if (type !== ${f}) return;\n` : ""}  const src = ev.source;
+  const hit = ${entity ? "ev.getEntityHit()?.entity" : "undefined"};
+  const where = ${entity ? "ev.location" : "BC.center(ev.getBlockHit().block.location)"};
+  ${fn}({ player: src?.typeId === "minecraft:player" ? src : undefined, target: hit, dimension: ev.dimension, location: where, block: where });
+});`;
+      break;
+    }
     case "redstone_on":
     case "redstone_off":
       // Started from the block's custom component (see genBlockScripts).
@@ -323,6 +336,73 @@ export function genBlockScripts(ctx: GenContext) {
   if (!blocks.length) return;
   const regs = blocks.map((b) => {
     const handlers: string[] = [];
+    const ns = ctx.ns;
+    const label = (what: string) => S(`${b.id}: ${what}`);
+    if (b.shape === "slab") handlers.push(`    onPlayerInteract(e) {
+      BC.run(${label("double slab")}, () => {
+        // Using the same slab on a single slab makes it a double slab.
+        if (!e.player || bcGetState(e.block, ${S(`${ns}:double`)})) return;
+        if (!bcTakeHeld(e.player, ${S(b.id)})) return;
+        bcSetState(e.block, ${S(`${ns}:double`)}, true);
+        e.dimension.playSound("dig.stone", e.block.location);
+      });
+    },`);
+    if (b.shape === "trapdoor") handlers.push(`    onPlayerInteract(e) {
+      BC.run(${label("open/close")}, () => {
+        const open = bcGetState(e.block, ${S(`${ns}:open`)}) !== true;
+        bcSetState(e.block, ${S(`${ns}:open`)}, open);
+        e.dimension.playSound(open ? "random.door_open" : "random.door_close", e.block.location);
+      });
+    },`);
+    if (b.shape === "door") handlers.push(`    onPlace(e) {
+      BC.run(${label("place top half")}, () => {
+        if (bcGetState(e.block, ${S(`${ns}:upper`)})) return;
+        const up = e.block.above();
+        if (!up || !up.isAir) {
+          // No room for the top half: pop the door back out as an item.
+          e.dimension.runCommand(\`setblock \${e.block.location.x} \${e.block.location.y} \${e.block.location.z} air destroy\`);
+          return;
+        }
+        up.setPermutation(bcWith(e.block.permutation, ${S(`${ns}:upper`)}, true));
+      });
+    },
+    onPlayerBreak(e) {
+      BC.run(${label("break other half")}, () => {
+        const upper = e.brokenBlockPermutation.getState(/** @type {any} */ (${S(`${ns}:upper`)})) === true;
+        const other = upper ? e.block.below() : e.block.above();
+        if (other?.typeId !== ${S(b.id)}) return;
+        const l = other.location;
+        // Breaking the top half still drops the door (from the bottom half).
+        e.dimension.runCommand(\`setblock \${l.x} \${l.y} \${l.z} air\${upper ? " destroy" : ""}\`);
+      });
+    },
+    onPlayerInteract(e) {
+      BC.run(${label("open/close")}, () => {
+        const open = bcGetState(e.block, ${S(`${ns}:open`)}) !== true;
+        const upper = bcGetState(e.block, ${S(`${ns}:upper`)}) === true;
+        bcSetState(e.block, ${S(`${ns}:open`)}, open);
+        const other = upper ? e.block.below() : e.block.above();
+        if (other?.typeId === ${S(b.id)}) bcSetState(other, ${S(`${ns}:open`)}, open);
+        e.dimension.playSound(open ? "random.door_open" : "random.door_close", e.block.location);
+      });
+    },`);
+    if (b.shape === "connect") handlers.push(`    onPlace(e) { BC.run(${label("connect")}, () => bcConnectAround(e.block, true)); },
+    onPlayerBreak(e) { BC.run(${label("disconnect")}, () => bcConnectAround(e.block, false)); },`);
+    if (b.crop) handlers.push(`    onRandomTick(e) {
+      BC.run(${label("grow")}, () => {
+        const stage = Number(bcGetState(e.block, ${S(`${ns}:growth`)}) ?? 0);
+        if (stage < ${b.crop.stages - 1} && Math.random() * 100 < ${b.crop.chance}) bcSetState(e.block, ${S(`${ns}:growth`)}, stage + 1);
+      });
+    },${b.crop.boneMeal ? `
+    onPlayerInteract(e) {
+      BC.run(${label("bone meal")}, () => {
+        const stage = Number(bcGetState(e.block, ${S(`${ns}:growth`)}) ?? 0);
+        if (!e.player || stage >= ${b.crop.stages - 1}) return;
+        if (!bcTakeHeld(e.player, "minecraft:bone_meal")) return;
+        bcSetState(e.block, ${S(`${ns}:growth`)}, Math.min(${b.crop.stages - 1}, stage + BC.randInt(2, 5)));
+        e.dimension.spawnParticle("minecraft:crop_growth_emitter", BC.center(e.block.location));
+      });
+    },` : ""}`);
     if (b.toggleState) handlers.push(`    onPlayerInteract(e) {
       BC.run(${S(`${b.id}: switch`)}, () => {
         const block = e.block;
@@ -341,7 +421,45 @@ export function genBlockScripts(ctx: GenContext) {
 const BC_REDSTONE = [${redstone.map(([fn, on, f]) => `{ run: ${fn}, on: ${on}, block: ${S(f)} }`).join(", ")}];
 // Custom block states (like "ns:on") aren't in the built-in state list, so they're passed through untyped.
 function bcGetState(block, name) { return block.permutation.getState(/** @type {any} */ (name)); }
-function bcSetState(block, name, value) { block.setPermutation(block.permutation.withState(/** @type {any} */ (name), value)); }
+function bcWith(permutation, name, value) { return permutation.withState(/** @type {any} */ (name), value); }
+function bcSetState(block, name, value) { block.setPermutation(bcWith(block.permutation, name, value)); }
+/** If the player holds the given item, uses one up (not in creative). Returns whether they held it. */
+function bcTakeHeld(player, typeId) {
+  const inv = player.getComponent("minecraft:inventory")?.container;
+  const slot = player.selectedSlotIndex;
+  const item = inv?.getItem(slot);
+  if (!inv || item?.typeId !== typeId) return false;
+  if (String(player.getGameMode()).toLowerCase() === "creative") return true;
+  if (item.amount > 1) { item.amount -= 1; inv.setItem(slot, item); } else inv.setItem(slot, undefined);
+  return true;
+}
+/** Fences, walls and panes: which of our blocks connect, and in which group. */
+const BC_CONNECT = ${S(Object.fromEntries(blocks.filter((b) => b.shape === "connect").map((b) => [b.id, b.group])))};
+// Blocks that aren't solid enough to connect to (plants, decorations, partial blocks).
+const BC_NOT_SOLID = /(flower|grass|fern|sapling|torch|button|sign|carpet|rail|slab|stairs|door|lever|pressure_plate|banner|bed|snow_layer|bush|vine|ladder|lantern|chain|candle|flower_pot|head|skull|cake|mushroom|sugar_cane|wheat|carrots|potatoes|beetroot|kelp|seagrass|coral_fan|redstone_wire|repeater|comparator|tripwire|web|scaffolding|fence_gate|azalea|dripleaf|roots|sprouts)/;
+const BC_SHAPED = new Set(${S(blocks.filter((b) => b.shape && b.shape !== "connect").map((b) => b.id))});
+function bcConnects(n, group) {
+  if (!n || n.isAir || n.isLiquid) return false;
+  const id = n.typeId;
+  if (id in BC_CONNECT) return BC_CONNECT[id] === group;
+  if (group === "fence" && id.includes("fence") && !id.includes("gate")) return true;
+  if (group === "wall" && id.endsWith("_wall")) return true;
+  if (group === "pane" && (id.includes("pane") || id === "minecraft:iron_bars")) return true;
+  return !BC_SHAPED.has(id) && !BC_NOT_SOLID.test(id) && !id.includes("fence") && !id.includes("pane");
+}
+function bcUpdateConnections(block) {
+  const group = BC_CONNECT[block?.typeId];
+  if (!group) return;
+  let perm = block.permutation;
+  for (const [dir, n] of [["north", block.north()], ["south", block.south()], ["east", block.east()], ["west", block.west()]]) {
+    perm = bcWith(perm, NAMESPACE + ":" + dir, bcConnects(n, group));
+  }
+  block.setPermutation(perm);
+}
+function bcConnectAround(block, self) {
+  if (self) bcUpdateConnections(block);
+  for (const n of [block.north(), block.south(), block.east(), block.west()]) if (n && n.typeId in BC_CONNECT) bcUpdateConnections(n);
+}
 function bcRedstone(e, id, litState) {
   const on = e.powerLevel > 0, was = e.previousPowerLevel > 0;
   const block = e.block;
@@ -355,7 +473,10 @@ system.beforeEvents.startup.subscribe((ev) => {
   const registry = ev.blockComponentRegistry;
 ${regs.join("\n")}
 });
-`);
+${blocks.some((b) => b.shape === "connect") ? `// Any block placed or broken next to a fence/wall/pane updates its connections.
+world.afterEvents.playerPlaceBlock.subscribe((ev) => BC.run("connections", () => bcConnectAround(ev.block, false)));
+world.afterEvents.playerBreakBlock.subscribe((ev) => BC.run("connections", () => bcConnectAround(ev.block, false)));
+` : ""}`);
 }
 
 /** Returns the main.js source, or null when the add-on needs no scripting. */

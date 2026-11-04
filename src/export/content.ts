@@ -3,6 +3,8 @@ import type {
   ArmorElement, ArmorSlot, BlockElement, FoodElement, ItemElement, PlantElement, ToolElement,
 } from "../model/types";
 import { FORMATS, GenContext, geometryIdentifier, maxVersion } from "./context";
+import { shapeParts } from "./shapes";
+import { rangedItemComponents } from "./ranged";
 
 const menu = (category: string, group?: string) => (group ? { category, group } : { category });
 
@@ -135,12 +137,36 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
       if (key) onComponents["minecraft:material_instances"] = { "*": { texture: key, render_method: rm } };
     }
   }
-  if (toggle || input) {
+  // Built-in shapes (slab, stairs, door, fence, ...): their own model, states, boxes and behaviour.
+  const shape = b.geometry === "custom" ? null : shapeParts(b.shape ?? "cube", ctx.ns, b.name);
+  if (shape) {
+    ctx.rp(`models/blocks/${ctx.ns}_${b.name}.geo.json`, shape.geometry);
+    components["minecraft:geometry"] = shape.boneVisibility ? { identifier: shape.geometryId, bone_visibility: shape.boneVisibility } : shape.geometryId;
+    components["minecraft:collision_box"] = shape.collision;
+    components["minecraft:selection_box"] = shape.selection;
+    if (b.renderMethod === "opaque") (components["minecraft:material_instances"] as Record<string, { render_method: string }>)["*"].render_method = "alpha_test";
+    components["minecraft:light_dampening"] = 0;
+    if (b.shape === "door") {
+      const lower = inst(t.bottom ?? t.all), upper = inst(t.top ?? t.all);
+      if (lower) components["minecraft:material_instances"] = { "*": { ...lower, render_method: "alpha_test" } };
+      if (upper) shape.permutations.push({ condition: `q.block_state('${ctx.ns}:upper')`, components: { "minecraft:material_instances": { "*": { ...upper, render_method: "alpha_test" } } } });
+      ctx.bp("loot_tables/empty.json", { pools: [] });
+    }
+    if (b.shape === "slab") {
+      ctx.bp(`loot_tables/blocks/${ctx.ns}_${b.name}_double.json`, { pools: [{ rolls: 1, entries: [{ type: "item", name: id, functions: [{ function: "set_count", count: 2 }] }] }] });
+    }
+    Object.assign(states, shape.states ?? {});
+  }
+
+  if (toggle || input || shape?.logic) {
     // Script behaviour lives in a custom component registered in main.js.
     const component = `${ctx.ns}:${b.name}_logic`;
     components[component] = {};
-    need("1.21.90", "lever / redstone behaviour");
-    ctx.script.blocks.push({ id, component, toggleState: toggle ? onState : undefined, litState: input && hasOnState ? onState : undefined, input });
+    need("1.21.90", shape?.logic ? `${b.shape} behaviour` : "lever / redstone behaviour");
+    ctx.script.blocks.push({
+      id, component, toggleState: toggle ? onState : undefined, litState: input && hasOnState ? onState : undefined, input,
+      shape: shape?.logic, group: shape?.logic === "connect" ? b.shape : undefined,
+    });
   }
 
   const block: Record<string, unknown> = {
@@ -148,7 +174,11 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
     components,
   };
 
-  if (b.rotation === "facing") {
+  if (shape) {
+    // Shapes bring their own placement rules (facing, top/bottom half).
+    if (shape.traits) (block.description as Record<string, unknown>).traits = shape.traits;
+    block.permutations = shape.permutations;
+  } else if (b.rotation === "facing") {
     (block.description as Record<string, unknown>).traits = {
       "minecraft:placement_direction": { enabled_states: ["minecraft:cardinal_direction"], y_rotation_offset: 180 },
     };
@@ -313,6 +343,7 @@ export function genItem(ctx: GenContext, it: ItemElement) {
   if (it.handEquipped) extra["minecraft:hand_equipped"] = { value: true };
   if (it.fuelSeconds > 0) extra["minecraft:fuel"] = { duration: round(it.fuelSeconds) };
   if (it.tags.length) extra["minecraft:tags"] = { tags: it.tags };
+  Object.assign(extra, rangedItemComponents(ctx, it));
   ctx.bp(`items/${it.name}.json`, itemBase(ctx, it, key, extra, it.category, it.group));
 }
 

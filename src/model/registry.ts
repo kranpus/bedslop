@@ -21,6 +21,8 @@ export const KINDS: KindInfo[] = [
   { kind: "armor", label: "Armor", blurb: "A full armor set: icons, worn textures, protection and repair item.", group: "Content", glyph: "A", color: "#5d6b78" },
   { kind: "food", label: "Food", blurb: "Edible items with hunger, saturation and potion effects on eating.", group: "Content", glyph: "F", color: "#b5612f" },
   { kind: "entity", label: "Mob", blurb: "Living entities with a model, AI behaviour, drops, spawn egg and spawning.", group: "Content", glyph: "M", color: "#a0413b" },
+  { kind: "projectile", label: "Projectile", blurb: "Something thrown or shot: damage, knockback, fire, effects. Use it from a throwable item or as bow ammo.", group: "Content", glyph: "➶", color: "#7a5a2a" },
+  { kind: "crop", label: "Crop", blurb: "Plant seeds on farmland, watch it grow in stages, harvest the produce. Bone meal works too.", group: "Content", glyph: "C", color: "#6a8a2a" },
   { kind: "recipe", label: "Recipe", blurb: "Crafting table (shaped or shapeless), furnace, stonecutter or smithing.", group: "Content", glyph: "R", color: "#8c7a2c" },
   { kind: "loot", label: "Loot table", blurb: "Weighted drops for blocks, mobs and chests.", group: "Content", glyph: "L", color: "#9a6b1f" },
   { kind: "ore", label: "Ore generation", blurb: "Place veins of any block underground in the Overworld, Nether or End.", group: "World", glyph: "O", color: "#5c6470" },
@@ -100,6 +102,14 @@ export function createElement<K extends ElementKind>(kind: K, name: string, disp
     sound: () => ({
       ...base, kind: "sound", file: "", fileName: "", category: "neutral", volume: 1, pitch: 1,
     }),
+    projectile: () => ({
+      ...base, kind: "projectile", look: "sprite", texture: "", customGeometry: "", damage: 4, knockback: true,
+      fireSeconds: 0, effects: [], speed: 1.5, gravity: 0.03, onHit: "remove", hitSound: "", size: 0.25,
+    }),
+    crop: () => ({
+      ...base, kind: "crop", stageTextures: ["", "", "", ""], look: "crop", growthChance: 33, boneMeal: true,
+      produce: "", produceMin: 1, produceMax: 3, seedsTexture: "", seedsMax: 2, placeableOn: ["minecraft:farmland"],
+    }),
     form: () => ({
       ...base, kind: "form", formType: "menu", title: displayName, body: "Choose an option",
       buttons: [{ id: uid(), text: "Option 1", icon: "", actions: [] }],
@@ -113,8 +123,10 @@ export function createElement<K extends ElementKind>(kind: K, name: string, disp
 /** All in-game identifiers an element registers (armor registers four). */
 export function identifiersOf(el: ModElement, ns: string): string[] {
   switch (el.kind) {
-    case "block": case "plant": case "item": case "tool": case "food": case "entity":
+    case "block": case "plant": case "item": case "tool": case "food": case "entity": case "projectile":
       return [`${ns}:${el.name}`];
+    case "crop":
+      return [`${ns}:${el.name}`, `${ns}:${el.name}_seeds`];
     case "armor":
       return (Object.keys(el.pieces) as (keyof typeof el.pieces)[])
         .filter((s) => el.pieces[s].enabled)

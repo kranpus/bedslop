@@ -5,6 +5,7 @@ import { genFunction, genLoot, genOre, genRecipe, genSound } from "./data";
 import { genEntity } from "./entity";
 import { buildScript, genBlockScripts, genCommands, genProcedure } from "./scripts";
 import { genForm } from "./forms";
+import { genCrop, genProjectile } from "./ranged";
 import { uiVersionFor } from "../model/project";
 
 export interface GenerateResult {
@@ -115,6 +116,8 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
       case "ore": genOre(ctx, el); break;
       case "function": genFunction(ctx, el); break;
       case "sound": genSound(ctx, el); break;
+      case "projectile": genProjectile(ctx, el); break;
+      case "crop": genCrop(ctx, el); break;
       case "procedure": genProcedure(ctx, el); break;
       case "command": commands.push(el); break;
       case "form": genForm(ctx, el); break;

@@ -16,7 +16,9 @@ export type ElementKind =
   | "command"
   | "function"
   | "sound"
-  | "form";
+  | "form"
+  | "projectile"
+  | "crop";
 
 export type MenuCategory = "construction" | "equipment" | "items" | "nature" | "none";
 
@@ -44,6 +46,8 @@ export interface TextureAsset {
 export type BlockTextureMode = "all" | "pillar" | "six";
 export type BlockFace = "all" | "top" | "bottom" | "side" | "north" | "south" | "east" | "west";
 
+export type BlockShape = "cube" | "slab" | "stairs" | "carpet" | "trapdoor" | "door" | "fence" | "wall" | "pane";
+
 export interface BlockElement extends BaseElement {
   kind: "block";
   textureMode: BlockTextureMode;
@@ -66,6 +70,8 @@ export interface BlockElement extends BaseElement {
   geometry: "full" | "custom";
   customGeometry: string;
   bestTool: "none" | "pickaxe" | "axe" | "shovel" | "hoe";
+  /** Built-in shape. Missing = "cube" (or the custom model when geometry is "custom"). */
+  shape?: BlockShape;
   /** Hitbox for custom models: whole block, fitted to the model, or none (walk through). */
   collision?: "full" | "model" | "none";
   /** What the block does when used. */
@@ -104,6 +110,16 @@ export interface PlantElement extends BaseElement {
 
 export interface ItemElement extends BaseElement {
   kind: "item";
+  /** What using the item does: throw a projectile (like a snowball), shoot ammo (like a bow), or be ammo. */
+  use?: "none" | "throw" | "bow" | "ammo";
+  /** Projectile element name thrown/fired by this item (throw, ammo). */
+  projectile?: string;
+  /** Bow: item ids it can fire (ammo items, e.g. minecraft:arrow). */
+  ammo?: string[];
+  /** Bow: seconds to fully draw. */
+  drawSeconds?: number;
+  /** Uses before it breaks (bows); 0 = unbreakable. */
+  durability?: number;
   texture: string;
   maxStack: number;
   glint: boolean;
@@ -334,7 +350,9 @@ export type TriggerType =
   | "tick"
   | "manual"
   | "redstone_on"
-  | "redstone_off";
+  | "redstone_off"
+  | "projectile_hit_entity"
+  | "projectile_hit_block";
 
 export interface ProcedureElement extends BaseElement {
   kind: "procedure";
@@ -434,6 +452,43 @@ export interface GlobalVariable {
   initial: string;
 }
 
+export interface ProjectileElement extends BaseElement {
+  kind: "projectile";
+  /** sprite: flat image that faces the camera (snowball); arrow: Minecraft's arrow shape; custom: Blockbench model. */
+  look: "sprite" | "arrow" | "custom";
+  texture: string;
+  customGeometry: string;
+  damage: number;
+  knockback: boolean;
+  /** Seconds the target burns, 0 = no fire. */
+  fireSeconds: number;
+  effects: EffectEntry[];
+  /** Blocks per tick. Snowball 1.5, arrow 1.1 (bows multiply it). */
+  speed: number;
+  /** Downward pull per tick. Snowball 0.03, arrow 0.05. */
+  gravity: number;
+  /** What happens when it hits something. */
+  onHit: "remove" | "stick";
+  hitSound: string;
+  size: number;
+}
+
+export interface CropElement extends BaseElement {
+  kind: "crop";
+  /** One texture per growth stage (2-8), youngest first. */
+  stageTextures: string[];
+  look: "cross" | "crop";
+  /** Chance per random tick to grow one stage (vanilla wheat is roughly 1 in 3 when hydrated). */
+  growthChance: number;
+  boneMeal: boolean;
+  produce: string;
+  produceMin: number;
+  produceMax: number;
+  seedsTexture: string;
+  seedsMax: number;
+  placeableOn: string[];
+}
+
 export type ModElement =
   | BlockElement
   | PlantElement
@@ -449,7 +504,9 @@ export type ModElement =
   | CommandElement
   | FunctionElement
   | SoundElement
-  | FormElement;
+  | FormElement
+  | ProjectileElement
+  | CropElement;
 
 export type ElementOf<K extends ElementKind> = Extract<ModElement, { kind: K }>;
 
