@@ -93,7 +93,7 @@ function NewElementDialog({ onClose }: { onClose: () => void }) {
       ))}
       <label className="field">
         <span className="field-label">Name</span>
-        <input autoFocus value={name} placeholder={`e.g. ${({ block: "Marble", plant: "Blue Rose", item: "Ruby", tool: "Ruby Pickaxe", armor: "Ruby", food: "Cheese", entity: "Frost Wolf", recipe: "Ruby Pickaxe recipe", loot: "Treasure chest", ore: "Ruby ore generation", procedure: "Lightning wand", command: "Heal", function: "Reset arena", sound: "Wand zap", form: "Shop menu", projectile: "Ruby Shard", crop: "Ruby Berries" } as Record<ElementKind, string>)[kind]}`}
+        <input autoFocus value={name} placeholder={`e.g. ${({ block: "Marble", plant: "Blue Rose", item: "Ruby", tool: "Ruby Pickaxe", armor: "Ruby", food: "Cheese", entity: "Frost Wolf", recipe: "Ruby Pickaxe recipe", loot: "Treasure chest", ore: "Ruby ore generation", procedure: "Lightning wand", command: "Heal", function: "Reset arena", sound: "Wand zap", form: "Shop menu", projectile: "Ruby Shard", crop: "Ruby Berries", structure: "Ruby Shrine" } as Record<ElementKind, string>)[kind]}`}
           onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && create()} />
       </label>
     </Modal>

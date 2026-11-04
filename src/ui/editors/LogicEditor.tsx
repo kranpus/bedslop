@@ -52,11 +52,11 @@ function ParamInput({ spec, value, onChange, slots }: { spec: ParamSpec; value: 
       ]} />;
     case "select":
       return <Select label={spec.label} value={String(v)} onChange={onChange} options={spec.options ?? []} />;
-    case "variable": case "procedure": case "form": {
+    case "variable": case "procedure": case "form": case "structure": {
       const names = spec.kind === "variable"
         ? (project.variables ?? []).map((x) => x.name)
         : project.elements.filter((e) => e.kind === spec.kind).map((e) => e.name);
-      const empty = { variable: "Add one on the Variables tab", procedure: "No procedures yet", form: "No forms yet" }[spec.kind];
+      const empty = { variable: "Add one on the Variables tab", procedure: "No procedures yet", form: "No forms yet", structure: "No structures yet" }[spec.kind];
       return (
         <Field label={spec.label}>
           <select value={String(v)} onChange={(e) => onChange(e.target.value)}>
@@ -210,6 +210,7 @@ function BlocksSection({ el, patch, isCommand }: { el: ProcedureElement | Comman
         variables={(project.variables ?? []).map((v) => v.name)}
         procedures={project.elements.filter((e) => e.kind === "procedure" && e.id !== el.id).map((e) => e.name)}
         forms={project.elements.filter((e) => e.kind === "form").map((e) => e.name)}
+        structures={project.elements.filter((e) => e.kind === "structure").map((e) => e.name)}
         args={isCommand ? ((el as CommandElement).args ?? []).map((a) => a.name) : []}
         isCommand={isCommand}
       />

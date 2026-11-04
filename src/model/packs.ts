@@ -1,6 +1,7 @@
 // Material Pack wizard and the example project. One material name + colour becomes a full content set.
 import { generateTexture, hashSeed } from "../textures/procedural";
 import { createElement, slugify, uid } from "./registry";
+import { rubyShrine } from "./exampleStructure";
 import type { ModElement, Project, TextureAsset, ToolType } from "./types";
 
 export interface MaterialPackOptions {
@@ -331,7 +332,25 @@ export function exampleProject(p: Project): Project {
   bush.seedsTexture = tex("ruby_berry_crop_seeds", "seeds", "#c9a25a", "item");
   bush.produce = "ruby:ruby_berry";
 
-  p.elements = [...pack.elements, golem, boar, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush];
+  // A structure with a loot chest that generates in plains and forests.
+  const shrine = createElement("structure", "ruby_shrine", "Ruby Shrine");
+  const bytes = rubyShrine(p.namespace);
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  shrine.file = `data:application/octet-stream;base64,${btoa(bin)}`;
+  shrine.fileName = "ruby_shrine.mcstructure";
+  shrine.biomeTags = ["plains", "forest"];
+  shrine.rarity = 60;
+  shrine.sink = 1;
+  shrine.loot = { [String((3 * 5 + 1) * 7 + 3)]: "ruby_shrine_loot" };
+  const shrineLoot = createElement("loot", "ruby_shrine_loot", "Ruby Shrine loot");
+  shrineLoot.lootType = "chests";
+  shrineLoot.pools = [{ rollsMin: 2, rollsMax: 4, entries: [
+    { item: "ruby:ruby", weight: 10, min: 1, max: 3 }, { item: "ruby:throwing_shard", weight: 8, min: 2, max: 6 },
+    { item: "ruby:ruby_berry_crop_seeds", weight: 6, min: 1, max: 4 }, { item: "ruby:ruby_wand", weight: 1, min: 1, max: 1 },
+  ] }];
+
+  p.elements = [...pack.elements, golem, boar, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot];
   p.textures = textures;
   p.packIcon = textures.find((t) => t.name === "ruby")?.id ?? "";
   return p;

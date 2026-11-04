@@ -485,3 +485,12 @@ table.vars td:nth-child(5) { min-width: 0; }
 .upload-files[open] summary { margin-bottom: 8px; }
 .library { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--line); }
 .shape-help { max-width: 260px; text-align: center; margin: 0 auto; }
+.structure-summary { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+.structure-summary > .stack { flex: 1; min-width: 220px; }
+.structure-preview { width: 340px; height: 300px; }
+.block-counts { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 13px; max-width: 320px; }
+.block-counts li { display: flex; justify-content: space-between; gap: 12px; }
+.container-list { display: grid; gap: 8px; }
+.container-row { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(200px, 1.4fr) auto; gap: 12px; align-items: end; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.container-row:hover { border-color: var(--accent, #3f7d2f); }
+@media (max-width: 640px) { .container-row { grid-template-columns: 1fr; } .structure-preview { width: 100%; } }

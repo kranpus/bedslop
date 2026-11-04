@@ -108,6 +108,23 @@ export const RUNTIME = `const BC = {
   },
   dropItem(ctx, a, item, n) { const l = BC.at(ctx, a); if (l) BC.dim(ctx).spawnItem(new ItemStack(item, n), l); },
   spawn(ctx, a, id, n) { const l = BC.at(ctx, a); if (l) for (let i = 0; i < n; i++) BC.dim(ctx).spawnEntity(id, l); },
+  /** Places one of this add-on's structures; "centered" puts its middle (not its corner) on the spot. */
+  structure(ctx, name, a, degrees, centered) {
+    const l = BC.at(ctx, a);
+    if (!l) return;
+    const id = name.includes(":") ? name : NAMESPACE + ":" + name;
+    const rotation = /** @type {any} */ ({ 90: "Rotate90", 180: "Rotate180", 270: "Rotate270" }[degrees] ?? "None");
+    const p = { x: Math.floor(l.x), y: Math.floor(l.y), z: Math.floor(l.z) };
+    if (centered) {
+      const s = world.structureManager.get(id)?.size;
+      if (s) {
+        const turned = degrees === 90 || degrees === 270;
+        p.x -= Math.floor((turned ? s.z : s.x) / 2);
+        p.z -= Math.floor((turned ? s.x : s.z) / 2);
+      }
+    }
+    world.structureManager.place(id, BC.dim(ctx), p, { rotation });
+  },
   explode(ctx, a, power, fire, breaks) { const l = BC.at(ctx, a); if (l) BC.dim(ctx).createExplosion(l, power, { causesFire: fire, breaksBlocks: breaks }); },
   setBlock(ctx, a, id, dy) {
     const l = BC.at(ctx, a);
@@ -494,6 +511,10 @@ export function buildScript(ctx: GenContext): string | null {
     stubs.push(`function ${m}(ctx) {}`);
   }
   if (stubs.length) sections += "\n// Missing references\n" + stubs.join("\n") + "\n";
+  const structures = new Set(ctx.project.elements.filter((e) => e.kind === "structure").map((e) => e.name));
+  for (const m of new Set([...sections.matchAll(/BC\.structure\(ctx, "([^"]+)"/g)].map((m) => m[1]))) {
+    if (!m.includes(":") && !structures.has(m)) ctx.warn(undefined, `A step places the structure "${m}", which doesn't exist (renamed or deleted?).`, "error");
+  }
   const vars = Object.fromEntries((ctx.project.variables ?? []).filter((v) => v.name).map((v) => [
     v.name, [v.scope, v.type, v.type === "number" ? Number(v.initial) || 0 : v.type === "boolean" ? v.initial === "true" : v.initial],
   ]));

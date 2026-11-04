@@ -170,6 +170,10 @@ describe("example project", () => {
     expect(files.has("BP/blocks/ruby_brick_slab.json")).toBe(true);
     expect(files.has("BP/entities/ruby_shard.json")).toBe(true);
     expect(files.has("BP/items/ruby_berry_crop_seeds.json")).toBe(true);
+    const { parseStructure } = await import("../src/export/structure");
+    const shrine = parseStructure(files.get("BP/structures/ruby/ruby_shrine.mcstructure") as Uint8Array);
+    expect(shrine.containers.map((c) => c.loot)).toEqual(["loot_tables/chests/ruby_ruby_shrine_loot.json"]);
+    expect(shrine.counts[0][0]).toBe("minecraft:stone_bricks");
     expect(typecheckScript(files.get("BP/scripts/main.js") as string)).toEqual([]);
   });
 });

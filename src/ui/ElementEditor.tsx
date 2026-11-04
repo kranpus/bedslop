@@ -10,6 +10,7 @@ import { FunctionEditor, LootEditor, OreEditor, RecipeEditor, SoundEditor } from
 import { CommandEditor, ProcedureEditor } from "./editors/LogicEditor";
 import { FormEditor } from "./editors/FormEditor";
 import { CropEditor, ProjectileEditor } from "./editors/RangedEditors";
+import { StructureEditor } from "./editors/StructureEditor";
 
 /** Warnings for the whole project, computed lazily so typing stays smooth. */
 export function useWarnings() {
@@ -39,6 +40,7 @@ function Body({ el }: { el: ModElement }) {
     case "form": return <FormEditor el={el} patch={patch} />;
     case "projectile": return <ProjectileEditor el={el} patch={patch} />;
     case "crop": return <CropEditor el={el} patch={patch} />;
+    case "structure": return <StructureEditor el={el} patch={patch} />;
   }
 }
 

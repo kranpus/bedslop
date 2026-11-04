@@ -91,6 +91,7 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [ ] Slabs stack into double slabs; doors place both halves, open together and drop once; fences/walls/panes connect on place and break
 - [ ] Projectiles: snowball-style sprite faces the camera; arrow sticks in blocks; bow draws, uses the ammo list in order and loses durability
 - [ ] Crops grow on random ticks, bone meal advances them, seeds plant only on the allowed blocks, grown crops drop produce
+- [ ] Structures generate where expected (surface sink, underground range, biome tags, rarity); chest `LootTable` paths fill on first open; "Place structure" rotates and centres correctly; custom blocks inside structures load
 - [ ] Manual animation slots: "When attacking" (`variable.attack_time`), "When hurt" and "When dying" fire at the right moment; one-shot controllers replay on each attack; "Match walking speed" stops foot sliding
 
 ## Phase 2: visual scripting and advanced content ⬜
@@ -107,7 +108,7 @@ Ordered by user value:
 5c. ✅ **Vanilla mob templates**: 89 vanilla mobs. Picking one downloads its behaviour + client files (and sounds/model for the preview) from Mojang's `bedrock-samples` at a pinned release; nothing of Mojang's is bundled. The copy keeps the AI/events, links back with `runtime_identifier`, and uses the game's own model, textures and animations; health, speed, attack, hitbox, drops, egg and spawning are editable, with an optional reskin. Manual upload fallback where GitHub is blocked. Lenient JSON parser for Mojang-style files (comments, trailing commas); preview reads legacy 1.8 geometry with inheritance.
 6. ✅ **Special block shapes**: a Shape picker on blocks: slab (stacks into a double slab that drops two), stairs, carpet, trapdoor (click to open), door (two tall, top/bottom textures, places its top half, open/close), fence, wall and pane (connect to neighbours and solid blocks via scripts). Generated geometry, hitboxes and 3D preview. ⬜ stair corners, upside-down stairs, fence gates, buttons/pressure plates.
 7. ✅ **Crops**: 2-8 growth stages (crop `#` or cross shape), growth chance per random tick, bone meal, plant on farmland (or anything), seeds item, harvest drops (one seed when young; produce + extra seeds when grown). ⬜ needs-water/light checks, berry-bush style partial harvest.
-8. ⬜ **Structures**: import `.mcstructure`, place via structure features / jigsaw, loot in chests.
+8. ✅ **Structures**: import a `.mcstructure` (own little-endian NBT reader/writer, checked against prismarine-nbt), coloured-cube 3D preview with block counts, a loot table per chest/barrel (own or vanilla; written into the file's block entities), natural generation via `minecraft:structure_template_feature` + feature rules (dimension, surface with sink or underground Y range, biome tags, rarity, facing, shift radius, grounded/unburied/overlap rules), and a "Place structure" step (`world.structureManager.place`, rotation, centred). The example has a Ruby Shrine with a loot chest. ⬜ data-driven jigsaw structures (still experimental in Bedrock), structure editing in the app, Java `.nbt` conversion.
 9. ⬜ **Particles**: visual designer for RP particle JSON, spawnable from procedures.
 10. ⬜ **Entity extras**: tame, breed, ride, fly, swim AI, ranged attacks, custom trades (trade tables), ambient/hurt/death sounds, multiple textures (variants).
 11. ⬜ **Tags editor** for items and blocks; **block states/permutations** editor.
@@ -159,6 +160,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.5.0** (Phase 2, item 8): Structures. Import `.mcstructure` files, preview them in 3D, put loot tables in their chests, generate them in the world with placement rules, and place them from procedures with the new "Place structure" step. Example project gains a Ruby Shrine. 84 tests.
 
 - **0.4.0** (Phase 2, items 5-7): Projectiles and ranged items (throwables, bows, ammo, on-hit damage/fire/effects, "projectile hits" triggers); block shapes (slab, stairs, carpet, trapdoor, door, fence, wall, pane) with 3D previews; crops with growth stages, bone meal and seeds. New texture templates: crop, seeds, orb, bow, arrow. The example project gains ruby brick slab/stairs/wall, a throwing shard and a ruby berry crop. 76 tests.
 

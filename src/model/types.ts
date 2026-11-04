@@ -2,6 +2,7 @@
 // Everything here is plain JSON so a project can be saved, exported and re-imported as-is.
 
 export type ElementKind =
+  | "structure"
   | "block"
   | "plant"
   | "item"
@@ -489,6 +490,34 @@ export interface CropElement extends BaseElement {
   placeableOn: string[];
 }
 
+export interface StructureElement extends BaseElement {
+  kind: "structure";
+  /** The imported .mcstructure as a data URL. */
+  file: string;
+  fileName: string;
+  /** Loot table per container, keyed by its block index in the structure. A loot element name, or a vanilla "loot_tables/…json" path. */
+  loot: Record<string, string>;
+  generate: boolean;
+  dimension: "overworld" | "nether" | "the_end";
+  /** surface: on the ground; underground: anywhere between minY and maxY. */
+  placement: "surface" | "underground";
+  /** Only in biomes with any of these tags. Empty = anywhere in the dimension. */
+  biomeTags: string[];
+  /** Roughly one structure per this many chunks. */
+  rarity: number;
+  /** How many blocks the structure sinks into the ground (surface only). */
+  sink: number;
+  minY: number;
+  maxY: number;
+  facing: "random" | "north" | "south" | "east" | "west";
+  /** How far (0-16 blocks) it may shift to find a valid spot. */
+  adjustmentRadius: number;
+  grounded: boolean;
+  unburied: boolean;
+  /** Blocks the structure may overlap. Empty = no check. */
+  canReplace: string[];
+}
+
 export type ModElement =
   | BlockElement
   | PlantElement
@@ -506,7 +535,8 @@ export type ModElement =
   | SoundElement
   | FormElement
   | ProjectileElement
-  | CropElement;
+  | CropElement
+  | StructureElement;
 
 export type ElementOf<K extends ElementKind> = Extract<ModElement, { kind: K }>;
 

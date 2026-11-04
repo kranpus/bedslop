@@ -5,7 +5,7 @@ import type { TriggerType } from "./types";
 
 export type ParamKind =
   | "text" | "longtext" | "number" | "bool" | "item" | "block" | "entity" | "effect" | "sound"
-  | "who" | "at" | "select" | "variable" | "procedure" | "form";
+  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure";
 
 export interface ParamSpec {
   key: string;
@@ -217,6 +217,19 @@ export const ACTIONS: ActionSpec[] = [
     ],
     summary: (p) => `Explosion (${p.power}) at ${p.at}`,
     code: (g) => `BC.explode(ctx, ${S(g.f("at"))}, ${g.e("power")}, ${!!g.f("fire")}, ${!!g.f("breaks")});`,
+  },
+  {
+    type: "place_structure", label: "Place structure", group: "World",
+    params: [
+      { key: "structure", label: "Structure", kind: "structure", default: "" },
+      at("player"),
+      { key: "rotation", label: "Rotation", kind: "select", options: ["0", "90", "180", "270"], default: "0" },
+      { key: "centered", label: "Centred on the spot", kind: "bool", default: true },
+    ],
+    summary: (p) => `Place structure ${p.structure || "(none)"} at ${p.at}`,
+    code: (g) => (g.f("structure")
+      ? `BC.structure(ctx, ${S(g.f("structure"))}, ${S(g.f("at"))}, ${N(g.f("rotation"))}, ${!!g.f("centered")});`
+      : "// No structure selected"),
   },
   {
     type: "set_block", label: "Place block", group: "World",

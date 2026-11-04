@@ -26,6 +26,7 @@ export const KINDS: KindInfo[] = [
   { kind: "recipe", label: "Recipe", blurb: "Crafting table (shaped or shapeless), furnace, stonecutter or smithing.", group: "Content", glyph: "R", color: "#8c7a2c" },
   { kind: "loot", label: "Loot table", blurb: "Weighted drops for blocks, mobs and chests.", group: "Content", glyph: "L", color: "#9a6b1f" },
   { kind: "ore", label: "Ore generation", blurb: "Place veins of any block underground in the Overworld, Nether or End.", group: "World", glyph: "O", color: "#5c6470" },
+  { kind: "structure", label: "Structure", blurb: "Import a .mcstructure built in game: generate it in the world, fill its chests with loot, or place it from a procedure.", group: "World", glyph: "⌂", color: "#6b5a44" },
   { kind: "procedure", label: "Procedure", blurb: "When something happens, do something: no coding needed.", group: "Logic", glyph: "▶", color: "#2f7d6d" },
   { kind: "command", label: "Command", blurb: "A custom slash command, e.g. /myaddon:heal, that runs actions.", group: "Logic", glyph: "/", color: "#2c6a8c" },
   { kind: "function", label: "Function", blurb: "A .mcfunction file of vanilla commands, optionally run every tick.", group: "Logic", glyph: "ƒ", color: "#46607a" },
@@ -109,6 +110,11 @@ export function createElement<K extends ElementKind>(kind: K, name: string, disp
     crop: () => ({
       ...base, kind: "crop", stageTextures: ["", "", "", ""], look: "crop", growthChance: 33, boneMeal: true,
       produce: "", produceMin: 1, produceMax: 3, seedsTexture: "", seedsMax: 2, placeableOn: ["minecraft:farmland"],
+    }),
+    structure: () => ({
+      ...base, kind: "structure", file: "", fileName: "", loot: {}, generate: true, dimension: "overworld", placement: "surface",
+      biomeTags: [], rarity: 40, sink: 0, minY: -40, maxY: 40, facing: "random", adjustmentRadius: 4, grounded: true, unburied: true,
+      canReplace: [],
     }),
     form: () => ({
       ...base, kind: "form", formType: "menu", title: displayName, body: "Choose an option",
