@@ -227,7 +227,7 @@ export function MobPreview({ el }: { el: EntityElement }) {
       <div className="preview-stage checker-soft" ref={mount}>
         {webglError && <p className="muted pad">{webglError}</p>}
         {!data && !webglError && <p className="muted pad preview-empty">Nothing to show yet. Pick a model above.</p>}
-        <span className="preview-hint">Drag to orbit · scroll to zoom</span>
+        <span className="preview-hint">{el.model === "vanilla" ? "Minecraft's own model. Its animations play in game." : "Drag to orbit · scroll to zoom"}</span>
       </div>
       <div className="preview-controls">
         <div className="row between">

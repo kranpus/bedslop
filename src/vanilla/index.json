@@ -1,0 +1,716 @@
+{
+ "tag": "v1.26.60.5",
+ "mobs": [
+  {
+   "id": "minecraft:allay",
+   "bp": "allay.json",
+   "rp": "allay.entity.json",
+   "geometry": "geometry.allay",
+   "geometryFile": "allay.geo.json",
+   "texture": "textures/entity/allay/allay"
+  },
+  {
+   "id": "minecraft:armadillo",
+   "bp": "armadillo.json",
+   "rp": "armadillo.entity.json",
+   "geometry": "geometry.armadillo",
+   "geometryFile": "armadillo.geo.json",
+   "texture": "textures/entity/armadillo"
+  },
+  {
+   "id": "minecraft:armor_stand",
+   "bp": "armor_stand.json",
+   "rp": "armor_stand.entity.json",
+   "geometry": "geometry.armor_stand",
+   "geometryFile": "armor_stand.geo.json",
+   "texture": "textures/entity/armor_stand"
+  },
+  {
+   "id": "minecraft:axolotl",
+   "bp": "axolotl.json",
+   "rp": "axolotl.entity.json",
+   "geometry": "geometry.axolotl",
+   "geometryFile": "axolotl.geo.json",
+   "texture": "textures/entity/axolotl/axolotl_blue"
+  },
+  {
+   "id": "minecraft:bat",
+   "bp": "bat.json",
+   "rp": "bat.entity.json",
+   "geometry": "geometry.bat_v2",
+   "geometryFile": "bat_v2.geo.json",
+   "texture": "textures/entity/bat_v2"
+  },
+  {
+   "id": "minecraft:bee",
+   "bp": "bee.json",
+   "rp": "bee.entity.json",
+   "geometry": "geometry.bee",
+   "geometryFile": "bee.geo.json",
+   "texture": "textures/entity/bee/bee"
+  },
+  {
+   "id": "minecraft:blaze",
+   "bp": "blaze.json",
+   "rp": "blaze.entity.json",
+   "geometry": "geometry.blaze",
+   "geometryFile": "blaze.geo.json",
+   "texture": "textures/entity/blaze"
+  },
+  {
+   "id": "minecraft:bogged",
+   "bp": "bogged.json",
+   "rp": "bogged.entity.json",
+   "geometry": "geometry.skeleton.bogged",
+   "geometryFile": "bogged.geo.json",
+   "texture": "textures/entity/skeleton/bogged"
+  },
+  {
+   "id": "minecraft:breeze",
+   "bp": "breeze.json",
+   "rp": "breeze.entity.json",
+   "geometry": "geometry.breeze",
+   "geometryFile": "breeze.geo.json",
+   "texture": "textures/entity/breeze/breeze"
+  },
+  {
+   "id": "minecraft:camel",
+   "bp": "camel.json",
+   "rp": "camel.entity.json",
+   "geometry": "geometry.camel",
+   "geometryFile": "camel.geo.json",
+   "texture": "textures/entity/camel/camel"
+  },
+  {
+   "id": "minecraft:camel_husk",
+   "bp": "camel_husk.json",
+   "rp": "camel_husk.entity.json",
+   "geometry": "geometry.camel_husk",
+   "geometryFile": "camel_husk.geo.json",
+   "texture": "textures/entity/camel_husk/camel_husk"
+  },
+  {
+   "id": "minecraft:cave_spider",
+   "bp": "cave_spider.json",
+   "rp": "cave_spider.entity.json",
+   "geometry": "geometry.spider.v1.8",
+   "geometryFile": "spider.geo.json",
+   "texture": "textures/entity/spider/cave_spider"
+  },
+  {
+   "id": "minecraft:chicken",
+   "bp": "chicken.json",
+   "rp": "chicken.entity.json",
+   "geometry": "geometry.chicken.v1.12",
+   "geometryFile": "chicken.geo.json",
+   "texture": "textures/entity/chicken/chicken"
+  },
+  {
+   "id": "minecraft:cod",
+   "bp": "fish.json",
+   "rp": "cod.entity.json",
+   "geometry": "geometry.cod",
+   "geometryFile": "cod.geo.json",
+   "texture": "textures/entity/fish/cod"
+  },
+  {
+   "id": "minecraft:copper_golem",
+   "bp": "copper_golem.json",
+   "rp": "copper_golem.entity.json",
+   "geometry": "geometry.copper_golem",
+   "geometryFile": "copper_golem.geo.json",
+   "texture": "textures/entity/copper_golem/copper_golem"
+  },
+  {
+   "id": "minecraft:cow",
+   "bp": "cow.json",
+   "rp": "cow.entity.json",
+   "geometry": "geometry.cow.v2",
+   "geometryFile": "cow.v2.geo.json",
+   "texture": "textures/entity/cow/cow_v2"
+  },
+  {
+   "id": "minecraft:creaking",
+   "bp": "creaking.json",
+   "rp": "creaking.entity.json",
+   "geometry": "geometry.creaking",
+   "geometryFile": "creaking.geo.json",
+   "texture": "textures/entity/creaking/creaking"
+  },
+  {
+   "id": "minecraft:creeper",
+   "bp": "creeper.json",
+   "rp": "creeper.entity.json",
+   "geometry": "geometry.creeper.v1.8",
+   "geometryFile": "creeper.geo.json",
+   "texture": "textures/entity/creeper/creeper"
+  },
+  {
+   "id": "minecraft:dolphin",
+   "bp": "dolphin.json",
+   "rp": "dolphin.entity.json",
+   "geometry": "geometry.dolphin",
+   "geometryFile": "dolphin.geo.json",
+   "texture": "textures/entity/dolphin"
+  },
+  {
+   "id": "minecraft:donkey",
+   "bp": "donkey.json",
+   "rp": "donkey_v3.entity.json",
+   "geometry": "geometry.horse.v3",
+   "geometryFile": "horse_v3.geo.json",
+   "texture": "textures/entity/horse2/donkey"
+  },
+  {
+   "id": "minecraft:drowned",
+   "bp": "drowned.json",
+   "rp": "drowned.entity.json",
+   "geometry": "geometry.zombie.drowned.v1.16",
+   "geometryFile": "drowned.geo.json",
+   "texture": "textures/entity/zombie/drowned"
+  },
+  {
+   "id": "minecraft:elder_guardian",
+   "bp": "elder_guardian.json",
+   "rp": "elder_guardian.entity.json",
+   "geometry": "geometry.guardian.v1.8",
+   "geometryFile": "guardian.geo.json",
+   "texture": "textures/entity/guardian"
+  },
+  {
+   "id": "minecraft:ender_crystal",
+   "bp": "ender_crystal.json",
+   "rp": "ender_crystal.entity.json",
+   "geometry": "geometry.ender_crystal",
+   "geometryFile": "ender_crystal.geo.json",
+   "texture": "textures/entity/endercrystal/endercrystal"
+  },
+  {
+   "id": "minecraft:ender_dragon",
+   "bp": "ender_dragon.json",
+   "rp": "ender_dragon.entity.json",
+   "geometry": "geometry.dragon",
+   "geometryFile": "ender_dragon.geo.json",
+   "texture": "textures/entity/dragon/dragon"
+  },
+  {
+   "id": "minecraft:enderman",
+   "bp": "enderman.json",
+   "rp": "enderman.entity.json",
+   "geometry": "geometry.enderman.v1.8",
+   "geometryFile": "enderman.geo.json",
+   "texture": "textures/entity/enderman/enderman"
+  },
+  {
+   "id": "minecraft:endermite",
+   "bp": "endermite.json",
+   "rp": "endermite.entity.json",
+   "geometry": "geometry.endermite",
+   "geometryFile": "endermite.geo.json",
+   "texture": "textures/entity/endermite"
+  },
+  {
+   "id": "minecraft:evocation_illager",
+   "bp": "evocation_illager.json",
+   "rp": "evocation_illager.entity.json",
+   "geometry": "geometry.evoker.v1.8",
+   "geometryFile": "evoker.geo.json",
+   "texture": "textures/entity/illager/evoker"
+  },
+  {
+   "id": "minecraft:fox",
+   "bp": "fox.json",
+   "rp": "fox.entity.json",
+   "geometry": "geometry.fox",
+   "geometryFile": "fox.geo.json",
+   "texture": "textures/entity/fox/fox"
+  },
+  {
+   "id": "minecraft:frog",
+   "bp": "frog.json",
+   "rp": "frog.entity.json",
+   "geometry": "geometry.frog",
+   "geometryFile": "frog.geo.json",
+   "texture": "textures/entity/frog/temperate_frog"
+  },
+  {
+   "id": "minecraft:ghast",
+   "bp": "ghast.json",
+   "rp": "ghast.entity.json",
+   "geometry": "geometry.ghast",
+   "geometryFile": "ghast.geo.json",
+   "texture": "textures/entity/ghast/ghast"
+  },
+  {
+   "id": "minecraft:glow_squid",
+   "bp": "glow_squid.json",
+   "rp": "glow_squid.entity.json",
+   "geometry": "geometry.squid",
+   "geometryFile": "squid.geo.json",
+   "texture": "textures/entity/glow_squid/glow_squid"
+  },
+  {
+   "id": "minecraft:goat",
+   "bp": "goat.json",
+   "rp": "goat.entity.json",
+   "geometry": "geometry.goat",
+   "geometryFile": "goat.geo.json",
+   "texture": "textures/entity/goat/goat"
+  },
+  {
+   "id": "minecraft:guardian",
+   "bp": "guardian.json",
+   "rp": "guardian.entity.json",
+   "geometry": "geometry.guardian.v1.8",
+   "geometryFile": "guardian.geo.json",
+   "texture": "textures/entity/guardian"
+  },
+  {
+   "id": "minecraft:hoglin",
+   "bp": "hoglin.json",
+   "rp": "hoglin.entity.json",
+   "geometry": "geometry.hoglin",
+   "geometryFile": "hoglin.geo.json",
+   "texture": "textures/entity/hoglin/hoglin"
+  },
+  {
+   "id": "minecraft:horse",
+   "bp": "horse.json",
+   "rp": "horse_v3.entity.json",
+   "geometry": "geometry.horse.v3",
+   "geometryFile": "horse_v3.geo.json",
+   "texture": "textures/entity/horse2/horse_brown"
+  },
+  {
+   "id": "minecraft:husk",
+   "bp": "husk.json",
+   "rp": "husk.entity.json",
+   "geometry": "geometry.zombie.husk.v1.8",
+   "geometryFile": "husk.geo.json",
+   "texture": "textures/entity/zombie/husk"
+  },
+  {
+   "id": "minecraft:iron_golem",
+   "bp": "iron_golem.json",
+   "rp": "iron_golem.entity.json",
+   "geometry": "geometry.irongolem",
+   "geometryFile": "iron_golem.geo.json",
+   "texture": "textures/entity/iron_golem"
+  },
+  {
+   "id": "minecraft:llama",
+   "bp": "llama.json",
+   "rp": "llama.entity.json",
+   "geometry": "geometry.llama.v1.8",
+   "geometryFile": "llama.geo.json",
+   "texture": "textures/entity/llama/llama_creamy"
+  },
+  {
+   "id": "minecraft:mooshroom",
+   "bp": "mooshroom.json",
+   "rp": "mooshroom.entity.json",
+   "geometry": "geometry.mooshroom.v2",
+   "geometryFile": "mooshroom.v2.geo.json",
+   "texture": "textures/entity/cow/mooshroom_v2"
+  },
+  {
+   "id": "minecraft:mule",
+   "bp": "mule.json",
+   "rp": "mule_v3.entity.json",
+   "geometry": "geometry.horse.v3",
+   "geometryFile": "horse_v3.geo.json",
+   "texture": "textures/entity/horse2/mule"
+  },
+  {
+   "id": "minecraft:nautilus",
+   "bp": "nautilus.json",
+   "rp": "nautilus.entity.json",
+   "geometry": "geometry.nautilus",
+   "geometryFile": "nautilus.geo.json",
+   "texture": "textures/entity/nautilus/nautilus"
+  },
+  {
+   "id": "minecraft:ocelot",
+   "bp": "ocelot.json",
+   "rp": "ocelot.entity.json",
+   "geometry": "geometry.ocelot.v1.8",
+   "geometryFile": "ocelot.geo.json",
+   "texture": "textures/entity/cat/blackcat"
+  },
+  {
+   "id": "minecraft:panda",
+   "bp": "panda.json",
+   "rp": "panda.entity.json",
+   "geometry": "geometry.panda",
+   "geometryFile": "panda.geo.json",
+   "texture": "textures/entity/panda/panda"
+  },
+  {
+   "id": "minecraft:parched",
+   "bp": "parched.json",
+   "rp": "parched.entity.json",
+   "geometry": "geometry.parched",
+   "geometryFile": "parched.geo.json",
+   "texture": "textures/entity/parched/parched"
+  },
+  {
+   "id": "minecraft:parrot",
+   "bp": "parrot.json",
+   "rp": "parrot.entity.json",
+   "geometry": "geometry.parrot",
+   "geometryFile": "parrot.geo.json",
+   "texture": "textures/entity/parrot/parrot_blue"
+  },
+  {
+   "id": "minecraft:phantom",
+   "bp": "phantom.json",
+   "rp": "phantom.entity.json",
+   "geometry": "geometry.phantom",
+   "geometryFile": "phantom.geo.json",
+   "texture": "textures/entity/phantom"
+  },
+  {
+   "id": "minecraft:pig",
+   "bp": "pig.json",
+   "rp": "pig.entity.json",
+   "geometry": "geometry.pig.v3",
+   "geometryFile": "pig.v3.geo.json",
+   "texture": "textures/entity/pig/pig_v3"
+  },
+  {
+   "id": "minecraft:piglin",
+   "bp": "piglin.json",
+   "rp": "piglin.entity.json",
+   "geometry": "geometry.piglin",
+   "geometryFile": "piglin.geo.json",
+   "texture": "textures/entity/piglin/piglin"
+  },
+  {
+   "id": "minecraft:piglin_brute",
+   "bp": "piglin_brute.json",
+   "rp": "piglin_brute.entity.json",
+   "geometry": "geometry.piglin",
+   "geometryFile": "piglin.geo.json",
+   "texture": "textures/entity/piglin/piglin_brute"
+  },
+  {
+   "id": "minecraft:pillager",
+   "bp": "pillager.json",
+   "rp": "pillager.entity.json",
+   "geometry": "geometry.pillager",
+   "geometryFile": "pillager.geo.json",
+   "texture": "textures/entity/pillager"
+  },
+  {
+   "id": "minecraft:polar_bear",
+   "bp": "polar_bear.json",
+   "rp": "polar_bear.entity.json",
+   "geometry": "geometry.polarbear",
+   "geometryFile": "polar_bear.geo.json",
+   "texture": "textures/entity/polar_bear"
+  },
+  {
+   "id": "minecraft:pufferfish",
+   "bp": "pufferfish.json",
+   "rp": "pufferfish.entity.json",
+   "geometry": "geometry.pufferfish.small.v1.8",
+   "geometryFile": "pufferfish.geo.json",
+   "texture": "textures/entity/fish/pufferfish"
+  },
+  {
+   "id": "minecraft:rabbit",
+   "bp": "rabbit.json",
+   "rp": "rabbit.entity.json",
+   "geometry": "geometry.rabbit.v2",
+   "geometryFile": "rabbit.v2.geo.json",
+   "texture": "textures/entity/rabbit/rabbit_brown"
+  },
+  {
+   "id": "minecraft:ravager",
+   "bp": "ravager.json",
+   "rp": "ravager.entity.json",
+   "geometry": "geometry.ravager",
+   "geometryFile": "ravager.geo.json",
+   "texture": "textures/entity/illager/ravager"
+  },
+  {
+   "id": "minecraft:salmon",
+   "bp": "salmon.json",
+   "rp": "salmon.entity.json",
+   "geometry": "geometry.salmon",
+   "geometryFile": "salmon.geo.json",
+   "texture": "textures/entity/fish/salmon"
+  },
+  {
+   "id": "minecraft:sheep",
+   "bp": "sheep.json",
+   "rp": "sheep.entity.json",
+   "geometry": "geometry.sheep.v1.8",
+   "geometryFile": "sheep.geo.json",
+   "texture": "textures/entity/sheep/sheep"
+  },
+  {
+   "id": "minecraft:shulker",
+   "bp": "shulker.json",
+   "rp": "shulker.entity.json",
+   "geometry": "geometry.shulker.v1.8",
+   "geometryFile": "shulker.geo.json",
+   "texture": "textures/entity/shulker/shulker_undyed"
+  },
+  {
+   "id": "minecraft:silverfish",
+   "bp": "silverfish.json",
+   "rp": "silverfish.entity.json",
+   "geometry": "geometry.silverfish",
+   "geometryFile": "silverfish.geo.json",
+   "texture": "textures/entity/silverfish"
+  },
+  {
+   "id": "minecraft:skeleton",
+   "bp": "skeleton.json",
+   "rp": "skeleton.entity.json",
+   "geometry": "geometry.skeleton.v1.8",
+   "geometryFile": "skeleton.geo.json",
+   "texture": "textures/entity/skeleton/skeleton"
+  },
+  {
+   "id": "minecraft:skeleton_horse",
+   "bp": "skeleton_horse.json",
+   "rp": "skeleton_horse_v3.entity.json",
+   "geometry": "geometry.horse.v3",
+   "geometryFile": "horse_v3.geo.json",
+   "texture": "textures/entity/horse2/horse_skeleton"
+  },
+  {
+   "id": "minecraft:sniffer",
+   "bp": "sniffer.json",
+   "rp": "sniffer.entity.json",
+   "geometry": "geometry.sniffer",
+   "geometryFile": "sniffer.geo.json",
+   "texture": "textures/entity/sniffer/sniffer"
+  },
+  {
+   "id": "minecraft:snow_golem",
+   "bp": "snow_golem.json",
+   "rp": "snow_golem.entity.json",
+   "geometry": "geometry.snowgolem.v1.8",
+   "geometryFile": "snow_golem.geo.json",
+   "texture": "textures/entity/snow_golem"
+  },
+  {
+   "id": "minecraft:spider",
+   "bp": "spider.json",
+   "rp": "spider.entity.json",
+   "geometry": "geometry.spider.v1.8",
+   "geometryFile": "spider.geo.json",
+   "texture": "textures/entity/spider/spider"
+  },
+  {
+   "id": "minecraft:squid",
+   "bp": "squid.json",
+   "rp": "squid.entity.json",
+   "geometry": "geometry.squid",
+   "geometryFile": "squid.geo.json",
+   "texture": "textures/entity/squid"
+  },
+  {
+   "id": "minecraft:stray",
+   "bp": "stray.json",
+   "rp": "stray.entity.json",
+   "geometry": "geometry.skeleton.stray.v1.8",
+   "geometryFile": "stray.geo.json",
+   "texture": "textures/entity/skeleton/stray"
+  },
+  {
+   "id": "minecraft:strider",
+   "bp": "strider.json",
+   "rp": "strider.entity.json",
+   "geometry": "geometry.strider",
+   "geometryFile": "strider.geo.json",
+   "texture": "textures/entity/strider/strider"
+  },
+  {
+   "id": "minecraft:tadpole",
+   "bp": "tadpole.json",
+   "rp": "tadpole.entity.json",
+   "geometry": "geometry.tadpole",
+   "geometryFile": "tadpole.geo.json",
+   "texture": "textures/entity/tadpole/tadpole"
+  },
+  {
+   "id": "minecraft:trader_llama",
+   "bp": "trader_llama.json",
+   "rp": "trader_llama.entity.json",
+   "geometry": "geometry.llama.v1.8",
+   "geometryFile": "llama.geo.json",
+   "texture": "textures/entity/llama/llama_creamy"
+  },
+  {
+   "id": "minecraft:tripod_camera",
+   "bp": "tripod_camera.json",
+   "rp": "tripod_camera.entity.json",
+   "geometry": "geometry.tripod_camera",
+   "geometryFile": "tripod.geo.json",
+   "texture": "textures/entity/camera_tripod"
+  },
+  {
+   "id": "minecraft:tropicalfish",
+   "bp": "tropicalfish.json",
+   "rp": "tropicalfish.entity.json",
+   "geometryFile": null,
+   "texture": "textures/entity/fish/tropical_a"
+  },
+  {
+   "id": "minecraft:turtle",
+   "bp": "turtle.json",
+   "rp": "turtle.entity.json",
+   "geometry": "geometry.turtle",
+   "geometryFile": "turtle.geo.json",
+   "texture": "textures/entity/sea_turtle"
+  },
+  {
+   "id": "minecraft:vex",
+   "bp": "vex.json",
+   "rp": "vex.entity.json",
+   "geometry": "geometry.vex.v1.8",
+   "geometryFile": "vex.geo.json",
+   "texture": "textures/entity/vex/vex"
+  },
+  {
+   "id": "minecraft:villager",
+   "bp": "villager.json",
+   "rp": "villager.entity.json",
+   "geometry": "geometry.villager.v1.8",
+   "geometryFile": "villager.geo.json",
+   "texture": "textures/entity/villager/farmer"
+  },
+  {
+   "id": "minecraft:villager_v2",
+   "bp": "villager_v2.json",
+   "rp": "villager_v2.entity.json",
+   "geometry": "geometry.villager_v2",
+   "geometryFile": "villager_v2.geo.json",
+   "texture": "textures/entity/villager2/villager"
+  },
+  {
+   "id": "minecraft:vindicator",
+   "bp": "vindicator.json",
+   "rp": "vindicator.entity.json",
+   "geometry": "geometry.vindicator.v1.8",
+   "geometryFile": "vindicator.geo.json",
+   "texture": "textures/entity/vindicator"
+  },
+  {
+   "id": "minecraft:wandering_trader",
+   "bp": "wandering_trader.json",
+   "rp": "wandering_trader.entity.json",
+   "geometry": "geometry.villager_v2",
+   "geometryFile": "villager_v2.geo.json",
+   "texture": "textures/entity/wandering_trader"
+  },
+  {
+   "id": "minecraft:warden",
+   "bp": "warden.json",
+   "rp": "warden.entity.json",
+   "geometry": "geometry.warden",
+   "geometryFile": "warden.geo.json",
+   "texture": "textures/entity/warden/warden"
+  },
+  {
+   "id": "minecraft:witch",
+   "bp": "witch.json",
+   "rp": "witch.entity.json",
+   "geometry": "geometry.villager.witch.v1.8",
+   "geometryFile": "witch.geo.json",
+   "texture": "textures/entity/witch"
+  },
+  {
+   "id": "minecraft:wither",
+   "bp": "wither.json",
+   "rp": "wither.entity.json",
+   "geometry": "geometry.witherBoss",
+   "geometryFile": "wither_boss.geo.json",
+   "texture": "textures/entity/wither_boss/wither"
+  },
+  {
+   "id": "minecraft:wither_skeleton",
+   "bp": "wither_skeleton.json",
+   "rp": "wither_skeleton.entity.json",
+   "geometry": "geometry.skeleton.wither.v1.8",
+   "geometryFile": "wither_skeleton.geo.json",
+   "texture": "textures/entity/skeleton/wither_skeleton"
+  },
+  {
+   "id": "minecraft:wolf",
+   "bp": "wolf.json",
+   "rp": "wolf.entity.json",
+   "geometry": "geometry.wolf",
+   "geometryFile": "wolf.geo.json",
+   "texture": "textures/entity/wolf/wolf"
+  },
+  {
+   "id": "minecraft:xp_orb",
+   "bp": "xp_orb.json",
+   "rp": "experience_orb.entity.json",
+   "geometry": "geometry.experience_orb",
+   "geometryFile": "experience_orb.geo.json",
+   "texture": "textures/entity/experience_orb"
+  },
+  {
+   "id": "minecraft:zoglin",
+   "bp": "zoglin.json",
+   "rp": "zoglin.entity.json",
+   "geometry": "geometry.hoglin",
+   "geometryFile": "hoglin.geo.json",
+   "texture": "textures/entity/zoglin/zoglin"
+  },
+  {
+   "id": "minecraft:zombie",
+   "bp": "zombie.json",
+   "rp": "zombie.entity.json",
+   "geometry": "geometry.zombie.v1.8",
+   "geometryFile": "zombie.geo.json",
+   "texture": "textures/entity/zombie/zombie"
+  },
+  {
+   "id": "minecraft:zombie_horse",
+   "bp": "zombie_horse.json",
+   "rp": "zombie_horse_v3.entity.json",
+   "geometry": "geometry.horse.v3",
+   "geometryFile": "horse_v3.geo.json",
+   "texture": "textures/entity/horse2/horse_zombie"
+  },
+  {
+   "id": "minecraft:zombie_nautilus",
+   "bp": "zombie_nautilus.json",
+   "rp": "zombie_nautilus.entity.json",
+   "geometry": "geometry.nautilus",
+   "geometryFile": "nautilus.geo.json",
+   "texture": "textures/entity/nautilus/zombie_nautilus"
+  },
+  {
+   "id": "minecraft:zombie_pigman",
+   "bp": "zombie_pigman.json",
+   "rp": "zombie_pigman.entity.json",
+   "geometry": "geometry.piglin",
+   "geometryFile": "piglin.geo.json",
+   "texture": "textures/entity/piglin/zombie_piglin"
+  },
+  {
+   "id": "minecraft:zombie_villager",
+   "bp": "zombie_villager.json",
+   "rp": "zombie_villager.entity.json",
+   "geometry": "geometry.zombie.villager.v1.8",
+   "geometryFile": "zombie_villager.geo.json",
+   "texture": "textures/entity/zombie_villager/zombie_smith"
+  },
+  {
+   "id": "minecraft:zombie_villager_v2",
+   "bp": "zombie_villager_v2.json",
+   "rp": "zombie_villager_v2.entity.json",
+   "geometry": "geometry.zombie.villager_v2",
+   "geometryFile": "zombie_villager_v2.geo.json",
+   "texture": "textures/entity/zombie_villager2/zombie-villager"
+  }
+ ]
+}

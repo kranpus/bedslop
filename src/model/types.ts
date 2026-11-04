@@ -206,7 +206,17 @@ export interface AutoRig {
 
 export interface EntityElement extends BaseElement {
   kind: "entity";
-  model: "humanoid" | "quadruped" | "custom";
+  model: "humanoid" | "quadruped" | "custom" | "vanilla";
+  /** Vanilla template: the original mob, e.g. "minecraft:zombie". */
+  vanillaBase?: string;
+  /** Vanilla template: the mob's behaviour file and resource (client) file, as downloaded. */
+  vanillaBehavior?: string;
+  vanillaClient?: string;
+  /** Vanilla template: its entry from the game's sounds.json (JSON). */
+  vanillaSounds?: string;
+  /** Vanilla template: model file and texture URL, for the preview only (not exported). */
+  vanillaGeometry?: string;
+  vanillaTexture?: string;
   customGeometry: string;
   customAnimations: string;
   /** How the custom model was added: converted from a .bbmodel, or Blockbench's exported files used as-is. */

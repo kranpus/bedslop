@@ -81,6 +81,10 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [x] `.bbmodel` import matches Blockbench's own Bedrock export (checked on a real Blockbench 5 project: 11/11 bones, 137/137 keyframes identical)
 - [ ] `.bbmodel` import in game: rotated cubes and per-face UVs (not covered by the real-project check)
 - [ ] Automatic walk/look animations on custom models look natural
+- [ ] Storage block: chest screen opens, items persist, contents on break (needs 1.26.60; confirm no experimental toggle is required)
+- [ ] Lever-style switch powers redstone dust / doors; lamp lights up and "receives/loses redstone power" procedures fire once per change
+- [ ] Custom crafting station opens the 3×3 grid and only shows recipes tagged for it
+- [ ] Vanilla templates: zombie, pig, villager, horse, creeper spawn, behave and animate like the original; sounds play; `minecraft:`-namespaced entity properties in copied files are accepted on a custom id
 - [ ] Forms open from item use and commands; input form values land in variables; the busy-retry works when opened from chat
 - [ ] Command arguments (number and player) parse and appear in `{name}`
 - [ ] Variables persist across world reloads (dynamic properties)
@@ -96,6 +100,8 @@ Ordered by user value:
    ✅ **Global variables** (world or per player, number/text/true-false) stored as dynamic properties; "Change a variable" step, "Variable compares to" condition, `{name}` in any text. ✅ "Run manually" trigger + "Run another procedure" step for reusable procedures.
 4. 🟡 **3D previews** (three.js): ✅ mobs with live animations, controllers and game-state toggles. ⬜ blocks with custom models, items in hand, armor on a player.
 5. ⬜ **Projectiles and ranged items**: throwables, bows/shooters, custom projectile entities with on-hit procedures.
+5b. ✅ **Blocks, round 2**: custom Blockbench models (`.bbmodel` with texture, 3D preview, hitbox fit/full/none); crafting stations (`minecraft:crafting_table`, per-recipe "Craft in"); storage blocks (`minecraft:block_entity` container, 1-54 slots, 1.26.60+); redstone output (constant or lever-style toggle, optional light/texture when on, 1.21.120+ format) and input (`minecraft:redstone_consumer` + `onRedstoneUpdate`, lamp behaviour, "receives/loses redstone power" procedure triggers, 1.26.0+). Each block picks its minimum format version; export flags features newer than the project's target, with a one-click "Update project" in the editor.
+5c. ✅ **Vanilla mob templates**: 89 vanilla mobs. Picking one downloads its behaviour + client files (and sounds/model for the preview) from Mojang's `bedrock-samples` at a pinned release; nothing of Mojang's is bundled. The copy keeps the AI/events, links back with `runtime_identifier`, and uses the game's own model, textures and animations; health, speed, attack, hitbox, drops, egg and spawning are editable, with an optional reskin. Manual upload fallback where GitHub is blocked. Lenient JSON parser for Mojang-style files (comments, trailing commas); preview reads legacy 1.8 geometry with inheritance.
 6. ⬜ **Special block shapes**: slabs, stairs, fences, walls, doors, trapdoors, panes, carpets (geometry presets + block states + scripts).
 7. ⬜ **Crops**: growth stages, bonemeal, seeds, harvest drops.
 8. ⬜ **Structures**: import `.mcstructure`, place via structure features / jigsaw, loot in chests.
@@ -150,6 +156,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.3.0**: Blocks: custom Blockbench models with 3D preview and fitted hitboxes, crafting stations with per-recipe "Craft in", storage blocks, redstone output and input with lamp behaviour and new redstone triggers, per-block format versions and version checks. Vanilla mob templates for 89 mobs (downloaded from Mojang's bedrock-samples, reskin optional), with legacy-geometry preview. Example gains a Ruby Workbench. 58 tests; block scripts type-checked against `@minecraft/server` 2.11.0.
 
 - **0.2.0** (Phase 2, part 1): Blockly block editor for procedures and commands; global variables; forms (menus, input forms, yes/no dialogs); command arguments; "run manually" trigger and "run another procedure" step; missing procedure/form references reported. Example project shows a block-based counter, a shop form and a command with an argument. 43 tests, generated scripts type-checked against `@minecraft/server` 2.1.0 and `@minecraft/server-ui` 2.0.0.
 

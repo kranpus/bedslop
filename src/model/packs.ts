@@ -201,7 +201,16 @@ export function exampleProject(p: Project): Project {
   wand.handEquipped = true;
   wand.glint = true;
 
+  const bench = createElement("block", "ruby_workbench", "Ruby Workbench");
+  bench.textures.all = tex("ruby_workbench", "planks", "#8f2a36", "block");
+  bench.sound = "wood";
+  bench.bestTool = "axe";
+  bench.hardness = 2.5;
+  bench.function = "crafting";
+  bench.tableName = "Ruby Workbench";
+
   const wandRecipe = createElement("recipe", "ruby_wand_recipe", "Ruby Wand recipe");
+  wandRecipe.stations = ["ruby:ruby_workbench"];
   wandRecipe.grid = ["", "", "ruby:ruby", "", "minecraft:blaze_rod", "", "minecraft:blaze_rod", "", ""];
   wandRecipe.result = "ruby:ruby_wand";
 
@@ -287,7 +296,11 @@ export function exampleProject(p: Project): Project {
   shopCmd.args = [{ id: uid(), name: "bonus", type: "integer", optional: true }];
   shopCmd.actions = [{ id: uid(), type: "show_form", params: { form: "ruby_shop" }, chance: 100 }];
 
-  p.elements = [...pack.elements, golem, boar, berry, rose, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd];
+  const benchRecipe = createElement("recipe", "ruby_workbench_recipe", "Ruby Workbench recipe");
+  benchRecipe.grid = ["ruby:ruby", "ruby:ruby", "", "minecraft:oak_planks", "minecraft:oak_planks", "", "", "", ""];
+  benchRecipe.result = "ruby:ruby_workbench";
+
+  p.elements = [...pack.elements, golem, boar, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd];
   p.textures = textures;
   p.packIcon = textures.find((t) => t.name === "ruby")?.id ?? "";
   return p;

@@ -13,6 +13,11 @@ export interface ParityRow {
 export const PARITY: ParityRow[] = [
   // Phase 1: core content
   { mcreator: "Block", bedrock: "BP block + material_instances", status: "done", phase: 1, notes: "Per-face textures, light, friction, hardness, rotation (facing/axis), custom Blockbench geometry, drops." },
+  { mcreator: "Block (custom model)", bedrock: "Blockbench geometry + fitted hitbox", status: "done", phase: 2, notes: ".bbmodel or .geo.json import with texture, 3D preview, hitbox: fit to model, full block or none." },
+  { mcreator: "Block (crafting table / GUI)", bedrock: "minecraft:crafting_table", status: "done", phase: 2, notes: "Custom crafting stations; recipes choose where they can be crafted." },
+  { mcreator: "Block (inventory / tile entity)", bedrock: "minecraft:block_entity container", status: "done", phase: 2, notes: "Storage blocks with 1-54 slots and a chest screen. Needs Minecraft 1.26.60+." },
+  { mcreator: "Block (redstone)", bedrock: "redstone_producer / redstone_consumer", status: "done", phase: 2, notes: "Constant or lever-style output, input that lights blocks up and starts procedures. Needs Minecraft 1.26.0+." },
+  { mcreator: "Living entity (from vanilla)", bedrock: "Vanilla template + runtime_identifier", status: "done", phase: 2, notes: "Any of 89 vanilla mobs as a starting point, downloaded from Mojang's bedrock-samples; optional reskin." },
   { mcreator: "Plant", bedrock: "Block with cross geometry + scatter feature", status: "done", phase: 1, notes: "Flowers/grass with placement filter and natural generation. Crops with growth stages come in phase 2." },
   { mcreator: "Item", bedrock: "BP item (1.21 format)", status: "done", phase: 1, notes: "Stack size, glint, fuel, hand-equipped, tags, creative category." },
   { mcreator: "Tool", bedrock: "Item with digger, damage, durability", status: "done", phase: 1, notes: "Durability loss on use is handled by an auto-generated script." },

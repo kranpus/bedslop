@@ -99,9 +99,40 @@ function boxGeometry(from: V3, to: V3, rects: Partial<Record<FaceName, Rect>>, t
 
 const euler = (r: V3) => new THREE.Euler(-r[0] * RAD, -r[1] * RAD, r[2] * RAD, "ZYX");
 
+type GeoEntry = { description?: { identifier?: string; texture_width?: number; texture_height?: number }; bones?: GeoBone[] };
+
+/**
+ * Reads both model formats: current ("minecraft:geometry": [...]) and legacy 1.8
+ * ({"geometry.name:geometry.parent": {texturewidth, bones}}), including inheritance within a file.
+ */
+export function normalizeGeometry(json: unknown, geometryId: string): GeoEntry | undefined {
+  const data = (json ?? {}) as Record<string, unknown>;
+  const list = data["minecraft:geometry"] as GeoEntry[] | undefined;
+  if (Array.isArray(list)) return list.find((g) => g.description?.identifier === geometryId) ?? list[0];
+  type Legacy = { texturewidth?: number; textureheight?: number; bones?: (GeoBone & { neverRender?: boolean; bind_pose_rotation?: V3 })[] };
+  const legacy = Object.entries(data).filter(([k]) => k.startsWith("geometry.")) as [string, Legacy][];
+  const find = (id: string) => legacy.find(([k]) => k.split(":")[0] === id);
+  const resolve = (id: string, depth = 0): Legacy | undefined => {
+    const hit = find(id);
+    if (!hit) return undefined;
+    const [key, own] = hit;
+    const parentId = key.split(":")[1];
+    const parent = parentId && depth < 5 ? resolve(parentId, depth + 1) : undefined;
+    if (!parent) return own;
+    // Child bones replace parent bones with the same name.
+    const bones = [...(parent.bones ?? []).filter((b) => !(own.bones ?? []).some((o) => o.name === b.name)), ...(own.bones ?? [])];
+    return { texturewidth: own.texturewidth ?? parent.texturewidth, textureheight: own.textureheight ?? parent.textureheight, bones };
+  };
+  const g = resolve(geometryId) ?? (legacy[0] ? resolve(legacy[0][0].split(":")[0]) : undefined);
+  if (!g) return undefined;
+  return {
+    description: { identifier: geometryId, texture_width: g.texturewidth ?? 64, texture_height: g.textureheight ?? 64 },
+    bones: (g.bones ?? []).map((b) => ({ ...b, rotation: b.rotation ?? b.bind_pose_rotation, cubes: b.neverRender ? [] : b.cubes })),
+  };
+}
+
 export function buildModel(geometryJson: unknown, geometryId: string, texture: THREE.Texture | null): PreviewModel {
-  const list = (geometryJson as Record<string, unknown>)?.["minecraft:geometry"] as { description?: { identifier?: string; texture_width?: number; texture_height?: number }; bones?: GeoBone[] }[] | undefined;
-  const geo = list?.find((g) => g.description?.identifier === geometryId) ?? list?.[0];
+  const geo = normalizeGeometry(geometryJson, geometryId);
   if (!geo) throw new Error("No geometry found in the model file.");
   const tw = geo.description?.texture_width ?? 64, th = geo.description?.texture_height ?? 64;
   const material = new THREE.MeshLambertMaterial({

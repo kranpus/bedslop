@@ -3,6 +3,7 @@ import { GenContext } from "../export/context";
 import { genEntity } from "../export/entity";
 import type { EntityElement, Project } from "../model/types";
 import type { AnimDef, ControllerDef, PreviewSpec } from "./animator";
+import { parseLenientJson } from "../vanilla/json";
 
 export interface MobPreviewData {
   geometry: unknown;
@@ -16,6 +17,7 @@ const parse = (c: unknown) => {
 };
 
 export function mobPreviewData(project: Project, el: EntityElement): MobPreviewData | null {
+  if (el.model === "vanilla") return vanillaPreviewData(project, el);
   const ctx = new GenContext(project);
   genEntity(ctx, el);
   const client = parse(ctx.files.get(`RP/entity/${el.name}.entity.json`))?.["minecraft:client_entity"]?.description;
@@ -46,4 +48,21 @@ export function mobPreviewData(project: Project, el: EntityElement): MobPreviewD
       controllers,
     },
   };
+}
+
+/** Vanilla templates: Minecraft's own model (downloaded for the preview only), shown without its animations. */
+function vanillaPreviewData(project: Project, el: EntityElement): MobPreviewData | null {
+  if (!el.vanillaGeometry || !el.vanillaClient) return null;
+  try {
+    const client = parseLenientJson(el.vanillaClient) as { "minecraft:client_entity"?: { description?: { geometry?: Record<string, string> } } };
+    const geometryId = client["minecraft:client_entity"]?.description?.geometry?.default ?? "";
+    return {
+      geometry: parseLenientJson(el.vanillaGeometry),
+      geometryId,
+      texture: project.textures.find((t) => t.id === el.texture)?.dataUrl ?? el.vanillaTexture ?? "",
+      spec: { animations: {}, animate: [], preAnimation: [], initialize: [], defs: {}, controllers: {} },
+    };
+  } catch {
+    return null;
+  }
 }

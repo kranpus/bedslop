@@ -47,6 +47,8 @@ export class GenContext {
   readonly itemAtlas: Record<string, { textures: string }> = {};
   readonly blockSounds: Record<string, { sound: string }> = {};
   readonly soundDefs: Record<string, unknown> = {};
+  /** Entity sound events for RP/sounds.json, keyed by entity id. */
+  readonly entitySounds: Record<string, unknown> = {};
   readonly tickFunctions: string[] = [];
   /** Minimum game / Script API versions that features in use need, with the reason. */
   readonly requires: { engine?: string; api?: string; reason: string; elementId: string }[] = [];

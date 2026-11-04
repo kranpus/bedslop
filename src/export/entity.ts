@@ -2,6 +2,7 @@ import type { EntityElement } from "../model/types";
 import { FORMATS, GenContext, geometryIdentifier } from "./context";
 import { clampInt, round } from "./content";
 import { boneRenames, buildAnimations, exportAnimationId, renameAnimationBones } from "./entityAnimations";
+import { parseLenientJson } from "../vanilla/json";
 
 type Cube = { origin: number[]; size: number[]; uv: number[]; inflate?: number };
 const bone = (name: string, pivot: number[], cubes: Cube[], parent?: string) => ({ name, pivot, ...(parent ? { parent } : {}), cubes });
@@ -78,6 +79,7 @@ export function presetAnimations(ns: string) {
 }
 
 export function genEntity(ctx: GenContext, e: EntityElement) {
+  if (e.model === "vanilla") return genVanillaEntity(ctx, e);
   const id = ctx.id(e.name);
   const ns = ctx.ns;
   const families = Array.from(new Set([e.name, "mob", e.behavior === "hostile" ? "monster" : "animal", ...e.families.filter(Boolean)]));
@@ -154,23 +156,7 @@ export function genEntity(ctx: GenContext, e: EntityElement) {
     },
   });
 
-  if (e.spawnEnabled) {
-    const tags = e.spawnBiomeTags.length ? e.spawnBiomeTags : ["animal"];
-    const cond: Record<string, unknown> = {};
-    if (e.spawnSurface) cond["minecraft:spawns_on_surface"] = {};
-    if (!e.spawnSurface || e.populationControl === "monster") cond["minecraft:spawns_underground"] = {};
-    cond["minecraft:brightness_filter"] = { min: clampInt(e.lightMin, 0, 15), max: clampInt(Math.max(e.lightMin, e.lightMax), 0, 15), adjust_for_weather: true };
-    cond["minecraft:weight"] = { default: clampInt(e.spawnWeight, 1, 1000) };
-    cond["minecraft:herd"] = { min_size: clampInt(e.herdMin, 1, 32), max_size: clampInt(Math.max(e.herdMin, e.herdMax), 1, 32) };
-    if (e.populationControl === "monster") cond["minecraft:difficulty_filter"] = { min: "easy", max: "hard" };
-    cond["minecraft:biome_filter"] = tags.length === 1
-      ? { test: "has_biome_tag", operator: "==", value: tags[0] }
-      : { any_of: tags.map((t) => ({ test: "has_biome_tag", operator: "==", value: t })) };
-    ctx.bp(`spawn_rules/${e.name}.json`, {
-      format_version: FORMATS.spawnRules,
-      "minecraft:spawn_rules": { description: { identifier: id, population_control: e.populationControl }, conditions: [cond] },
-    });
-  }
+  if (e.spawnEnabled) genSpawnRules(ctx, e, id);
 
   // ----- Resource pack -----
   const texPath = ctx.writeTexture(e.texture, "entity");
@@ -274,3 +260,81 @@ export function genEntity(ctx: GenContext, e: EntityElement) {
   ctx.lang.push(`item.spawn_egg.entity.${id}.name=${e.displayName} Spawn Egg`);
 }
 
+
+/**
+ * A mob based on a vanilla one: keeps its behaviour, AI and events, and points its looks at the
+ * game's own model, textures and animations. Our editor's values are applied on top.
+ */
+function genVanillaEntity(ctx: GenContext, e: EntityElement) {
+  const id = ctx.id(e.name);
+  const base = e.vanillaBase ?? "";
+  let behavior: Record<string, any> | null = null, client: Record<string, any> | null = null;
+  try { behavior = parseLenientJson(e.vanillaBehavior ?? "") as Record<string, any>; } catch { /* reported below */ }
+  try { client = parseLenientJson(e.vanillaClient ?? "") as Record<string, any>; } catch { /* reported below */ }
+  const ent = behavior?.["minecraft:entity"], cl = client?.["minecraft:client_entity"];
+  if (!ent?.description || !cl?.description) {
+    return ctx.warn(e, `the template${base ? ` (${base})` : ""} is missing its behaviour or resource file. Load the template again on the mob's page.`, "error");
+  }
+
+  // ----- Behavior: rename, link to the original for engine-level behaviour, apply our values -----
+  ent.description.identifier = id;
+  if (!ent.description.runtime_identifier) ent.description.runtime_identifier = base;
+  ent.description.is_spawnable = true;
+  ent.description.is_summonable = true;
+  ent.description.is_experimental = false;
+  const c = (ent.components ??= {});
+  c["minecraft:health"] = { ...(c["minecraft:health"] ?? {}), value: clampInt(e.health, 1, 10000), max: clampInt(e.health, 1, 10000) };
+  c["minecraft:movement"] = { ...(c["minecraft:movement"] ?? {}), value: round(e.speed) };
+  if (c["minecraft:attack"]) c["minecraft:attack"] = { ...c["minecraft:attack"], damage: clampInt(e.attackDamage, 0, 1000) };
+  c["minecraft:collision_box"] = { width: round(e.width), height: round(e.height) };
+  if (e.scale !== 1) c["minecraft:scale"] = { value: round(e.scale) };
+  if (e.knockbackResistance > 0) c["minecraft:knockback_resistance"] = { value: round(Math.min(1, e.knockbackResistance)) };
+  if (e.fireImmune) c["minecraft:fire_immune"] = true;
+  if (e.families.length) {
+    const fam = c["minecraft:type_family"]?.family ?? [];
+    c["minecraft:type_family"] = { family: Array.from(new Set([...fam, ...e.families])) };
+  }
+  const drops = e.drops.filter((d) => d.item);
+  if (drops.length) {
+    // Your drops replace the original mob's loot table.
+    const path = `loot_tables/entities/${ctx.ns}_${e.name}.json`;
+    ctx.bp(path, { pools: drops.map((d) => ({
+      rolls: 1,
+      ...(d.chance < 100 ? { conditions: [{ condition: "random_chance", chance: round(d.chance / 100) }] } : {}),
+      entries: [{ type: "item", name: d.item, weight: 1, functions: [{ function: "set_count", count: { min: clampInt(d.min, 0, 64), max: clampInt(Math.max(d.min, d.max), 0, 64) } }] }],
+    })) });
+    c["minecraft:loot"] = { table: path };
+  }
+  ctx.bp(`entities/${e.name}.json`, behavior!);
+  if (e.spawnEnabled) genSpawnRules(ctx, e, id);
+
+  // ----- Client: same looks as the original, under our id -----
+  cl.description.identifier = id;
+  cl.description.spawn_egg = { base_color: e.eggBase, overlay_color: e.eggOverlay };
+  const reskin = ctx.writeTexture(e.texture, "entity");
+  if (reskin) cl.description.textures = { ...(cl.description.textures ?? {}), default: reskin };
+  ctx.rp(`entity/${e.name}.entity.json`, client!);
+  if (e.vanillaSounds) {
+    try { ctx.entitySounds[id] = JSON.parse(e.vanillaSounds); } catch { /* optional */ }
+  }
+  ctx.lang.push(`entity.${id}.name=${e.displayName}`);
+  ctx.lang.push(`item.spawn_egg.entity.${id}.name=${e.displayName} Spawn Egg`);
+}
+
+function genSpawnRules(ctx: GenContext, e: EntityElement, id: string) {
+  const tags = e.spawnBiomeTags.length ? e.spawnBiomeTags : ["animal"];
+  const cond: Record<string, unknown> = {};
+  if (e.spawnSurface) cond["minecraft:spawns_on_surface"] = {};
+  if (!e.spawnSurface || e.populationControl === "monster") cond["minecraft:spawns_underground"] = {};
+  cond["minecraft:brightness_filter"] = { min: clampInt(e.lightMin, 0, 15), max: clampInt(Math.max(e.lightMin, e.lightMax), 0, 15), adjust_for_weather: true };
+  cond["minecraft:weight"] = { default: clampInt(e.spawnWeight, 1, 1000) };
+  cond["minecraft:herd"] = { min_size: clampInt(e.herdMin, 1, 32), max_size: clampInt(Math.max(e.herdMin, e.herdMax), 1, 32) };
+  if (e.populationControl === "monster") cond["minecraft:difficulty_filter"] = { min: "easy", max: "hard" };
+  cond["minecraft:biome_filter"] = tags.length === 1
+    ? { test: "has_biome_tag", operator: "==", value: tags[0] }
+    : { any_of: tags.map((t) => ({ test: "has_biome_tag", operator: "==", value: t })) };
+  ctx.bp(`spawn_rules/${e.name}.json`, {
+    format_version: FORMATS.spawnRules,
+    "minecraft:spawn_rules": { description: { identifier: id, population_control: e.populationControl }, conditions: [cond] },
+  });
+}

@@ -3,7 +3,9 @@ import { BIOME_TAGS } from "../../model/vanilla";
 import { ChipList, Color, Field, Grid, IdInput, Num, Section, Segmented, Select, Slider, Toggle } from "../fields";
 import { TexturePicker } from "../TexturePicker";
 import { MobPreview } from "../MobPreview";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { SAMPLES_PAGE, VANILLA_MOBS, downloadTemplate, mobFileUrls, mobLabel, templateFields } from "../../vanilla/templates";
+import { parseLenientJson } from "../../vanilla/json";
 import { convertBbmodel, isBbmodel } from "../../export/bbmodel";
 import { geometryIdentifier } from "../../export/context";
 import { AUTO_LOOK, AUTO_WALK, RIG_ROLES, WHEN, activeSlots, animationLabel, defaultSlots, listAnimations, listBones, listControllers, remapSlots, resolveAnimation, resolveRig } from "../../export/entityAnimations";
@@ -28,10 +30,12 @@ export function EntityEditor({ el, patch }: { el: EntityElement; patch: Patch<En
       <Section title="Model & texture">
         <Segmented value={el.model} onChange={(model) => patch({ model })} options={[
           { value: "humanoid", label: "Humanoid (player-shaped)" }, { value: "quadruped", label: "Four-legged animal" }, { value: "custom", label: "Blockbench model" },
+          { value: "vanilla", label: "Minecraft mob" },
         ]} />
-        <TexturePicker label="Texture" kind="entity" template={el.model === "quadruped" ? "mob_quadruped" : "mob_humanoid"} value={el.texture} suggestedName={el.name} onChange={(texture) => patch({ texture })}
-          help={el.model === "humanoid" ? "64 × 64 in the player-skin layout. Any Minecraft skin works here; textures painted for your own model won't." : el.model === "quadruped" ? "64 × 64. Generate a template to see where each part goes." : "The texture you painted in Blockbench. Imported automatically from a .bbmodel."} />
-        <BlockbenchImport el={el} patch={patch} />
+        {el.model === "vanilla" && <VanillaTemplatePanel el={el} patch={patch} />}
+        <TexturePicker label={el.model === "vanilla" ? "Reskin (optional)" : "Texture"} kind="entity" template={el.model === "quadruped" ? "mob_quadruped" : "mob_humanoid"} value={el.texture} suggestedName={el.name} onChange={(texture) => patch({ texture })}
+          help={el.model === "vanilla" ? "Leave empty to keep the original look. To reskin, paint over a copy of the original texture (same layout)." : el.model === "humanoid" ? "64 × 64 in the player-skin layout. Any Minecraft skin works here; textures painted for your own model won't." : el.model === "quadruped" ? "64 × 64. Generate a template to see where each part goes." : "The texture you painted in Blockbench. Imported automatically from a .bbmodel."} />
+        {el.model !== "vanilla" && <BlockbenchImport el={el} patch={patch} />}
         <Grid>
           <Num label="Hitbox width" suffix="blocks" step={0.1} value={el.width} onChange={(width) => patch({ width }, "w")} />
           <Num label="Hitbox height" suffix="blocks" step={0.1} value={el.height} onChange={(height) => patch({ height }, "h")} />
@@ -41,27 +45,31 @@ export function EntityEditor({ el, patch }: { el: EntityElement; patch: Patch<En
 
       {el.model === "custom" && geometryIdentifier(el.customGeometry) && <AnimationSection el={el} patch={patch} />}
 
-      <Section title="Behaviour">
-        <Segmented value={el.behavior} onChange={(behavior) => patch({ behavior, ...PRESETS[behavior], spawnBiomeTags: [...PRESETS[behavior].spawnBiomeTags] })} options={[
+      <Section title="Behaviour" hint={el.model === "vanilla" ? "Keeps the original mob's AI. Change its stats here." : undefined}>
+        {el.model !== "vanilla" && <Segmented value={el.behavior} onChange={(behavior) => patch({ behavior, ...PRESETS[behavior], spawnBiomeTags: [...PRESETS[behavior].spawnBiomeTags] })} options={[
           { value: "passive", label: "Passive: runs when hurt" }, { value: "neutral", label: "Neutral: fights back" }, { value: "hostile", label: "Hostile: hunts players" },
-        ]} />
+        ]} />}
         <Grid>
           <Num label="Health" value={el.health} onChange={(health) => patch({ health }, "hp")} help="Zombie: 20, iron golem: 100" />
           <Slider label="Speed" min={0.05} max={0.6} step={0.01} value={el.speed} onChange={(speed) => patch({ speed }, "speed")} help="Zombie: 0.23, horse: ~0.3" />
-          {el.behavior !== "passive" && <Num label="Attack damage" value={el.attackDamage} onChange={(attackDamage) => patch({ attackDamage }, "atk")} />}
+          {(el.model === "vanilla" ? el.attackDamage > 0 : el.behavior !== "passive") && <Num label="Attack damage" value={el.attackDamage} onChange={(attackDamage) => patch({ attackDamage }, "atk")} />}
           <Slider label="Knockback resistance" min={0} max={1} step={0.1} value={el.knockbackResistance} onChange={(knockbackResistance) => patch({ knockbackResistance }, "kb")} />
-          <Num label="XP dropped" value={el.xp} onChange={(xp) => patch({ xp }, "xp")} />
+          {el.model !== "vanilla" && <Num label="XP dropped" value={el.xp} onChange={(xp) => patch({ xp }, "xp")} />}
         </Grid>
+        {el.model === "vanilla" ? (
+          <div className="toggles"><Toggle label="Immune to fire and lava" value={el.fireImmune} onChange={(fireImmune) => patch({ fireImmune })} /></div>
+        ) : <>
         <div className="toggles">
           <Toggle label="Floats in water" value={el.canSwim} onChange={(canSwim) => patch({ canSwim })} />
           <Toggle label="Immune to fire and lava" value={el.fireImmune} onChange={(fireImmune) => patch({ fireImmune })} />
           <Toggle label="Burns in sunlight" value={el.burnsInDaylight} onChange={(burnsInDaylight) => patch({ burnsInDaylight })} />
         </div>
         <ChipList label="Follows players holding" values={el.temptItems} onChange={(temptItems) => patch({ temptItems })} kind="item" help="Like cows following wheat." />
+        </>}
         <ChipList label="Extra families" values={el.families} onChange={(families) => patch({ families })} suggestions={["undead", "arthropod", "illager", "zombie", "skeleton"]} help="Families decide how other mobs react, e.g. 'undead' is hurt by Smite." />
       </Section>
 
-      <Section title="Drops">
+      <Section title="Drops" hint={el.model === "vanilla" ? "Leave empty to keep the original mob's drops." : undefined}>
         {el.drops.map((d, i) => (
           <div className="row effect-row" key={i}>
             <Field label="Item"><IdInput value={d.item} onChange={(item) => setDrop(i, { item })} /></Field>
@@ -365,5 +373,105 @@ function RigEditor({ el, patch, bones }: { el: EntityElement; patch: Patch<Entit
         <Toggle label="Reverse swing direction" value={rig.reverse} onChange={(reverse) => setRig({ reverse })} help="Use if arms and legs swing the wrong way." />
       </div>
     </fieldset>
+  );
+}
+
+/** Pick a vanilla mob as the starting point: downloads its files from Mojang's repo, or takes uploads. */
+function VanillaTemplatePanel({ el, patch }: { el: EntityElement; patch: Patch<EntityElement> }) {
+  const [query, setQuery] = useState("");
+  const [pick, setPick] = useState(el.vanillaBase ?? "minecraft:zombie");
+  const [state, setState] = useState<{ busy?: boolean; error?: string; ok?: string }>({});
+  const [choosing, setChoosing] = useState(!el.vanillaBehavior);
+  const [uploads, setUploads] = useState<{ behavior?: string; client?: string }>({});
+  const list = useMemo(() => VANILLA_MOBS.filter((m) => !query || mobLabel(m.id).toLowerCase().includes(query.toLowerCase())), [query]);
+  // If the search hides the current pick, use the first match so the button and the list agree.
+  const mob = list.find((m) => m.id === pick) ?? list[0];
+
+  const use = async () => {
+    if (!mob) return;
+    setState({ busy: true });
+    try {
+      patch(await downloadTemplate(mob));
+      setState({ ok: `Loaded ${mobLabel(mob.id)} from Mojang's files.` });
+      setChoosing(false);
+    } catch {
+      setState({ error: "Couldn't download from GitHub here (some views block it). Download the two files below and upload them instead." });
+    }
+  };
+
+  const upload = async (kind: "behavior" | "client", f: File) => {
+    const text = await f.text();
+    const next = { ...uploads, [kind]: text };
+    setUploads(next);
+    if (next.behavior && next.client) {
+      try {
+        const base = (parseLenientJson(next.client) as { "minecraft:client_entity"?: { description?: { identifier?: string } } })["minecraft:client_entity"]?.description?.identifier ?? pick;
+        const m = VANILLA_MOBS.find((x) => x.id === base);
+        patch({
+          model: "vanilla", vanillaBase: base, vanillaBehavior: next.behavior, vanillaClient: next.client, vanillaSounds: "",
+          vanillaGeometry: "", vanillaTexture: m ? mobFileUrls(m).texture : "", spawnEnabled: false, drops: [], families: [],
+          ...templateFields(next.behavior, next.client),
+        });
+        setState({ ok: `Loaded ${mobLabel(base)} from your files. Sounds aren't included with manual files.` });
+        setChoosing(false);
+        setUploads({});
+      } catch {
+        setState({ error: "Those files couldn't be read. Upload the mob's behaviour .json and its .entity.json." });
+      }
+    }
+  };
+
+  if (!choosing && el.vanillaBehavior) {
+    return (
+      <div className="bb-import on">
+        <div className="row between">
+          <div className="stack tight">
+            <strong>Based on {mobLabel(el.vanillaBase ?? "")} <span className="mono muted">({el.vanillaBase})</span></strong>
+            <span className="field-help">Keeps its AI, model, animations and sounds. Health, speed, attack, size, drops, spawn egg and spawning below are yours to change.</span>
+          </div>
+          <button type="button" className="btn small" onClick={() => setChoosing(true)}>Change mob…</button>
+        </div>
+        {state.ok && <p className="ok-text" role="status">{state.ok}</p>}
+      </div>
+    );
+  }
+
+  const urls = mob ? mobFileUrls(mob) : null;
+  return (
+    <div className="bb-import on">
+      <strong>Start from a Minecraft mob</strong>
+      <div className="row wrap">
+        <input type="search" placeholder={`Search ${VANILLA_MOBS.length} mobs`} value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search mobs" className="grow" />
+        <select value={mob?.id ?? ""} onChange={(e) => setPick(e.target.value)} aria-label="Mob" size={1}>
+          {list.map((m) => <option key={m.id} value={m.id}>{mobLabel(m.id)}</option>)}
+        </select>
+        <button type="button" className="btn small primary" disabled={!mob || state.busy} onClick={use}>{state.busy ? "Downloading…" : `Use ${mob ? mobLabel(mob.id) : "mob"}`}</button>
+        {el.vanillaBehavior && <button type="button" className="btn small ghost" onClick={() => setChoosing(false)}>Cancel</button>}
+      </div>
+      <p className="field-help">
+        Your mob gets a copy of its behaviour and uses Minecraft's own model, textures and animations. The files come straight from{" "}
+        <a href={SAMPLES_PAGE} target="_blank" rel="noreferrer">Mojang's bedrock-samples</a>, under the Minecraft EULA.
+      </p>
+      {state.error && (
+        <div className="stack tight">
+          <p className="warn-text" role="status">{state.error}</p>
+          {urls && (
+            <div className="row wrap">
+              <a className="btn small" href={urls.behavior} target="_blank" rel="noreferrer">Open {mob!.bp}</a>
+              <a className="btn small" href={urls.client} target="_blank" rel="noreferrer">Open {mob!.rp}</a>
+            </div>
+          )}
+          <span className="field-help">Save each page as a .json file, then upload both:</span>
+          <div className="row wrap">
+            <label className={`btn small${uploads.behavior ? " on" : ""}`}>{uploads.behavior ? "Behaviour file ✓" : "Upload behaviour file…"}
+              <input type="file" accept=".json" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) upload("behavior", f); }} />
+            </label>
+            <label className={`btn small${uploads.client ? " on" : ""}`}>{uploads.client ? "Resource file ✓" : "Upload .entity.json…"}
+              <input type="file" accept=".json" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) upload("client", f); }} />
+            </label>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

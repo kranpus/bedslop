@@ -149,6 +149,7 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
   }
   if (Object.keys(ctx.blockSounds).length) ctx.rp("blocks.json", { format_version: [1, 1, 0], ...ctx.blockSounds });
   if (Object.keys(ctx.soundDefs).length) ctx.rp("sounds/sound_definitions.json", { format_version: "1.14.0", sound_definitions: ctx.soundDefs });
+  if (Object.keys(ctx.entitySounds).length) ctx.rp("sounds.json", { entity_sounds: { entities: ctx.entitySounds } });
   if (ctx.tickFunctions.length) ctx.bp("functions/tick.json", { values: ctx.tickFunctions });
   if (project.elements.some((e) => e.kind === "block" && e.drops === "nothing")) ctx.bp("loot_tables/empty.json", { pools: [] });
 
