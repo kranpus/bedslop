@@ -3,6 +3,7 @@ import { useStore } from "./store/store";
 import { Sidebar } from "./ui/Sidebar";
 import { ElementEditor } from "./ui/ElementEditor";
 import { TagsView } from "./ui/TagsView";
+import { LanguagesView } from "./ui/LanguagesView";
 import { ExportView, Home, RoadmapView, SettingsView, TexturesView, TopBar, VariablesView } from "./ui/Views";
 
 export default function App() {
@@ -39,6 +40,7 @@ export default function App() {
           {view === "textures" && <TexturesView />}
           {view === "variables" && <VariablesView />}
           {view === "tags" && <TagsView />}
+          {view === "languages" && <LanguagesView />}
           {view === "settings" && <SettingsView />}
           {view === "export" && <ExportView />}
           {view === "roadmap" && <RoadmapView />}

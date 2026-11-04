@@ -109,6 +109,7 @@ export function TopBar() {
         {tab("textures", "Textures")}
         {tab("variables", "Variables")}
         {tab("tags", "Tags")}
+        {tab("languages", "Languages")}
         {tab("settings", "Settings")}
         {tab("roadmap", "Roadmap")}
       </nav>

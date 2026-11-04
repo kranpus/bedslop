@@ -157,3 +157,12 @@ export const VANILLA_GROUPS = (
   "bed candles anvil chest shulkerBox record sign hanging_sign skull enchantedBook boat chestboat rail minecart buttons pressurePlate " +
   "lantern smithing_templates potterySherds"
 ).split(" ").map((g) => `minecraft:itemGroup.name.${g}`);
+
+/** Languages Minecraft Bedrock supports, by code. */
+export const GAME_LANGUAGES: Record<string, string> = {
+  en_GB: "English (UK)", de_DE: "Deutsch", es_ES: "Español (España)", es_MX: "Español (México)", fr_FR: "Français", fr_CA: "Français (Canada)",
+  it_IT: "Italiano", ja_JP: "日本語", ko_KR: "한국어", pt_BR: "Português (Brasil)", pt_PT: "Português (Portugal)", ru_RU: "Русский",
+  zh_CN: "简体中文", zh_TW: "繁體中文", nl_NL: "Nederlands", bg_BG: "Български", cs_CZ: "Čeština", da_DK: "Dansk", el_GR: "Ελληνικά",
+  fi_FI: "Suomi", hu_HU: "Magyar", id_ID: "Bahasa Indonesia", nb_NO: "Norsk bokmål", pl_PL: "Polski", sk_SK: "Slovenčina",
+  sv_SE: "Svenska", tr_TR: "Türkçe", uk_UA: "Українська",
+};

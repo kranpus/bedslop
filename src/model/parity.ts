@@ -37,7 +37,7 @@ export const PARITY: ParityRow[] = [
   // Phase 2
   { mcreator: "Procedure (Blockly)", bedrock: "Blockly -> Script API", status: "done", phase: 2, notes: "Every step and condition as a block, plus if/else, loops, math, text, waits, for each player, local and global variables." },
   { mcreator: "Global variables", bedrock: "Dynamic properties", status: "done", phase: 2, notes: "World or per-player; number, text or true/false; usable in text as {name}." },
-  { mcreator: "GUI", bedrock: "@minecraft/server-ui forms", status: "partial", phase: 2, notes: "Button menus with icons, input forms and yes/no dialogs are ready. Slot-based container GUIs need JSON UI (phase 3)." },
+  { mcreator: "GUI", bedrock: "@minecraft/server-ui forms + container blocks", status: "done", phase: 2, notes: "Button menus with icons, input forms and yes/no dialogs; chest-style slot screens through storage blocks (1-54 slots). Custom slot layouts would need JSON UI, which can't be generated safely." },
   { mcreator: "Projectile / ranged item", bedrock: "Projectile entity + shooter/throwable", status: "done", phase: 2, notes: "Sprite, arrow or Blockbench look; damage, fire, effects, stick or vanish; throwables, bows and ammo; on-hit procedure triggers." },
   { mcreator: "Structure", bedrock: ".mcstructure + structure_template_feature", status: "done", phase: 2, notes: "Import from a Structure Block, 3D preview, loot tables per chest, natural generation (surface/underground, biomes, rarity, ground rules), \"Place structure\" step. Jigsaw (multi-piece) structures wait until Bedrock makes them stable." },
   { mcreator: "Particle", bedrock: "RP particle JSON", status: "done", phase: 2, notes: "Designer with live preview, sprites or own texture, colour/size over life, burst or stream, physics and collisions; Spawn particles step." },
@@ -48,9 +48,9 @@ export const PARITY: ParityRow[] = [
   { mcreator: "Music disc", bedrock: "minecraft:record + sound definition", status: "done", phase: 2, notes: "Own .ogg songs; each plays through a vanilla disc sound slot, as stable Bedrock requires." },
   { mcreator: "Tags", bedrock: "Item/block tags", status: "done", phase: 2, notes: "Tags on all your items and blocks, Tags tab, #tag recipe ingredients, tag conditions. Vanilla items can't be tagged in Bedrock." },
   { mcreator: "Block states / properties", bedrock: "Block states + permutations", status: "done", phase: 2, notes: "On/off, number and list states; rules change texture, light, hardness, friction, map colour, collision; set/cycle steps." },
-  { mcreator: "Localization", bedrock: "texts/*.lang", status: "partial", phase: 2, notes: "en_US is generated; multi-language editor in phase 2." },
-  { mcreator: "3D model import / preview", bedrock: "Blockbench .bbmodel / .geo.json", status: "partial", phase: 2, notes: "Mob import and animated 3D preview are ready; previews for blocks, items and armor come next." },
-  { mcreator: "Creative tab", bedrock: "menu_category groups", status: "partial", phase: 2, notes: "Vanilla categories and groups only; Bedrock has no custom tabs." },
+  { mcreator: "Localization", bedrock: "texts/*.lang", status: "done", phase: 2, notes: "Languages tab for 28 languages with progress and .lang download/upload; English fallback." },
+  { mcreator: "3D model import / preview", bedrock: "Blockbench .bbmodel / .geo.json", status: "done", phase: 2, notes: "Mobs (animated), blocks and shapes, items as in the hand, armour on a player, structures and particles." },
+  { mcreator: "Creative tab", bedrock: "Item catalog groups", status: "done", phase: 2, notes: "Your own collapsible groups with icons inside the four creative tabs (1.21.60+). Whole new tabs don't exist in Bedrock." },
   // Phase 3: Bedrock gaps covered by scripting
   { mcreator: "Enchantment", bedrock: "Script-simulated", status: "done", phase: 3, notes: "Run by script: stored on the item with a tooltip line; hit, break and worn effects; enchanted books. Not in the enchanting table or anvil." },
   { mcreator: "Potion effect", bedrock: "Script-simulated", status: "workaround", phase: 3, notes: "No custom effects; simulate with timed scripts and HUD text." },

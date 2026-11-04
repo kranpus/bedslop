@@ -752,6 +752,10 @@ export interface Project {
   elements: ModElement[];
   textures: TextureAsset[];
   variables?: GlobalVariable[];
+  /** Extra languages (besides en_US), e.g. "es_ES". */
+  languages?: string[];
+  /** language -> lang key -> translated text. Missing keys fall back to English. */
+  translations?: Record<string, Record<string, string>>;
   /** Your own collapsible groups in the creative inventory (Minecraft 1.21.60+). */
   creativeGroups?: CreativeGroup[];
   createdAt: number;

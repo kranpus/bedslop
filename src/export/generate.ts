@@ -44,6 +44,32 @@ export function validateProject(project: Project): Warning[] {
   return w;
 }
 
+/** Parses "key=value" lines (comments and blanks skipped). */
+export function parseLang(text: string): [string, string][] {
+  return text.split(/\r?\n/).flatMap((line) => {
+    const t = line.replace(/\t*#.*$/, "");
+    const i = t.indexOf("=");
+    return !t.trim() || t.startsWith("##") || i < 1 ? [] : [[t.slice(0, i).trim(), t.slice(i + 1)] as [string, string]];
+  });
+}
+
+/** A .lang file with each value replaced by its translation, when there is one. */
+export function translateLang(english: string, tr: Record<string, string>): string {
+  return english.split("\n").map((line) => {
+    const i = line.indexOf("=");
+    if (line.startsWith("##") || i < 1) return line;
+    const key = line.slice(0, i);
+    const t = tr[key]?.trim();
+    return t ? `${key}=${t.replace(/\r?\n/g, " ")}` : line;
+  }).join("\n");
+}
+
+/** Every text the add-on puts in the game (RP en_US.lang), as [key, English]. */
+export function englishTexts(project: Project): [string, string][] {
+  const lang = generateAddon(project).files.get("RP/texts/en_US.lang");
+  return typeof lang === "string" ? parseLang(lang) : [];
+}
+
 /** Elements that share the same identifier space. */
 function groupOf(el: ModElement) {
   if (["block", "plant", "item", "tool", "armor", "food", "entity", "crop", "disc"].includes(el.kind)) return "content";
@@ -169,9 +195,13 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
   if (project.elements.some((e) => e.kind === "block" && e.drops === "nothing")) ctx.bp("loot_tables/empty.json", { pools: [] });
 
   const lang = [`## ${project.name}`, `pack.name=${project.name}`, `pack.description=${project.description}`, ...ctx.lang].join("\n") + "\n";
+  const bpLang = `pack.name=${project.name} BP\npack.description=${project.description}\n`;
+  const langs = ["en_US", ...(project.languages ?? []).filter((l) => l !== "en_US")];
   for (const side of ["BP", "RP"] as const) {
-    ctx.files.set(`${side}/texts/en_US.lang`, side === "RP" ? lang : `pack.name=${project.name} BP\npack.description=${project.description}\n`);
-    ctx.files.set(`${side}/texts/languages.json`, JSON.stringify(["en_US"]));
+    ctx.files.set(`${side}/texts/en_US.lang`, side === "RP" ? lang : bpLang);
+    ctx.files.set(`${side}/texts/languages.json`, JSON.stringify(langs));
+    // Other languages: the same keys, translated where a translation exists, English otherwise.
+    for (const code of langs.slice(1)) ctx.files.set(`${side}/texts/${code}.lang`, translateLang(side === "RP" ? lang : bpLang, project.translations?.[code] ?? {}));
   }
 
   const icon = packIconPng ?? (project.packIcon ? iconFromTexture(project, project.packIcon) : undefined);
