@@ -11,5 +11,15 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // If this file is served as-is (not built), the app can't start. Say why instead of showing a blank page.
+      setTimeout(function () {
+        var root = document.getElementById("root");
+        if (!root || root.childElementCount || !document.querySelector('script[src="/src/main.tsx"]')) return;
+        root.innerHTML = '<div style="max-width:560px;margin:12vh auto;padding:0 16px;font:15px/1.6 system-ui,sans-serif;color:#2b2f27">' +
+          "<h1 style=\"font-size:22px\">This is the app's source, not the app</h1>" +
+          "<p>GitHub Pages is publishing the repository files directly. Switch it to the build workflow: in the repository go to <b>Settings → Pages</b>, and under <b>Build and deployment → Source</b> choose <b>GitHub Actions</b>. Then re-run the latest <b>Deploy to GitHub Pages</b> workflow (Actions tab), or push any change.</p></div>";
+      }, 2500);
+    </script>
   </body>
 </html>

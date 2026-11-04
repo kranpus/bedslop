@@ -163,6 +163,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 
 ## Changelog
 
+- **0.7.1**: If the repository's raw `index.html` is published unbuilt (GitHub Pages set to "Deploy from a branch"), the page now explains how to switch Pages to the build workflow instead of staying blank.
+
 - **0.7.0** (Phase 2, item 10): Mob extras for preset and Blockbench mobs: flying and swimming, ranged attacks, taming, breeding with babies, riding, trades, mob sounds and random texture variants. Example: the Ember Boar breeds and can be ridden, the Ruby Golem throws ruby shards, and a new Ruby Merchant trades. 108 tests.
 
 - **0.6.1**: Fix the extra whole-page scrollbar: on/off switches' hidden checkboxes were positioned against the page, stretching it below the window. The layout rows are now also capped so only the sidebar and editor scroll.
