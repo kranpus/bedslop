@@ -148,3 +148,12 @@ export function potionLabel(id: string): string {
   const base = name.charAt(0).toUpperCase() + name.slice(1);
   return ["water", "mundane", "thick", "awkward"].includes(t) ? `${base} potion${suffix}` : `Potion of ${name}${suffix}`;
 }
+
+/** Common vanilla creative inventory groups (minecraft:itemGroup.name.*). */
+export const VANILLA_GROUPS = (
+  "planks walls fence fenceGate stairs door trapdoor glass glassPane slab stoneBrick sandstone wool woolCarpet concrete concretePowder " +
+  "stainedClay ore stone log wood leaves sapling seed crop grass flower dye mushroom mobEgg coral sculk " +
+  "helmet chestplate leggings boots sword axe pickaxe shovel hoe arrow cookedFood miscFood potion splashPotion lingeringPotion " +
+  "bed candles anvil chest shulkerBox record sign hanging_sign skull enchantedBook boat chestboat rail minecart buttons pressurePlate " +
+  "lantern smithing_templates potterySherds"
+).split(" ").map((g) => `minecraft:itemGroup.name.${g}`);

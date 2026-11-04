@@ -2,6 +2,7 @@ import { genStructure } from "./structure";
 import { genParticle } from "./particle";
 import { genDisc } from "./disc";
 import { genEnchantments } from "./enchant";
+import { genCreativeGroups } from "./creative";
 import type { CommandElement, ModElement, Project } from "../model/types";
 import { genArmor, genBlock, genFood, genItem, genPlant, genTool } from "./content";
 import { GenContext, type FileMap, type Warning, compareVersion, dataUrlToBytes, vec } from "./context";
@@ -138,6 +139,7 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
   genCommands(ctx, commands);
   genBlockScripts(ctx);
   genEnchantments(ctx);
+  genCreativeGroups(ctx);
 
   // Features in use that need a newer game or Script API than the project targets.
   for (const r of ctx.requires) {

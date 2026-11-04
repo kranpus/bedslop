@@ -692,6 +692,17 @@ export interface EnchantmentElement extends BaseElement {
   bookTexture: string;
 }
 
+export interface CreativeGroup {
+  id: string;
+  /** Shown in the creative inventory. */
+  title: string;
+  category: "construction" | "nature" | "equipment" | "items";
+  /** Item or block id shown on the collapsed group. Empty = its first member. */
+  icon: string;
+  /** Element ids in the group, in order. */
+  members: string[];
+}
+
 export type ModElement =
   | BlockElement
   | PlantElement
@@ -741,6 +752,8 @@ export interface Project {
   elements: ModElement[];
   textures: TextureAsset[];
   variables?: GlobalVariable[];
+  /** Your own collapsible groups in the creative inventory (Minecraft 1.21.60+). */
+  creativeGroups?: CreativeGroup[];
   createdAt: number;
   updatedAt: number;
 }

@@ -9,7 +9,7 @@ import type {
   BlockShape,
   ArmorElement, ArmorSlot, BlockElement, BlockFace, FoodElement, ItemElement, PlantElement, ToolElement, ToolType,
 } from "../../model/types";
-import { BLOCK_SOUNDS, EFFECTS, MENU_CATEGORIES } from "../../model/vanilla";
+import { BLOCK_SOUNDS, EFFECTS, MENU_CATEGORIES, VANILLA_GROUPS } from "../../model/vanilla";
 import { ChipList, Color, Field, Grid, IdField, Num, Section, Segmented, Select, Slider, Text, Toggle } from "../fields";
 import { TexturePicker } from "../TexturePicker";
 import { useStore } from "../../store/store";
@@ -17,6 +17,12 @@ import type { Patch } from "./types";
 import { ItemUseSection } from "./RangedEditors";
 import { BlockStatesSection } from "./BlockStatesSection";
 import { TagField } from "../TagField";
+import { ArmorPreview, ItemModelPreview } from "../ItemPreviews";
+
+/** A texture's data URL by id (for previews). */
+function useTexUrl(id?: string) {
+  return useStore((s) => s.project!.textures.find((t) => t.id === id)?.dataUrl);
+}
 
 // ---------- Block ----------
 
@@ -187,11 +193,31 @@ function LootSelect({ value, onChange }: { value: string; onChange: (id: string)
 
 function CreativeSection({ el, patch }: { el: BlockElement | ItemElement; patch: Patch<BlockElement> | Patch<ItemElement> }) {
   const p = patch as (x: Partial<Pick<ItemElement, "category" | "group">>, k?: string) => void;
+  const project = useStore((s) => s.project!);
+  const update = useStore((s) => s.update);
+  const groups = project.creativeGroups ?? [];
+  const own = groups.find((g) => g.members.includes(el.id));
+  // Joining one of your groups moves the element there; picking anything else takes it out.
+  const pick = (v: string) => {
+    update((pr) => ({
+      ...pr,
+      creativeGroups: (pr.creativeGroups ?? []).map((g) => ({ ...g, members: g.id === v.slice(4) ? [...g.members.filter((m) => m !== el.id), el.id] : g.members.filter((m) => m !== el.id) })),
+      elements: pr.elements.map((e) => (e.id === el.id ? { ...e, group: v.startsWith("own:") ? "" : v } as typeof e : e)),
+    }));
+  };
+  const value = own ? `own:${own.id}` : el.group;
   return (
     <Section title="Creative inventory">
       <Grid>
-        <Select label="Category" value={el.category} onChange={(category) => p({ category })} options={MENU_CATEGORIES} help='"none" hides it from the creative menu.' />
-        <Text label="Group (optional)" mono value={el.group} onChange={(group) => p({ group }, "group")} placeholder="minecraft:itemGroup.name.ore" help="Groups it with similar vanilla items." />
+        {!own && <Select label="Category" value={el.category} onChange={(category) => p({ category })} options={MENU_CATEGORIES} help='"none" hides it from the creative menu.' />}
+        <Field label="Group" help={own ? `In your group “${own.title}” (${own.category}). Manage groups in Settings.` : "Fold it in with similar items. Make your own groups in Settings."}>
+          <select value={value} onChange={(e) => pick(e.target.value)}>
+            <option value="">No group</option>
+            {groups.length > 0 && <optgroup label="Your groups">{groups.map((g) => <option key={g.id} value={`own:${g.id}`}>{g.title}</option>)}</optgroup>}
+            <optgroup label="Minecraft's groups">{VANILLA_GROUPS.map((g) => <option key={g} value={g}>{g.replace("minecraft:itemGroup.name.", "").replace(/([A-Z])/g, " $1").replace(/_/g, " ").toLowerCase()}</option>)}</optgroup>
+            {value && !value.startsWith("own:") && !VANILLA_GROUPS.includes(value) && <option value={value}>{value}</option>}
+          </select>
+        </Field>
       </Grid>
     </Section>
   );
@@ -254,7 +280,10 @@ export function ItemEditor({ el, patch }: { el: ItemElement; patch: Patch<ItemEl
   return (
     <>
       <Section title="Look">
-        <TexturePicker label="Icon" kind="item" template="gem" value={el.texture} suggestedName={el.name} onChange={(texture) => patch({ texture })} />
+        <div className="split">
+          <TexturePicker label="Icon" kind="item" template="gem" value={el.texture} suggestedName={el.name} onChange={(texture) => patch({ texture })} />
+          <ItemModelPreview texture={useTexUrl(el.texture)} />
+        </div>
         <Toggle label="Enchanted glint" value={el.glint} onChange={(glint) => patch({ glint })} />
         <Toggle label="Held like a tool" value={el.handEquipped} onChange={(handEquipped) => patch({ handEquipped })} help="Shown upright in the hand, like a stick." />
       </Section>
@@ -287,7 +316,10 @@ export function ToolEditor({ el, patch }: { el: ToolElement; patch: Patch<ToolEl
     <>
       <Section title="Type">
         <Segmented value={el.toolType} onChange={(toolType: ToolType) => patch({ toolType })} options={(["pickaxe", "axe", "shovel", "hoe", "sword"] as ToolType[]).map((t) => ({ value: t, label: t[0].toUpperCase() + t.slice(1) }))} />
-        <TexturePicker label="Icon" kind="item" template={el.toolType} value={el.texture} suggestedName={el.name} onChange={(texture) => patch({ texture })} />
+        <div className="split">
+          <TexturePicker label="Icon" kind="item" template={el.toolType} value={el.texture} suggestedName={el.name} onChange={(texture) => patch({ texture })} />
+          <ItemModelPreview texture={useTexUrl(el.texture)} />
+        </div>
       </Section>
       <Section title="Stats" hint="Choosing a tier fills in vanilla-like values. You can change any of them.">
         <Grid>
@@ -313,10 +345,15 @@ const SLOTS: { slot: ArmorSlot; label: string }[] = [
 ];
 
 export function ArmorEditor({ el, patch }: { el: ArmorElement; patch: Patch<ArmorElement> }) {
+  const textures = useStore((s) => s.project!.textures);
+  const texUrl = (id?: string) => textures.find((t) => t.id === id)?.dataUrl;
   const setPiece = (slot: ArmorSlot, p: Partial<ArmorElement["pieces"][ArmorSlot]>, key?: string) =>
     patch({ pieces: { ...el.pieces, [slot]: { ...el.pieces[slot], ...p } } }, key);
   return (
     <>
+      <Section title="Preview" hint="On a player, with the worn textures below. Turn pieces on and off to compare.">
+        <ArmorPreview el={el} layer1={texUrl(el.layer1)} layer2={texUrl(el.layer2)} />
+      </Section>
       <Section title="Pieces" hint="Each piece becomes its own item, e.g. myaddon:ruby_armor_helmet.">
         <div className="armor-pieces">
           {SLOTS.map(({ slot, label }) => (
@@ -359,7 +396,10 @@ export function FoodEditor({ el, patch }: { el: FoodElement; patch: Patch<FoodEl
   return (
     <>
       <Section title="Look">
-        <TexturePicker label="Icon" kind="item" template="fruit" value={el.texture} suggestedName={el.name} onChange={(texture) => patch({ texture })} />
+        <div className="split">
+          <TexturePicker label="Icon" kind="item" template="fruit" value={el.texture} suggestedName={el.name} onChange={(texture) => patch({ texture })} />
+          <ItemModelPreview texture={useTexUrl(el.texture)} />
+        </div>
         <Toggle label="Enchanted glint" value={el.glint} onChange={(glint) => patch({ glint })} help="Like a golden apple." />
       </Section>
       <Section title="Eating">

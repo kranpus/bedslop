@@ -1,3 +1,4 @@
+import { CreativeGroupsSection } from "./CreativeGroups";
 import { useMemo, useRef, useState } from "react";
 import { useStore } from "../store/store";
 import { exampleProject } from "../model/packs";
@@ -236,6 +237,7 @@ export function SettingsView() {
         </Grid>
         {api && <p className="field-help">Players need Minecraft Bedrock {api.game} or newer. Custom commands need Script API 2.1.0+.</p>}
       </Section>
+      <CreativeGroupsSection />
       <Section title="Back up">
         <p className="muted">Projects live in this browser's storage. Download a backup to move it to another device or share it.</p>
         <button className="btn" onClick={download}>Download project file</button>

@@ -524,3 +524,5 @@ table.vars td:nth-child(5) { min-width: 0; }
 .rule-when > button, .rule-then > button { align-self: flex-start; }
 .brew-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .brew-pill { padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--accent-soft); color: var(--ink); font-weight: 500; }
+.item-preview { width: 220px; height: 200px; }
+.armor-preview { width: 280px; height: 320px; }
