@@ -163,6 +163,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 
 ## Changelog
 
+- **0.7.2**: GitHub Pages works in either mode: a built copy of the app is committed in `site/` (`npm run build:site`), and the raw `index.html` forwards there when Pages publishes the repository as-is. `.nojekyll` skips GitHub's Jekyll step.
+
 - **0.7.1**: If the repository's raw `index.html` is published unbuilt (GitHub Pages set to "Deploy from a branch"), the page now explains how to switch Pages to the build workflow instead of staying blank.
 
 - **0.7.0** (Phase 2, item 10): Mob extras for preset and Blockbench mobs: flying and swimming, ranged attacks, taming, breeding with babies, riding, trades, mob sounds and random texture variants. Example: the Ember Boar breeds and can be ridden, the Ruby Golem throws ruby shards, and a new Ruby Merchant trades. 108 tests.

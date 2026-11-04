@@ -30,7 +30,7 @@ The output in `dist/` is fully static.
 
 ### Publish it on GitHub Pages
 
-The repo includes `.github/workflows/pages.yml`. Push to GitHub, then in the repository go to **Settings → Pages → Source: GitHub Actions**. Every push then tests, builds and publishes the app at `https://<your-name>.github.io/<repo>/`. Hosted this way, vanilla mob templates download straight from Mojang's GitHub and add-ons download as `.mcaddon` files.
+The repo includes `.github/workflows/pages.yml`. Push to GitHub, then in the repository go to **Settings → Pages → Source: GitHub Actions**. (If Pages is left on "Deploy from a branch", the raw `index.html` forwards to `site/`, a committed copy of the built app; refresh it with `npm run build:site` before pushing.) Every push then tests, builds and publishes the app at `https://<your-name>.github.io/<repo>/`. Hosted this way, vanilla mob templates download straight from Mojang's GitHub and add-ons download as `.mcaddon` files.
 
 ## Vanilla mob templates
 
