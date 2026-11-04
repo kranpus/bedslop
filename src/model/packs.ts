@@ -174,6 +174,10 @@ export function exampleProject(p: Project): Project {
   golem.eggBase = "#5a1720";
   golem.eggOverlay = "#e24b5e";
   golem.drops = [{ item: "ruby:ruby", min: 0, max: 2, chance: 60 }];
+  golem.attackStyle = "ranged";
+  golem.projectile = "ruby_shard";
+  golem.attackInterval = 2.5;
+  golem.sounds = { hurt: "mob.irongolem.hit", death: "mob.irongolem.death", step: "mob.irongolem.walk" };
 
   const boar = createElement("entity", "ember_boar", "Ember Boar");
   boar.model = "quadruped";
@@ -183,6 +187,10 @@ export function exampleProject(p: Project): Project {
   boar.health = 12;
   boar.temptItems = ["minecraft:carrot", "minecraft:beetroot"];
   boar.drops = [{ item: "minecraft:porkchop", min: 1, max: 3, chance: 100 }];
+  boar.breedItems = ["minecraft:carrot"];
+  boar.rideable = true;
+  boar.steerable = true;
+  boar.seatHeight = 0.8;
   boar.eggBase = "#6e3a1d";
   boar.eggOverlay = "#f2a65a";
 
@@ -353,7 +361,18 @@ export function exampleProject(p: Project): Project {
     { item: "ruby:ruby_berry_crop_seeds", weight: 6, min: 1, max: 4 }, { item: "ruby:ruby_wand", weight: 1, min: 1, max: 1 },
   ] }];
 
-  p.elements = [...pack.elements, golem, boar, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle];
+  const merchant = createElement("entity", "ruby_merchant", "Ruby Merchant");
+  merchant.texture = tex("ruby_merchant", "mob_humanoid", "#3f6b8f", "entity");
+  merchant.spawnEnabled = false;
+  merchant.eggBase = "#2b4a63";
+  merchant.eggOverlay = "#c4283c";
+  merchant.trades = [
+    { wants: "minecraft:emerald", wantsCount: 3, gives: "ruby:ruby", givesCount: 1, maxUses: 12 },
+    { wants: "ruby:ruby", wantsCount: 4, gives: "ruby:ruby_berry_crop_seeds", givesCount: 3, maxUses: 8 },
+    { wants: "ruby:ruby", wantsCount: 8, wants2: "minecraft:stick", wants2Count: 1, gives: "ruby:ruby_wand", givesCount: 1, maxUses: 2 },
+  ];
+
+  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle];
   p.textures = textures;
   p.packIcon = textures.find((t) => t.name === "ruby")?.id ?? "";
   return p;

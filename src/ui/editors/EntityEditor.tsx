@@ -12,6 +12,7 @@ import { geometryIdentifier } from "../../export/context";
 import { AUTO_LOOK, AUTO_WALK, RIG_ROLES, WHEN, activeSlots, animationLabel, defaultSlots, listAnimations, listBones, listControllers, remapSlots, resolveAnimation, resolveRig } from "../../export/entityAnimations";
 import { useStore } from "../../store/store";
 import type { Patch } from "./types";
+import { MobExtras } from "./MobExtras";
 
 const PRESETS = {
   passive: { populationControl: "animal", spawnBiomeTags: ["animal"], lightMin: 7, lightMax: 15, spawnSurface: true },
@@ -61,7 +62,7 @@ export function EntityEditor({ el, patch }: { el: EntityElement; patch: Patch<En
           <div className="toggles"><Toggle label="Immune to fire and lava" value={el.fireImmune} onChange={(fireImmune) => patch({ fireImmune })} /></div>
         ) : <>
         <div className="toggles">
-          <Toggle label="Floats in water" value={el.canSwim} onChange={(canSwim) => patch({ canSwim })} />
+          {el.movement !== "swim" && <Toggle label="Floats in water" value={el.canSwim} onChange={(canSwim) => patch({ canSwim })} />}
           <Toggle label="Immune to fire and lava" value={el.fireImmune} onChange={(fireImmune) => patch({ fireImmune })} />
           <Toggle label="Burns in sunlight" value={el.burnsInDaylight} onChange={(burnsInDaylight) => patch({ burnsInDaylight })} />
         </div>
@@ -69,6 +70,8 @@ export function EntityEditor({ el, patch }: { el: EntityElement; patch: Patch<En
         </>}
         <ChipList label="Extra families" values={el.families} onChange={(families) => patch({ families })} suggestions={["undead", "arthropod", "illager", "zombie", "skeleton"]} help="Families decide how other mobs react, e.g. 'undead' is hurt by Smite." />
       </Section>
+
+      {el.model !== "vanilla" && <MobExtras el={el} patch={patch} />}
 
       <Section title="Drops" hint={el.model === "vanilla" ? "Leave empty to keep the original mob's drops." : undefined}>
         {el.drops.map((d, i) => (

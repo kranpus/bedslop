@@ -93,6 +93,7 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [ ] Crops grow on random ticks, bone meal advances them, seeds plant only on the allowed blocks, grown crops drop produce
 - [ ] Structures generate where expected (surface sink, underground range, biome tags, rarity); chest `LootTable` paths fill on first open; "Place structure" rotates and centres correctly; custom blocks inside structures load
 - [ ] Particles: billboard size matches the preview (exported as half-width); colours/opacity fade; bouncing and vanishing on blocks; custom texture shows whole; "Spawn particles" height offset
+- [ ] Mob extras: taming chance and sitting; breeding makes babies that grow up; rider steers a walking mount; flyers hover and swimmers stay in water; ranged mobs fire own projectiles; trade screen opens and restocks; sounds play; variants differ between spawns
 - [ ] Manual animation slots: "When attacking" (`variable.attack_time`), "When hurt" and "When dying" fire at the right moment; one-shot controllers replay on each attack; "Match walking speed" stops foot sliding
 
 ## Phase 2: visual scripting and advanced content ⬜
@@ -111,7 +112,7 @@ Ordered by user value:
 7. ✅ **Crops**: 2-8 growth stages (crop `#` or cross shape), growth chance per random tick, bone meal, plant on farmland (or anything), seeds item, harvest drops (one seed when young; produce + extra seeds when grown). ⬜ needs-water/light checks, berry-bush style partial harvest.
 8. ✅ **Structures**: import a `.mcstructure` (own little-endian NBT reader/writer, checked against prismarine-nbt), coloured-cube 3D preview with block counts, a loot table per chest/barrel (own or vanilla; written into the file's block entities), natural generation via `minecraft:structure_template_feature` + feature rules (dimension, surface with sink or underground Y range, biome tags, rarity, facing, shift radius, grounded/unburied/overlap rules), and a "Place structure" step (`world.structureManager.place`, rotation, centred). The example has a Ruby Shrine with a loot chest. ⬜ data-driven jigsaw structures (still experimental in Bedrock), structure editing in the app, Java `.nbt` conversion.
 9. ✅ **Particles**: particle effect designer with a live 3D preview that simulates the game's motion rules (speed, gravity, drag, bouncing). Eight built-in white sprites (tinted) or your own texture; start/end colour, opacity and size; smooth or crisp; glow or take world light; burst or stream; ball/cube/flat-circle spawn area, outwards/up/inwards; lifetime, gravity, air resistance, spin; pass through, bounce or vanish on blocks. Seven presets. "Spawn particles" step for your effects and 25 vanilla ones; `/particle` works too. ⬜ flipbook animations, attaching particles to mobs/blocks (ambient), Molang curves.
-10. ⬜ **Entity extras**: tame, breed, ride, fly, swim AI, ranged attacks, custom trades (trade tables), ambient/hurt/death sounds, multiple textures (variants).
+10. ✅ **Entity extras** (preset and Blockbench mobs): walk, fly (hover AI, no fall damage) or swim (water navigation, breathes water, spawns underwater); melee or ranged attacks (vanilla projectiles or your own, interval and range); taming (items, chance, follow/defend owner, sit); breeding (items, babies that grow up, optional tame-only); riding (steerable on walking mobs, seat height, optional tame-only); villager-style trades (economy trade table, two wanted items, restocks); ambient/hurt/death/footstep sounds (own or vanilla); random texture variants (render controller on `query.variant`). Built as component groups and events. ⬜ saddles/carrot-on-a-stick control, chests on mounts, flying mounts, trade tiers and villager levels, custom animations for babies/sitting.
 11. ⬜ **Tags editor** for items and blocks; **block states/permutations** editor.
 12. ⬜ **Localization editor** for multiple languages.
 13. ⬜ **Music discs** (`jukebox_playable` + jukebox song definitions).
@@ -161,6 +162,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.7.0** (Phase 2, item 10): Mob extras for preset and Blockbench mobs: flying and swimming, ranged attacks, taming, breeding with babies, riding, trades, mob sounds and random texture variants. Example: the Ember Boar breeds and can be ridden, the Ruby Golem throws ruby shards, and a new Ruby Merchant trades. 108 tests.
 
 - **0.6.1**: Fix the extra whole-page scrollbar: on/off switches' hidden checkboxes were positioned against the page, stretching it below the window. The layout rows are now also capped so only the sidebar and editor scroll.
 

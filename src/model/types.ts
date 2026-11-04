@@ -222,6 +222,18 @@ export interface AutoRig {
   reverse: boolean;
 }
 
+export interface TradeEntry {
+  wants: string;
+  wantsCount: number;
+  /** Optional second item the trader wants. */
+  wants2?: string;
+  wants2Count?: number;
+  gives: string;
+  givesCount: number;
+  /** Times the trade can be used before the trader restocks. */
+  maxUses: number;
+}
+
 export interface EntityElement extends BaseElement {
   kind: "entity";
   model: "humanoid" | "quadruped" | "custom" | "vanilla";
@@ -271,6 +283,37 @@ export interface EntityElement extends BaseElement {
   knockbackResistance: number;
   temptItems: string[];
   families: string[];
+  // ----- Extras (presets and Blockbench models; vanilla templates keep their own behaviour) -----
+  /** How it gets around. */
+  movement?: "walk" | "fly" | "swim";
+  /** Items that tame it (empty = can't be tamed) and the chance per item, 0-100. */
+  tameItems?: string[];
+  tameChance?: number;
+  /** Tamed mobs sit and stay when their owner taps them. */
+  canSit?: boolean;
+  /** Items that make two of them breed (empty = no breeding). */
+  breedItems?: string[];
+  /** Minutes for a baby to grow up. */
+  growMinutes?: number;
+  breedNeedsTame?: boolean;
+  rideable?: boolean;
+  rideNeedsTame?: boolean;
+  /** The rider steers it (like a horse); otherwise it wanders with them on. */
+  steerable?: boolean;
+  /** Seat height in blocks. */
+  seatHeight?: number;
+  attackStyle?: "melee" | "ranged";
+  /** Projectile element name, or a vanilla id such as minecraft:arrow. */
+  projectile?: string;
+  /** Seconds between shots. */
+  attackInterval?: number;
+  /** How far it shoots from, in blocks. */
+  attackRange?: number;
+  trades?: TradeEntry[];
+  /** Sound per event: a Sound element name or a vanilla sound id. */
+  sounds?: { ambient?: string; hurt?: string; death?: string; step?: string };
+  /** Extra textures, one picked at random when it spawns (the main texture is one of the choices). */
+  variants?: string[];
 }
 
 export type RecipeType = "shaped" | "shapeless" | "furnace" | "stonecutter" | "smithing";

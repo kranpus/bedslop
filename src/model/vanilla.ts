@@ -91,3 +91,15 @@ export const VANILLA_PARTICLES = [
   "minecraft:basic_bubble_particle", "minecraft:large_explosion", "minecraft:huge_explosion_emitter", "minecraft:sonic_explosion",
   "minecraft:wind_explosion_emitter",
 ];
+
+/** Vanilla mob sounds (checked against Mojang's sound_definitions.json). */
+export const VANILLA_MOB_SOUNDS = (
+  "mob.wolf.bark mob.wolf.hurt mob.wolf.death mob.wolf.step mob.cow.say mob.cow.hurt mob.cow.step mob.pig.say mob.pig.death mob.pig.step " +
+  "mob.zombie.say mob.zombie.hurt mob.zombie.death mob.zombie.step mob.skeleton.say mob.skeleton.hurt mob.skeleton.death mob.skeleton.step " +
+  "mob.cat.meow mob.cat.hit mob.chicken.say mob.chicken.hurt mob.chicken.step mob.sheep.say mob.sheep.step mob.villager.idle mob.villager.hit " +
+  "mob.villager.death mob.bat.idle mob.bat.hurt mob.bat.death mob.blaze.breathe mob.blaze.hit mob.blaze.death mob.ghast.moan mob.ghast.scream " +
+  "mob.ghast.death mob.slime.small mob.spider.say mob.spider.death mob.spider.step mob.horse.idle mob.horse.hit mob.horse.death mob.fox.ambient " +
+  "mob.fox.hurt mob.fox.death mob.bee.aggressive mob.allay.idle mob.parrot.idle mob.fish.hurt mob.fish.flop mob.irongolem.hit " +
+  "mob.irongolem.death mob.irongolem.walk mob.endermen.idle mob.endermen.hit mob.endermen.death mob.creeper.say mob.creeper.death " +
+  "mob.wither.ambient mob.camel.ambient mob.frog.ambient mob.goat.ambient"
+).split(" ");

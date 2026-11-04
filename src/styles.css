@@ -504,3 +504,7 @@ table.vars td:nth-child(5) { min-width: 0; }
 .sprite-choice.on { outline: 2px solid var(--accent, #3f7d2f); outline-offset: 1px; }
 .sprite-own { width: 32px; height: 32px; display: grid; place-items: center; border: 1px dashed #8a9480; border-radius: 4px; font-size: 11px; }
 @media (max-width: 640px) { .particle-preview { width: 100%; } }
+.trade-row { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.trade-row .field { min-width: 160px; }
+.trade-row .field:has(.num) { min-width: 0; flex: 0 0 auto; width: 120px; }
+.trade-row .field:has(.num) input { width: 100%; }

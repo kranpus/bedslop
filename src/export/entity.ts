@@ -1,3 +1,4 @@
+import { applyExtras } from "./entityExtras";
 import type { EntityElement } from "../model/types";
 import { FORMATS, GenContext, geometryIdentifier } from "./context";
 import { clampInt, round } from "./content";
@@ -147,13 +148,14 @@ export function genEntity(ctx: GenContext, e: EntityElement) {
     c["minecraft:loot"] = { table: path };
   }
 
+  const extras = applyExtras(ctx, e, id, c);
   ctx.bp(`entities/${e.name}.json`, {
     format_version: FORMATS.entity,
     "minecraft:entity": {
       description: { identifier: id, is_spawnable: true, is_summonable: true, is_experimental: false },
-      component_groups: {},
+      component_groups: extras.groups,
       components: c,
-      events: {},
+      events: extras.events,
     },
   });
 
@@ -248,11 +250,11 @@ export function genEntity(ctx: GenContext, e: EntityElement) {
       description: {
         identifier: id,
         materials: { default: "entity_alphatest" },
-        textures: { default: texPath || "textures/misc/missing_texture" },
+        textures: { default: texPath || "textures/misc/missing_texture", ...extras.textures },
         geometry: { default: geometryId },
         ...(Object.keys(animations).length ? { animations } : {}),
         scripts: animate.length ? { animate } : {},
-        render_controllers: ["controller.render.default"],
+        render_controllers: [extras.renderController ?? "controller.render.default"],
         spawn_egg: { base_color: e.eggBase, overlay_color: e.eggOverlay },
       },
     },
@@ -338,8 +340,11 @@ function genVanillaEntity(ctx: GenContext, e: EntityElement) {
 function genSpawnRules(ctx: GenContext, e: EntityElement, id: string) {
   const tags = e.spawnBiomeTags.length ? e.spawnBiomeTags : ["animal"];
   const cond: Record<string, unknown> = {};
-  if (e.spawnSurface) cond["minecraft:spawns_on_surface"] = {};
-  if (!e.spawnSurface || e.populationControl === "monster") cond["minecraft:spawns_underground"] = {};
+  if (e.model !== "vanilla" && e.movement === "swim") cond["minecraft:spawns_underwater"] = {};
+  else {
+    if (e.spawnSurface) cond["minecraft:spawns_on_surface"] = {};
+    if (!e.spawnSurface || e.populationControl === "monster") cond["minecraft:spawns_underground"] = {};
+  }
   cond["minecraft:brightness_filter"] = { min: clampInt(e.lightMin, 0, 15), max: clampInt(Math.max(e.lightMin, e.lightMax), 0, 15), adjust_for_weather: true };
   cond["minecraft:weight"] = { default: clampInt(e.spawnWeight, 1, 1000) };
   cond["minecraft:herd"] = { min_size: clampInt(e.herdMin, 1, 32), max_size: clampInt(Math.max(e.herdMin, e.herdMax), 1, 32) };
