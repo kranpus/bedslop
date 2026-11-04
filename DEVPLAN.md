@@ -92,6 +92,7 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [ ] Projectiles: snowball-style sprite faces the camera; arrow sticks in blocks; bow draws, uses the ammo list in order and loses durability
 - [ ] Crops grow on random ticks, bone meal advances them, seeds plant only on the allowed blocks, grown crops drop produce
 - [ ] Structures generate where expected (surface sink, underground range, biome tags, rarity); chest `LootTable` paths fill on first open; "Place structure" rotates and centres correctly; custom blocks inside structures load
+- [ ] Particles: billboard size matches the preview (exported as half-width); colours/opacity fade; bouncing and vanishing on blocks; custom texture shows whole; "Spawn particles" height offset
 - [ ] Manual animation slots: "When attacking" (`variable.attack_time`), "When hurt" and "When dying" fire at the right moment; one-shot controllers replay on each attack; "Match walking speed" stops foot sliding
 
 ## Phase 2: visual scripting and advanced content ⬜
@@ -109,7 +110,7 @@ Ordered by user value:
 6. ✅ **Special block shapes**: a Shape picker on blocks: slab (stacks into a double slab that drops two), stairs, carpet, trapdoor (click to open), door (two tall, top/bottom textures, places its top half, open/close), fence, wall and pane (connect to neighbours and solid blocks via scripts). Generated geometry, hitboxes and 3D preview. ⬜ stair corners, upside-down stairs, fence gates, buttons/pressure plates.
 7. ✅ **Crops**: 2-8 growth stages (crop `#` or cross shape), growth chance per random tick, bone meal, plant on farmland (or anything), seeds item, harvest drops (one seed when young; produce + extra seeds when grown). ⬜ needs-water/light checks, berry-bush style partial harvest.
 8. ✅ **Structures**: import a `.mcstructure` (own little-endian NBT reader/writer, checked against prismarine-nbt), coloured-cube 3D preview with block counts, a loot table per chest/barrel (own or vanilla; written into the file's block entities), natural generation via `minecraft:structure_template_feature` + feature rules (dimension, surface with sink or underground Y range, biome tags, rarity, facing, shift radius, grounded/unburied/overlap rules), and a "Place structure" step (`world.structureManager.place`, rotation, centred). The example has a Ruby Shrine with a loot chest. ⬜ data-driven jigsaw structures (still experimental in Bedrock), structure editing in the app, Java `.nbt` conversion.
-9. ⬜ **Particles**: visual designer for RP particle JSON, spawnable from procedures.
+9. ✅ **Particles**: particle effect designer with a live 3D preview that simulates the game's motion rules (speed, gravity, drag, bouncing). Eight built-in white sprites (tinted) or your own texture; start/end colour, opacity and size; smooth or crisp; glow or take world light; burst or stream; ball/cube/flat-circle spawn area, outwards/up/inwards; lifetime, gravity, air resistance, spin; pass through, bounce or vanish on blocks. Seven presets. "Spawn particles" step for your effects and 25 vanilla ones; `/particle` works too. ⬜ flipbook animations, attaching particles to mobs/blocks (ambient), Molang curves.
 10. ⬜ **Entity extras**: tame, breed, ride, fly, swim AI, ranged attacks, custom trades (trade tables), ambient/hurt/death sounds, multiple textures (variants).
 11. ⬜ **Tags editor** for items and blocks; **block states/permutations** editor.
 12. ⬜ **Localization editor** for multiple languages.
@@ -160,6 +161,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.6.0** (Phase 2, item 9): Particle effects. Designer with live 3D preview, built-in sprites or your own texture, colour/opacity/size over lifetime, burst or stream, spawn area and direction, gravity, air resistance, spin, block collisions, and seven presets. New "Spawn particles" step (your effects or Minecraft's). The example wand now sparkles. 97 tests.
 
 - **0.5.1**: Fix custom block model import: file pickers no longer filter by file type (phones and tablets greyed out `.bbmodel` and `.mcstructure` files); "Import .bbmodel…" button right under Shape on every block (switches it to the custom model); drag-and-drop a model onto the block's Look section; the model panel now sits under Shape instead of below the textures; clearer messages for wrong files; models too big or too far outside the block for Minecraft to draw are flagged in the editor and at export. 88 tests.
 

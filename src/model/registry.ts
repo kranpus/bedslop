@@ -27,6 +27,7 @@ export const KINDS: KindInfo[] = [
   { kind: "loot", label: "Loot table", blurb: "Weighted drops for blocks, mobs and chests.", group: "Content", glyph: "L", color: "#9a6b1f" },
   { kind: "ore", label: "Ore generation", blurb: "Place veins of any block underground in the Overworld, Nether or End.", group: "World", glyph: "O", color: "#5c6470" },
   { kind: "structure", label: "Structure", blurb: "Import a .mcstructure built in game: generate it in the world, fill its chests with loot, or place it from a procedure.", group: "World", glyph: "⌂", color: "#6b5a44" },
+  { kind: "particle", label: "Particle effect", blurb: "Design sparkles, smoke, bursts and trails with a live preview, then spawn them from procedures or /particle.", group: "World", glyph: "✦", color: "#8a5aa8" },
   { kind: "procedure", label: "Procedure", blurb: "When something happens, do something: no coding needed.", group: "Logic", glyph: "▶", color: "#2f7d6d" },
   { kind: "command", label: "Command", blurb: "A custom slash command, e.g. /myaddon:heal, that runs actions.", group: "Logic", glyph: "/", color: "#2c6a8c" },
   { kind: "function", label: "Function", blurb: "A .mcfunction file of vanilla commands, optionally run every tick.", group: "Logic", glyph: "ƒ", color: "#46607a" },
@@ -110,6 +111,12 @@ export function createElement<K extends ElementKind>(kind: K, name: string, disp
     crop: () => ({
       ...base, kind: "crop", stageTextures: ["", "", "", ""], look: "crop", growthChance: 33, boneMeal: true,
       produce: "", produceMin: 1, produceMax: 3, seedsTexture: "", seedsMax: 2, placeableOn: ["minecraft:farmland"],
+    }),
+    particle: () => ({
+      ...base, kind: "particle", sprite: "spark", texture: "", colorStart: "#ffe680", colorEnd: "#ff6a3d", alphaStart: 100, alphaEnd: 0,
+      sizeStart: 0.25, sizeEnd: 0.05, blend: "blend", lit: false, mode: "burst", count: 24, rate: 20, duration: 1,
+      shape: "sphere", radius: 0.2, surfaceOnly: false, direction: "outwards", spread: 0.3, speedMin: 1, speedMax: 3,
+      lifetimeMin: 0.6, lifetimeMax: 1.2, gravity: 2, drag: 1.5, collide: "none", bounce: 0.4, spin: 0,
     }),
     structure: () => ({
       ...base, kind: "structure", file: "", fileName: "", loot: {}, generate: true, dimension: "overworld", placement: "surface",

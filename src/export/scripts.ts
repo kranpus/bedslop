@@ -108,6 +108,13 @@ export const RUNTIME = `const BC = {
   },
   dropItem(ctx, a, item, n) { const l = BC.at(ctx, a); if (l) BC.dim(ctx).spawnItem(new ItemStack(item, n), l); },
   spawn(ctx, a, id, n) { const l = BC.at(ctx, a); if (l) for (let i = 0; i < n; i++) BC.dim(ctx).spawnEntity(id, l); },
+  particle(ctx, name, a, height) {
+    const l = BC.at(ctx, a);
+    if (!l) return;
+    const id = name.includes(":") ? name : NAMESPACE + ":" + name;
+    const block = a === "block" && ctx.block;
+    BC.dim(ctx).spawnParticle(id, { x: l.x + (block ? 0.5 : 0), y: l.y + Number(height || 0), z: l.z + (block ? 0.5 : 0) });
+  },
   /** Places one of this add-on's structures; "centered" puts its middle (not its corner) on the spot. */
   structure(ctx, name, a, degrees, centered) {
     const l = BC.at(ctx, a);
@@ -512,6 +519,10 @@ export function buildScript(ctx: GenContext): string | null {
   }
   if (stubs.length) sections += "\n// Missing references\n" + stubs.join("\n") + "\n";
   const structures = new Set(ctx.project.elements.filter((e) => e.kind === "structure").map((e) => e.name));
+  const particles = new Set(ctx.project.elements.filter((e) => e.kind === "particle").map((e) => e.name));
+  for (const m of new Set([...sections.matchAll(/BC\.particle\(ctx, "([^"]+)"/g)].map((m) => m[1]))) {
+    if (!m.includes(":") && !particles.has(m)) ctx.warn(undefined, `A step spawns the particle effect "${m}", which doesn't exist (renamed or deleted?).`, "error");
+  }
   for (const m of new Set([...sections.matchAll(/BC\.structure\(ctx, "([^"]+)"/g)].map((m) => m[1]))) {
     if (!m.includes(":") && !structures.has(m)) ctx.warn(undefined, `A step places the structure "${m}", which doesn't exist (renamed or deleted?).`, "error");
   }

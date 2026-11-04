@@ -174,6 +174,8 @@ describe("example project", () => {
     const shrine = parseStructure(files.get("BP/structures/ruby/ruby_shrine.mcstructure") as Uint8Array);
     expect(shrine.containers.map((c) => c.loot)).toEqual(["loot_tables/chests/ruby_ruby_shrine_loot.json"]);
     expect(shrine.counts[0][0]).toBe("minecraft:stone_bricks");
+    expect(files.has("RP/particles/ruby_sparkle.json")).toBe(true);
+    expect(files.get("BP/scripts/main.js")).toContain(`BC.particle(ctx, "ruby_sparkle"`);
     expect(typecheckScript(files.get("BP/scripts/main.js") as string)).toEqual([]);
   });
 });

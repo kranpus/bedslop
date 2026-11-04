@@ -224,6 +224,9 @@ export function exampleProject(p: Project): Project {
     { id: uid(), type: "actionbar", params: { text: "Zap!" }, chance: 100 },
   ];
   zap.conditions = [{ id: uid(), type: "sneaking", params: {}, negate: false }];
+  zap.actions.push({ id: uid(), type: "spawn_particle", params: { particle: "ruby_sparkle", at: "player", height: 1.2 }, chance: 100 });
+  const sparkle = createElement("particle", "ruby_sparkle", "Ruby sparkle");
+  Object.assign(sparkle, { sprite: "spark", colorStart: "#ff9aa8", colorEnd: "#c4283c", count: 36, radius: 0.4, speedMin: 0.8, speedMax: 2, gravity: -0.5, spin: 120 });
 
   const welcome = createElement("procedure", "welcome", "Welcome message");
   welcome.trigger = "player_join";
@@ -350,7 +353,7 @@ export function exampleProject(p: Project): Project {
     { item: "ruby:ruby_berry_crop_seeds", weight: 6, min: 1, max: 4 }, { item: "ruby:ruby_wand", weight: 1, min: 1, max: 1 },
   ] }];
 
-  p.elements = [...pack.elements, golem, boar, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot];
+  p.elements = [...pack.elements, golem, boar, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle];
   p.textures = textures;
   p.packIcon = textures.find((t) => t.name === "ruby")?.id ?? "";
   return p;

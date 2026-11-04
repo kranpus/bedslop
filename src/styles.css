@@ -496,3 +496,11 @@ table.vars td:nth-child(5) { min-width: 0; }
 @media (max-width: 640px) { .container-row { grid-template-columns: 1fr; } .structure-preview { width: 100%; } }
 .drop-target { outline: 2px dashed var(--accent, #3f7d2f); outline-offset: 6px; border-radius: 8px; }
 .model-hint { align-items: center; gap: 10px; }
+.particle-preview { width: 320px; height: 300px; }
+.particle-preview.dark { background: radial-gradient(ellipse at 50% 35%, #2c342d 0%, #171c18 80%); }
+.particle-preview.dark .preview-hint { color: #b9c2b4; }
+.sprite-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+.sprite-choice { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 78px; padding: 8px 4px; border: 1px solid var(--line); border-radius: var(--radius); background: #2a302b; color: #e8ece4; font-size: 11.5px; cursor: pointer; }
+.sprite-choice.on { outline: 2px solid var(--accent, #3f7d2f); outline-offset: 1px; }
+.sprite-own { width: 32px; height: 32px; display: grid; place-items: center; border: 1px dashed #8a9480; border-radius: 4px; font-size: 11px; }
+@media (max-width: 640px) { .particle-preview { width: 100%; } }

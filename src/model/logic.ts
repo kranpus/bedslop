@@ -5,7 +5,7 @@ import type { TriggerType } from "./types";
 
 export type ParamKind =
   | "text" | "longtext" | "number" | "bool" | "item" | "block" | "entity" | "effect" | "sound"
-  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure";
+  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle";
 
 export interface ParamSpec {
   key: string;
@@ -217,6 +217,18 @@ export const ACTIONS: ActionSpec[] = [
     ],
     summary: (p) => `Explosion (${p.power}) at ${p.at}`,
     code: (g) => `BC.explode(ctx, ${S(g.f("at"))}, ${g.e("power")}, ${!!g.f("fire")}, ${!!g.f("breaks")});`,
+  },
+  {
+    type: "spawn_particle", label: "Spawn particles", group: "World",
+    params: [
+      { key: "particle", label: "Particle effect", kind: "particle", default: "" },
+      at("player"),
+      { key: "height", label: "Height above", kind: "number", default: 1 },
+    ],
+    summary: (p) => `Particles ${p.particle || "(none)"} at ${p.at}`,
+    code: (g) => (g.f("particle")
+      ? `BC.particle(ctx, ${S(g.f("particle"))}, ${S(g.f("at"))}, ${g.e("height")});`
+      : "// No particle effect selected"),
   },
   {
     type: "place_structure", label: "Place structure", group: "World",

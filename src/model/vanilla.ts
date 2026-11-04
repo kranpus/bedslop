@@ -80,3 +80,14 @@ export const VANILLA_SOUNDS = [
 ];
 
 export const MENU_CATEGORIES = ["construction", "equipment", "items", "nature", "none"] as const;
+
+/** Vanilla particle effects that can be spawned by id (from Mojang's resource pack). */
+export const VANILLA_PARTICLES = [
+  "minecraft:heart_particle", "minecraft:villager_happy", "minecraft:villager_angry", "minecraft:note_particle",
+  "minecraft:basic_flame_particle", "minecraft:blue_flame_particle", "minecraft:basic_smoke_particle", "minecraft:campfire_smoke_particle",
+  "minecraft:critical_hit_emitter", "minecraft:magic_critical_hit_emitter", "minecraft:endrod", "minecraft:totem_particle",
+  "minecraft:portal_reverse_particle", "minecraft:soul_particle", "minecraft:snowflake_particle", "minecraft:electric_spark_particle",
+  "minecraft:glow_particle", "minecraft:enchanting_table_particle", "minecraft:lava_particle", "minecraft:cherry_leaves_particle",
+  "minecraft:basic_bubble_particle", "minecraft:large_explosion", "minecraft:huge_explosion_emitter", "minecraft:sonic_explosion",
+  "minecraft:wind_explosion_emitter",
+];

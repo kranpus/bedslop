@@ -2,6 +2,7 @@
 // Everything here is plain JSON so a project can be saved, exported and re-imported as-is.
 
 export type ElementKind =
+  | "particle"
   | "structure"
   | "block"
   | "plant"
@@ -518,6 +519,49 @@ export interface StructureElement extends BaseElement {
   canReplace: string[];
 }
 
+export interface ParticleElement extends BaseElement {
+  kind: "particle";
+  /** A built-in white sprite (tinted by the colours below) or "custom" to use `texture`. */
+  sprite: "dot" | "circle" | "spark" | "star" | "heart" | "square" | "ring" | "puff" | "custom";
+  texture: string;
+  colorStart: string;
+  colorEnd: string;
+  /** Opacity 0-100 at birth and at death. */
+  alphaStart: number;
+  alphaEnd: number;
+  /** Width in blocks at birth and at death. */
+  sizeStart: number;
+  sizeEnd: number;
+  /** alpha: crisp cut-out; blend: smooth transparency. */
+  blend: "alpha" | "blend";
+  /** Darker in shadow (off = glows). */
+  lit: boolean;
+  /** burst: all at once; stream: steadily for `duration` seconds. */
+  mode: "burst" | "stream";
+  count: number;
+  rate: number;
+  duration: number;
+  shape: "sphere" | "box" | "disc";
+  /** Sphere/disc radius, or half the box width, in blocks. 0 = from a single point. */
+  radius: number;
+  surfaceOnly: boolean;
+  direction: "outwards" | "up" | "inwards";
+  /** Sideways spread for "up", 0-1. */
+  spread: number;
+  speedMin: number;
+  speedMax: number;
+  lifetimeMin: number;
+  lifetimeMax: number;
+  /** Blocks/s² pulling down (negative rises). */
+  gravity: number;
+  /** Air resistance, 0 = none. */
+  drag: number;
+  collide: "none" | "bounce" | "vanish";
+  bounce: number;
+  /** Max spin in degrees per second, 0 = none. */
+  spin: number;
+}
+
 export type ModElement =
   | BlockElement
   | PlantElement
@@ -536,7 +580,8 @@ export type ModElement =
   | FormElement
   | ProjectileElement
   | CropElement
-  | StructureElement;
+  | StructureElement
+  | ParticleElement;
 
 export type ElementOf<K extends ElementKind> = Extract<ModElement, { kind: K }>;
 

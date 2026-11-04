@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { ACTIONS, CONDITIONS, TRIGGERS, actionSpec, conditionSpec, defaultParams, triggerSpec, type ParamSpec } from "../../model/logic";
 import { uid } from "../../model/registry";
 import type { Action, CommandArg, CommandArgType, CommandElement, Condition, ProcedureElement } from "../../model/types";
-import { EFFECTS, VANILLA_SOUNDS } from "../../model/vanilla";
+import { EFFECTS, VANILLA_PARTICLES, VANILLA_SOUNDS } from "../../model/vanilla";
 import { GenContext } from "../../export/context";
 import { genCommands, genProcedure } from "../../export/scripts";
 import { useStore } from "../../store/store";
@@ -52,6 +52,20 @@ function ParamInput({ spec, value, onChange, slots }: { spec: ParamSpec; value: 
       ]} />;
     case "select":
       return <Select label={spec.label} value={String(v)} onChange={onChange} options={spec.options ?? []} />;
+    case "particle": {
+      const own = project.elements.filter((e) => e.kind === "particle");
+      const known = !v || own.some((e) => e.name === v) || VANILLA_PARTICLES.includes(String(v));
+      return (
+        <Field label={spec.label}>
+          <select value={String(v)} onChange={(e) => onChange(e.target.value)}>
+            <option value="">Choose…</option>
+            {own.length > 0 && <optgroup label="Your particle effects">{own.map((e) => <option key={e.id} value={e.name}>{e.displayName}</option>)}</optgroup>}
+            <optgroup label="Minecraft's">{VANILLA_PARTICLES.map((id) => <option key={id} value={id}>{id.replace("minecraft:", "").replace(/_/g, " ")}</option>)}</optgroup>
+            {!known && <option value={String(v)}>{String(v)} (missing)</option>}
+          </select>
+        </Field>
+      );
+    }
     case "variable": case "procedure": case "form": case "structure": {
       const names = spec.kind === "variable"
         ? (project.variables ?? []).map((x) => x.name)
@@ -211,6 +225,7 @@ function BlocksSection({ el, patch, isCommand }: { el: ProcedureElement | Comman
         procedures={project.elements.filter((e) => e.kind === "procedure" && e.id !== el.id).map((e) => e.name)}
         forms={project.elements.filter((e) => e.kind === "form").map((e) => e.name)}
         structures={project.elements.filter((e) => e.kind === "structure").map((e) => e.name)}
+        particles={project.elements.filter((e) => e.kind === "particle").map((e) => e.name)}
         args={isCommand ? ((el as CommandElement).args ?? []).map((a) => a.name) : []}
         isCommand={isCommand}
       />

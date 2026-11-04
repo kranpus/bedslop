@@ -39,7 +39,7 @@ export const PARITY: ParityRow[] = [
   { mcreator: "GUI", bedrock: "@minecraft/server-ui forms", status: "partial", phase: 2, notes: "Button menus with icons, input forms and yes/no dialogs are ready. Slot-based container GUIs need JSON UI (phase 3)." },
   { mcreator: "Projectile / ranged item", bedrock: "Projectile entity + shooter/throwable", status: "done", phase: 2, notes: "Sprite, arrow or Blockbench look; damage, fire, effects, stick or vanish; throwables, bows and ammo; on-hit procedure triggers." },
   { mcreator: "Structure", bedrock: ".mcstructure + structure_template_feature", status: "done", phase: 2, notes: "Import from a Structure Block, 3D preview, loot tables per chest, natural generation (surface/underground, biomes, rarity, ground rules), \"Place structure\" step. Jigsaw (multi-piece) structures wait until Bedrock makes them stable." },
-  { mcreator: "Particle", bedrock: "RP particle JSON", status: "planned", phase: 2, notes: "Visual particle designer." },
+  { mcreator: "Particle", bedrock: "RP particle JSON", status: "done", phase: 2, notes: "Designer with live preview, sprites or own texture, colour/size over life, burst or stream, physics and collisions; Spawn particles step." },
   { mcreator: "Plant (crops)", bedrock: "Block states + random tick script", status: "done", phase: 2, notes: "2-8 stages, bone meal, seeds item, young/grown drops." },
   { mcreator: "Block (stairs, slabs, doors, fences)", bedrock: "Geometry presets + states + scripts", status: "done", phase: 2, notes: "Slab, stairs, carpet, trapdoor, door, fence, wall, pane. Stair corners and fence gates not yet." },
   { mcreator: "Entity (tame, breed, ride, fly, trade)", bedrock: "Component groups + events", status: "planned", phase: 2, notes: "" },
