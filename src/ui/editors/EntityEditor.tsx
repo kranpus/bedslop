@@ -3,8 +3,9 @@ import { BIOME_TAGS } from "../../model/vanilla";
 import { ChipList, Color, Field, Grid, IdInput, Num, Section, Segmented, Select, Slider, Toggle } from "../fields";
 import { TexturePicker } from "../TexturePicker";
 import { MobPreview } from "../MobPreview";
-import { useMemo, useState } from "react";
-import { SAMPLES_PAGE, VANILLA_MOBS, downloadTemplate, mobFileUrls, mobLabel, readTemplateFiles, templateFields } from "../../vanilla/templates";
+import { useEffect, useMemo, useState } from "react";
+import { type VanillaLibrary, clearLibrary, emptyLibrary, importIntoLibrary, libraryMob, libraryMobIds, loadLibrary, saveLibrary } from "../../vanilla/library";
+import { SAMPLES_PAGE, SAMPLES_TAG, VANILLA_MOBS, downloadTemplate, mobFileUrls, mobLabel, readTemplateFiles, templateFields, templateFromLibrary } from "../../vanilla/templates";
 import { normalizeJsonText } from "../../vanilla/json";
 import { convertBbmodel, isBbmodel } from "../../export/bbmodel";
 import { geometryIdentifier } from "../../export/context";
@@ -383,26 +384,57 @@ function RigEditor({ el, patch, bones }: { el: EntityElement; patch: Patch<Entit
   );
 }
 
-/** Pick a vanilla mob as the starting point: downloads its files from Mojang's repo, or takes uploads. */
+/** Pick a vanilla mob as the starting point: from imported packs, Mojang's GitHub, or uploaded files. */
 function VanillaTemplatePanel({ el, patch }: { el: EntityElement; patch: Patch<EntityElement> }) {
   const [query, setQuery] = useState("");
   const [pick, setPick] = useState(el.vanillaBase ?? "minecraft:zombie");
   const [state, setState] = useState<{ busy?: boolean; error?: string; ok?: string }>({});
   const [choosing, setChoosing] = useState(!el.vanillaBehavior);
   const [uploads, setUploads] = useState<{ name: string; text: string }[]>([]);
-  const list = useMemo(() => VANILLA_MOBS.filter((m) => !query || mobLabel(m.id).toLowerCase().includes(query.toLowerCase())), [query]);
+  const [lib, setLib] = useState<VanillaLibrary | null>(null);
+  const [importing, setImporting] = useState("");
+  useEffect(() => { loadLibrary().then(setLib); }, []);
+  const libIds = useMemo(() => libraryMobIds(lib), [lib]);
+  const allIds = useMemo(() => Array.from(new Set([...VANILLA_MOBS.map((m) => m.id), ...libIds])).sort(), [libIds]);
+  const list = useMemo(() => allIds.filter((id) => !query || mobLabel(id).toLowerCase().includes(query.toLowerCase())), [allIds, query]);
   // If the search hides the current pick, use the first match so the button and the list agree.
-  const mob = list.find((m) => m.id === pick) ?? list[0];
+  const pickedId = list.includes(pick) ? pick : list[0];
+  const mob = VANILLA_MOBS.find((m) => m.id === pickedId);
 
   const use = async () => {
-    if (!mob) return;
+    if (!pickedId) return;
+    const fromLib = lib ? templateFromLibrary(lib, pickedId, libraryMob) : null;
+    if (fromLib) {
+      patch(fromLib);
+      setState({ ok: `Loaded ${mobLabel(pickedId)} from your imported Minecraft files.` });
+      setChoosing(false);
+      return;
+    }
+    if (!mob) return setState({ error: `${mobLabel(pickedId)} isn't in your imported files.` });
     setState({ busy: true });
     try {
       patch(await downloadTemplate(mob));
       setState({ ok: `Loaded ${mobLabel(mob.id)} from Mojang's files.` });
       setChoosing(false);
     } catch {
-      setState({ error: "Couldn't download from GitHub here (some views block it). Open the two files below, save them, and upload them instead." });
+      setState({ error: "Couldn't download from GitHub here: this page isn't allowed to connect to other websites. Import Minecraft's vanilla packs once (below) and every mob will load instantly." });
+    }
+  };
+
+  const importPacks = async (files: File[]) => {
+    setImporting(`Reading ${files.map((f) => f.name).join(", ")}…`);
+    try {
+      const next = lib ? structuredClone(lib) : emptyLibrary();
+      const report = await importIntoLibrary(next, await Promise.all(files.map(async (f) => ({ name: f.name, data: await f.arrayBuffer() }))));
+      await saveLibrary(next);
+      setLib(next);
+      const ids = libraryMobIds(next).length;
+      const missing = !Object.keys(next.behaviors).length ? " Now add the behaviour pack too." : !Object.keys(next.clients).length ? " Now add the resource pack too." : "";
+      setState(report.problems.length && !ids ? { error: report.problems.join(" ") } : { ok: `Imported. ${ids} mobs ready${missing}` });
+    } catch (e) {
+      setState({ error: e instanceof Error ? e.message : "Those files couldn't be imported." });
+    } finally {
+      setImporting("");
     }
   };
 
@@ -448,11 +480,11 @@ function VanillaTemplatePanel({ el, patch }: { el: EntityElement; patch: Patch<E
     <div className="bb-import on">
       <strong>Start from a Minecraft mob</strong>
       <div className="row wrap">
-        <input type="search" placeholder={`Search ${VANILLA_MOBS.length} mobs`} value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search mobs" className="grow" />
-        <select value={mob?.id ?? ""} onChange={(e) => setPick(e.target.value)} aria-label="Mob" size={1}>
-          {list.map((m) => <option key={m.id} value={m.id}>{mobLabel(m.id)}</option>)}
+        <input type="search" placeholder={`Search ${allIds.length} mobs`} value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search mobs" className="grow" />
+        <select value={pickedId ?? ""} onChange={(e) => setPick(e.target.value)} aria-label="Mob" size={1}>
+          {list.map((id) => <option key={id} value={id}>{mobLabel(id)}{lib && !libIds.includes(id) && libIds.length ? " (not imported)" : ""}</option>)}
         </select>
-        <button type="button" className="btn small primary" disabled={!mob || state.busy} onClick={use}>{state.busy ? "Downloading…" : `Use ${mob ? mobLabel(mob.id) : "mob"}`}</button>
+        <button type="button" className="btn small primary" disabled={!pickedId || state.busy} onClick={use}>{state.busy ? "Downloading…" : `Use ${pickedId ? mobLabel(pickedId) : "mob"}`}</button>
         {el.vanillaBehavior && <button type="button" className="btn small ghost" onClick={() => setChoosing(false)}>Cancel</button>}
       </div>
       <p className="field-help">
@@ -461,7 +493,32 @@ function VanillaTemplatePanel({ el, patch }: { el: EntityElement; patch: Patch<E
       </p>
       {state.error && <p className="warn-text" role="status">{state.error}</p>}
       {state.ok && <p className="ok-text" role="status">{state.ok}</p>}
-      <details className="upload-files" open={!!state.error}>
+      <div className="library">
+        <div className="row between">
+          <div className="stack tight">
+            <strong>{libIds.length ? `Minecraft files imported: ${libIds.length} mobs ready` : "Import Minecraft's files once (recommended)"}</strong>
+            <span className="field-help">
+              {libIds.length
+                ? `From ${lib!.sources.join(", ") || "your files"}. Kept in this browser only.`
+                : "Works everywhere, including this hosted page. Download Mojang's vanilla behaviour and resource packs, then add both ZIPs here. They stay in this browser."}
+            </span>
+          </div>
+          <label className={`btn small${libIds.length ? "" : " primary"}`}>
+            {importing ? "Importing…" : libIds.length ? "Add or update…" : "Import packs (.zip)…"}
+            <input type="file" accept=".zip,.mcpack,.json" multiple hidden disabled={!!importing} onChange={(e) => { const fs = Array.from(e.target.files ?? []); e.target.value = ""; if (fs.length) importPacks(fs); }} />
+          </label>
+        </div>
+        {importing && <p className="muted small" role="status">{importing}</p>}
+        {!libIds.length && (
+          <div className="row wrap">
+            <a className="btn small ghost" href="https://aka.ms/behaviorpacktemplate" target="_blank" rel="noreferrer">Vanilla behaviour pack ↗</a>
+            <a className="btn small ghost" href="https://aka.ms/resourcepacktemplate" target="_blank" rel="noreferrer">Vanilla resource pack ↗</a>
+            <a className="btn small ghost" href={`https://github.com/Mojang/bedrock-samples/archive/refs/tags/${SAMPLES_TAG}.zip`} target="_blank" rel="noreferrer">Or both in one big ZIP (all of bedrock-samples) ↗</a>
+          </div>
+        )}
+        {!!libIds.length && <button type="button" className="btn small ghost" onClick={async () => { await clearLibrary(); setLib(null); setState({}); }}>Remove imported files</button>}
+      </div>
+      <details className="upload-files" open={!!state.error && !libIds.length}>
         <summary>Or upload the mob's two files yourself</summary>
         <div className="stack tight">
           {urls && (

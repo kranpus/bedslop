@@ -157,6 +157,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 
 ## Changelog
 
+- **0.3.2**: Vanilla templates work where GitHub is blocked (like the claude.ai preview): import Minecraft's vanilla behaviour/resource pack ZIPs (or the bedrock-samples ZIP, .mcpack or loose .json) once; the app keeps only what templates need (~3 MB) in the browser, picks the newest look per mob, and adds sounds, model and default texture for the preview. Mobs in newer packs appear automatically. Adds a GitHub Pages workflow for self-hosting. 65 tests.
+
 - **0.3.1**: Fix vanilla mob templates: files squashed onto one line (whose `//` comments cut off the rest) are recovered with a note; uploads are checked on arrival (either order, same mob, right kind of file) with specific messages instead of a misleading "missing" error at export; upload is always available, both files at once. Copies now point breeding partners, offspring and spawned babies at themselves instead of the vanilla mob. Manual model JSON uploads are cleaned the same way. 62 tests.
 
 - **0.3.0**: Blocks: custom Blockbench models with 3D preview and fitted hitboxes, crafting stations with per-recipe "Craft in", storage blocks, redstone output and input with lamp behaviour and new redstone triggers, per-block format versions and version checks. Vanilla mob templates for 89 mobs (downloaded from Mojang's bedrock-samples, reskin optional), with legacy-geometry preview. Example gains a Ruby Workbench. 58 tests; block scripts type-checked against `@minecraft/server` 2.11.0.

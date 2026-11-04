@@ -28,9 +28,13 @@ npm run build
 
 The output in `dist/` is fully static.
 
+### Publish it on GitHub Pages
+
+The repo includes `.github/workflows/pages.yml`. Push to GitHub, then in the repository go to **Settings → Pages → Source: GitHub Actions**. Every push then tests, builds and publishes the app at `https://<your-name>.github.io/<repo>/`. Hosted this way, vanilla mob templates download straight from Mojang's GitHub and add-ons download as `.mcaddon` files.
+
 ## Vanilla mob templates
 
-`src/vanilla/index.json` lists Minecraft's mobs and where their files live in [Mojang/bedrock-samples](https://github.com/Mojang/bedrock-samples) (ids and file names only). The app downloads a mob's files from that repository when someone picks it. Those files are © Mojang AB under the Minecraft EULA and are not stored in this repo. To rebuild the index for a newer release:
+`src/vanilla/index.json` lists Minecraft's mobs and where their files live in [Mojang/bedrock-samples](https://github.com/Mojang/bedrock-samples) (ids and file names only). The app downloads a mob's files from that repository when someone picks it, or reads them from Minecraft's vanilla behaviour/resource pack ZIPs that the user imports once (kept in their browser; needed where the page can't reach GitHub, such as the claude.ai preview). Those files are © Mojang AB under the Minecraft EULA and are not stored in this repo. To rebuild the index for a newer release:
 
 ```bash
 TAG=v1.26.60.5 node scripts/build-vanilla-index.mjs path/to/bedrock-samples

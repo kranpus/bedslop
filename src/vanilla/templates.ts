@@ -130,3 +130,14 @@ export function retargetSelfReferences(value: unknown, from: string, to: string)
   }
   return value;
 }
+
+/** Builds a template from the local library of imported packs (see library.ts). */
+export function templateFromLibrary(lib: import("./library").VanillaLibrary, id: string, libraryMob: typeof import("./library").libraryMob): Partial<EntityElement> | null {
+  const m = libraryMob(lib, id);
+  if (!m) return null;
+  return {
+    model: "vanilla", vanillaBase: id, vanillaBehavior: m.behavior, vanillaClient: m.client, vanillaSounds: m.sounds,
+    vanillaGeometry: m.geometry, vanillaTexture: m.texture, spawnEnabled: false, drops: [], families: [],
+    ...templateFields(m.behavior, m.client),
+  };
+}

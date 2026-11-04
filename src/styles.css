@@ -483,3 +483,4 @@ table.vars td:nth-child(5) { min-width: 0; }
 .slider output { white-space: nowrap; }
 .upload-files summary { cursor: pointer; font-size: 13px; color: var(--accent); font-weight: 500; }
 .upload-files[open] summary { margin-bottom: 8px; }
+.library { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--line); }
