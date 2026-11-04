@@ -1,11 +1,11 @@
-// Catalog of triggers, conditions and actions for procedures and commands.
+// Catalog of triggers, conditions and actions for procedures, commands and forms.
 // Each entry carries both the UI description and the JavaScript it compiles to.
 
 import type { TriggerType } from "./types";
 
 export type ParamKind =
   | "text" | "longtext" | "number" | "bool" | "item" | "block" | "entity" | "effect" | "sound"
-  | "who" | "at" | "select";
+  | "who" | "at" | "select" | "variable" | "procedure" | "form";
 
 export interface ParamSpec {
   key: string;
@@ -15,6 +15,20 @@ export interface ParamSpec {
   default: string | number | boolean;
 }
 
+/** Kinds that become expressions (and value sockets in the block editor). The rest are fixed fields. */
+export const EXPRESSION_KINDS: ParamKind[] = ["text", "number"];
+export const isExpression = (k: ParamKind) => EXPRESSION_KINDS.includes(k);
+
+/**
+ * Supplies code for a step's parameters.
+ * e(key): a JavaScript expression (a literal in the simple editor; any expression in blocks).
+ * f(key): the fixed value of a field (ids, dropdowns, toggles).
+ */
+export interface Gen {
+  e(key: string): string;
+  f(key: string): string | number | boolean;
+}
+
 type P = Record<string, string | number | boolean>;
 const S = (v: unknown) => JSON.stringify(v ?? "");
 const N = (v: unknown, d = 0) => {
@@ -22,18 +36,32 @@ const N = (v: unknown, d = 0) => {
   return Number.isFinite(n) ? n : d;
 };
 
+/** Names of generated functions, shared with the script generator. */
+export const fnName = (prefix: string, name: string) => `${prefix}_${String(name).replace(/[^a-zA-Z0-9_]/g, "_")}`;
+
+/** Gen for literal parameter values (simple editor, forms). */
+export function literalGen(params: P, specs: ParamSpec[]): Gen {
+  const spec = (k: string) => specs.find((s) => s.key === k);
+  const value = (k: string) => (params[k] ?? spec(k)?.default ?? "");
+  return {
+    e: (k) => (spec(k)?.kind === "number" ? String(N(value(k), N(spec(k)?.default))) : S(String(value(k)))),
+    f: (k) => value(k),
+  };
+}
+
 export interface ActionSpec {
   type: string;
   label: string;
-  group: "Chat & screen" | "Entities" | "Items" | "World" | "Advanced";
+  group: "Chat & screen" | "Entities" | "Items" | "World" | "Variables & logic" | "Advanced";
   params: ParamSpec[];
   /** Short sentence for the action list, e.g. "Give 3 × minecraft:diamond". */
   summary: (p: P) => string;
-  code: (p: P) => string;
+  code: (g: Gen) => string;
 }
 
 const who = (d: "player" | "target" = "player"): ParamSpec => ({ key: "who", label: "Who", kind: "who", default: d });
 const at = (d: "player" | "target" | "block" = "player"): ParamSpec => ({ key: "at", label: "Where", kind: "at", default: d });
+const int = (expr: string, min = 1) => `Math.max(${min}, Math.round(${expr}))`;
 
 export const ACTIONS: ActionSpec[] = [
   {
@@ -43,7 +71,7 @@ export const ACTIONS: ActionSpec[] = [
       { key: "to", label: "Send to", kind: "select", options: ["player", "everyone"], default: "player" },
     ],
     summary: (p) => `Say “${p.text}” to ${p.to}`,
-    code: (p) => `BC.message(ctx, ${S(p.to)}, ${S(p.text)});`,
+    code: (g) => `BC.message(ctx, ${S(g.f("to"))}, ${g.e("text")});`,
   },
   {
     type: "title", label: "Show title", group: "Chat & screen",
@@ -52,13 +80,19 @@ export const ACTIONS: ActionSpec[] = [
       { key: "subtitle", label: "Subtitle", kind: "text", default: "" },
     ],
     summary: (p) => `Show title “${p.text}”`,
-    code: (p) => `BC.title(ctx, ${S(p.text)}, ${S(p.subtitle)});`,
+    code: (g) => `BC.title(ctx, ${g.e("text")}, ${g.e("subtitle")});`,
   },
   {
     type: "actionbar", label: "Show action bar text", group: "Chat & screen",
     params: [{ key: "text", label: "Text", kind: "text", default: "Something happened" }],
     summary: (p) => `Action bar “${p.text}”`,
-    code: (p) => `ctx.player?.onScreenDisplay.setActionBar(BC.fmt(ctx, ${S(p.text)}));`,
+    code: (g) => `ctx.player?.onScreenDisplay.setActionBar(BC.fmt(ctx, ${g.e("text")}));`,
+  },
+  {
+    type: "show_form", label: "Show form", group: "Chat & screen",
+    params: [{ key: "form", label: "Form", kind: "form", default: "" }],
+    summary: (p) => `Show form ${p.form || "(none)"}`,
+    code: (g) => (g.f("form") ? `${fnName("form", String(g.f("form")))}(ctx);` : "// No form selected"),
   },
   {
     type: "effect", label: "Apply potion effect", group: "Entities",
@@ -70,43 +104,43 @@ export const ACTIONS: ActionSpec[] = [
       { key: "particles", label: "Show particles", kind: "bool", default: true },
     ],
     summary: (p) => `Give ${p.who} ${p.effect} ${N(p.amplifier) + 1} for ${p.seconds}s`,
-    code: (p) => `BC.who(ctx, ${S(p.who)})?.addEffect(${S(p.effect)}, ${Math.round(N(p.seconds, 1) * 20)}, { amplifier: ${N(p.amplifier)}, showParticles: ${!!p.particles} });`,
+    code: (g) => `BC.who(ctx, ${S(g.f("who"))})?.addEffect(${S(g.f("effect"))}, ${int(`(${g.e("seconds")}) * 20`)}, { amplifier: ${int(g.e("amplifier"), 0)}, showParticles: ${!!g.f("particles")} });`,
   },
   {
     type: "clear_effects", label: "Clear all effects", group: "Entities",
     params: [who()],
     summary: (p) => `Clear effects from ${p.who}`,
-    code: (p) => `BC.cmd(ctx, ${S(p.who)}, "effect @s clear");`,
+    code: (g) => `BC.cmd(ctx, ${S(g.f("who"))}, "effect @s clear");`,
   },
   {
     type: "heal", label: "Heal", group: "Entities",
     params: [who(), { key: "amount", label: "Health points", kind: "number", default: 4 }],
     summary: (p) => `Heal ${p.who} by ${p.amount}`,
-    code: (p) => `BC.heal(ctx, ${S(p.who)}, ${N(p.amount)});`,
+    code: (g) => `BC.heal(ctx, ${S(g.f("who"))}, ${g.e("amount")});`,
   },
   {
     type: "damage", label: "Damage", group: "Entities",
     params: [who("target"), { key: "amount", label: "Damage", kind: "number", default: 4 }],
     summary: (p) => `Deal ${p.amount} damage to ${p.who}`,
-    code: (p) => `BC.who(ctx, ${S(p.who)})?.applyDamage(${N(p.amount)});`,
+    code: (g) => `BC.who(ctx, ${S(g.f("who"))})?.applyDamage(${g.e("amount")});`,
   },
   {
     type: "fire", label: "Set on fire", group: "Entities",
     params: [who("target"), { key: "seconds", label: "Seconds", kind: "number", default: 5 }],
     summary: (p) => `Set ${p.who} on fire for ${p.seconds}s`,
-    code: (p) => `BC.who(ctx, ${S(p.who)})?.setOnFire(${N(p.seconds)}, true);`,
+    code: (g) => `BC.who(ctx, ${S(g.f("who"))})?.setOnFire(${g.e("seconds")}, true);`,
   },
   {
     type: "kill", label: "Kill", group: "Entities",
     params: [who("target")],
     summary: (p) => `Kill ${p.who}`,
-    code: (p) => `BC.who(ctx, ${S(p.who)})?.kill();`,
+    code: (g) => `BC.who(ctx, ${S(g.f("who"))})?.kill();`,
   },
   {
     type: "launch", label: "Launch upwards", group: "Entities",
     params: [who(), { key: "power", label: "Strength", kind: "number", default: 1.2 }],
     summary: (p) => `Launch ${p.who} up (${p.power})`,
-    code: (p) => `BC.who(ctx, ${S(p.who)})?.applyKnockback({ x: 0, z: 0 }, ${N(p.power, 1)});`,
+    code: (g) => `BC.who(ctx, ${S(g.f("who"))})?.applyKnockback({ x: 0, z: 0 }, ${g.e("power")});`,
   },
   {
     type: "teleport", label: "Teleport", group: "Entities",
@@ -118,19 +152,19 @@ export const ACTIONS: ActionSpec[] = [
       { key: "z", label: "Z", kind: "number", default: 0 },
     ],
     summary: (p) => `Teleport ${p.who} ${p.mode === "relative" ? "by" : "to"} ${p.x} ${p.y} ${p.z}`,
-    code: (p) => `BC.teleport(ctx, ${S(p.who)}, ${S(p.mode)}, ${N(p.x)}, ${N(p.y)}, ${N(p.z)});`,
+    code: (g) => `BC.teleport(ctx, ${S(g.f("who"))}, ${S(g.f("mode"))}, ${g.e("x")}, ${g.e("y")}, ${g.e("z")});`,
   },
   {
     type: "add_tag", label: "Add tag", group: "Entities",
     params: [who(), { key: "tag", label: "Tag", kind: "text", default: "my_tag" }],
     summary: (p) => `Tag ${p.who} with “${p.tag}”`,
-    code: (p) => `BC.who(ctx, ${S(p.who)})?.addTag(${S(p.tag)});`,
+    code: (g) => `BC.who(ctx, ${S(g.f("who"))})?.addTag(String(${g.e("tag")}));`,
   },
   {
     type: "remove_tag", label: "Remove tag", group: "Entities",
     params: [who(), { key: "tag", label: "Tag", kind: "text", default: "my_tag" }],
     summary: (p) => `Remove tag “${p.tag}” from ${p.who}`,
-    code: (p) => `BC.who(ctx, ${S(p.who)})?.removeTag(${S(p.tag)});`,
+    code: (g) => `BC.who(ctx, ${S(g.f("who"))})?.removeTag(String(${g.e("tag")}));`,
   },
   {
     type: "give", label: "Give item", group: "Items",
@@ -139,7 +173,7 @@ export const ACTIONS: ActionSpec[] = [
       { key: "count", label: "Count", kind: "number", default: 1 },
     ],
     summary: (p) => `Give ${p.count} × ${p.item}`,
-    code: (p) => `BC.give(ctx, ${S(p.item)}, ${Math.max(1, Math.round(N(p.count, 1)))});`,
+    code: (g) => `BC.give(ctx, ${S(g.f("item"))}, ${int(g.e("count"))});`,
   },
   {
     type: "drop_item", label: "Drop item on the ground", group: "Items",
@@ -149,13 +183,13 @@ export const ACTIONS: ActionSpec[] = [
       { key: "count", label: "Count", kind: "number", default: 1 },
     ],
     summary: (p) => `Drop ${p.count} × ${p.item} at ${p.at}`,
-    code: (p) => `BC.dropItem(ctx, ${S(p.at)}, ${S(p.item)}, ${Math.max(1, Math.round(N(p.count, 1)))});`,
+    code: (g) => `BC.dropItem(ctx, ${S(g.f("at"))}, ${S(g.f("item"))}, ${int(g.e("count"))});`,
   },
   {
     type: "xp", label: "Give XP levels", group: "Items",
     params: [{ key: "levels", label: "Levels", kind: "number", default: 1 }],
     summary: (p) => `Give ${p.levels} XP levels`,
-    code: (p) => `ctx.player?.addLevels(${Math.round(N(p.levels, 1))});`,
+    code: (g) => `ctx.player?.addLevels(Math.round(${g.e("levels")}));`,
   },
   {
     type: "spawn", label: "Spawn entity", group: "World",
@@ -165,13 +199,13 @@ export const ACTIONS: ActionSpec[] = [
       { key: "count", label: "How many", kind: "number", default: 1 },
     ],
     summary: (p) => `Spawn ${p.count} × ${p.entity} at ${p.at}`,
-    code: (p) => `BC.spawn(ctx, ${S(p.at)}, ${S(p.entity)}, ${Math.max(1, Math.round(N(p.count, 1)))});`,
+    code: (g) => `BC.spawn(ctx, ${S(g.f("at"))}, ${S(g.f("entity"))}, ${int(g.e("count"))});`,
   },
   {
     type: "lightning", label: "Strike lightning", group: "World",
     params: [at("target")],
     summary: (p) => `Lightning at ${p.at}`,
-    code: (p) => `BC.spawn(ctx, ${S(p.at)}, "minecraft:lightning_bolt", 1);`,
+    code: (g) => `BC.spawn(ctx, ${S(g.f("at"))}, "minecraft:lightning_bolt", 1);`,
   },
   {
     type: "explosion", label: "Create explosion", group: "World",
@@ -182,7 +216,7 @@ export const ACTIONS: ActionSpec[] = [
       { key: "breaks", label: "Breaks blocks", kind: "bool", default: true },
     ],
     summary: (p) => `Explosion (${p.power}) at ${p.at}`,
-    code: (p) => `BC.explode(ctx, ${S(p.at)}, ${N(p.power, 3)}, ${!!p.fire}, ${!!p.breaks});`,
+    code: (g) => `BC.explode(ctx, ${S(g.f("at"))}, ${g.e("power")}, ${!!g.f("fire")}, ${!!g.f("breaks")});`,
   },
   {
     type: "set_block", label: "Place block", group: "World",
@@ -192,7 +226,7 @@ export const ACTIONS: ActionSpec[] = [
       { key: "dy", label: "Y offset", kind: "number", default: 0 },
     ],
     summary: (p) => `Place ${p.block} at ${p.at}${N(p.dy) ? ` (y${N(p.dy) > 0 ? "+" : ""}${p.dy})` : ""}`,
-    code: (p) => `BC.setBlock(ctx, ${S(p.at)}, ${S(p.block)}, ${Math.round(N(p.dy))});`,
+    code: (g) => `BC.setBlock(ctx, ${S(g.f("at"))}, ${S(g.f("block"))}, Math.round(${g.e("dy")}));`,
   },
   {
     type: "sound", label: "Play sound", group: "World",
@@ -203,19 +237,36 @@ export const ACTIONS: ActionSpec[] = [
       { key: "pitch", label: "Pitch", kind: "number", default: 1 },
     ],
     summary: (p) => `Play ${p.sound}`,
-    code: (p) => `BC.sound(ctx, ${S(p.at)}, ${S(p.sound)}, ${N(p.volume, 1)}, ${N(p.pitch, 1)});`,
+    code: (g) => `BC.sound(ctx, ${S(g.f("at"))}, ${S(g.f("sound"))}, ${g.e("volume")}, ${g.e("pitch")});`,
   },
   {
     type: "time", label: "Set time of day", group: "World",
     params: [{ key: "time", label: "Time", kind: "select", options: ["day", "noon", "sunset", "night", "midnight", "sunrise"], default: "day" }],
     summary: (p) => `Set time to ${p.time}`,
-    code: (p) => `world.setTimeOfDay(${({ day: 1000, noon: 6000, sunset: 12000, night: 13000, midnight: 18000, sunrise: 23000 } as Record<string, number>)[String(p.time)] ?? 1000});`,
+    code: (g) => `world.setTimeOfDay(${({ day: 1000, noon: 6000, sunset: 12000, night: 13000, midnight: 18000, sunrise: 23000 } as Record<string, number>)[String(g.f("time"))] ?? 1000});`,
   },
   {
     type: "weather", label: "Set weather", group: "World",
     params: [{ key: "weather", label: "Weather", kind: "select", options: ["clear", "rain", "thunder"], default: "clear" }],
     summary: (p) => `Set weather to ${p.weather}`,
-    code: (p) => `BC.cmd(ctx, "world", ${S(`weather ${p.weather}`)});`,
+    code: (g) => `BC.cmd(ctx, "world", ${S(`weather ${g.f("weather")}`)});`,
+  },
+  {
+    type: "set_var", label: "Change a variable", group: "Variables & logic",
+    params: [
+      { key: "variable", label: "Variable", kind: "variable", default: "" },
+      { key: "op", label: "How", kind: "select", options: ["set", "add", "subtract", "multiply", "divide", "toggle"], default: "set" },
+      { key: "value", label: "Value", kind: "text", default: "1" },
+      { key: "who", label: "Whose (player variables)", kind: "who", default: "player" },
+    ],
+    summary: (p) => `${p.op === "set" ? "Set" : String(p.op)[0].toUpperCase() + String(p.op).slice(1)} ${p.variable || "(variable)"} ${p.op === "set" ? "to" : p.op === "toggle" ? "" : "by"} ${p.op === "toggle" ? "" : p.value}`,
+    code: (g) => (g.f("variable") ? `BC.setVar(ctx, ${S(g.f("variable"))}, ${S(g.f("who"))}, ${S(g.f("op"))}, ${g.e("value")});` : "// No variable selected"),
+  },
+  {
+    type: "run_procedure", label: "Run another procedure", group: "Variables & logic",
+    params: [{ key: "procedure", label: "Procedure", kind: "procedure", default: "" }],
+    summary: (p) => `Run ${p.procedure || "(procedure)"}`,
+    code: (g) => (g.f("procedure") ? `${fnName("proc", String(g.f("procedure")))}(ctx);` : "// No procedure selected"),
   },
   {
     type: "command", label: "Run command", group: "Advanced",
@@ -224,13 +275,13 @@ export const ACTIONS: ActionSpec[] = [
       { key: "command", label: "Command (no /)", kind: "text", default: "say hi" },
     ],
     summary: (p) => `/${p.command}`,
-    code: (p) => `BC.cmd(ctx, ${S(p.as)}, ${S(String(p.command).replace(/^\//, ""))});`,
+    code: (g) => `BC.cmd(ctx, ${S(g.f("as"))}, BC.fmt(ctx, ${g.e("command")}));`,
   },
   {
     type: "script", label: "Custom JavaScript", group: "Advanced",
     params: [{ key: "code", label: "Code (ctx.player, ctx.target, ctx.dimension)", kind: "longtext", default: "// world, system and ctx are available\n" }],
     summary: () => "Custom JavaScript",
-    code: (p) => String(p.code),
+    code: (g) => String(g.f("code")),
   },
 ];
 
@@ -239,13 +290,13 @@ export interface ConditionSpec {
   label: string;
   params: ParamSpec[];
   summary: (p: P) => string;
-  code: (p: P) => string;
+  code: (g: Gen) => string;
 }
 
 export const CONDITIONS: ConditionSpec[] = [
   {
     type: "chance", label: "Random chance", params: [{ key: "percent", label: "Chance %", kind: "number", default: 50 }],
-    summary: (p) => `${p.percent}% chance`, code: (p) => `Math.random() * 100 < ${N(p.percent, 50)}`,
+    summary: (p) => `${p.percent}% chance`, code: (g) => `Math.random() * 100 < (${g.e("percent")})`,
   },
   {
     type: "sneaking", label: "Player is sneaking", params: [],
@@ -253,29 +304,29 @@ export const CONDITIONS: ConditionSpec[] = [
   },
   {
     type: "holding", label: "Player is holding item", params: [{ key: "item", label: "Item", kind: "item", default: "minecraft:stick" }],
-    summary: (p) => `player holds ${p.item}`, code: (p) => `BC.held(ctx.player) === ${S(p.item)}`,
+    summary: (p) => `player holds ${p.item}`, code: (g) => `BC.held(ctx.player) === ${S(g.f("item"))}`,
   },
   {
     type: "has_tag", label: "Has tag", params: [who(), { key: "tag", label: "Tag", kind: "text", default: "my_tag" }],
-    summary: (p) => `${p.who} has tag “${p.tag}”`, code: (p) => `BC.who(ctx, ${S(p.who)})?.hasTag(${S(p.tag)}) === true`,
+    summary: (p) => `${p.who} has tag “${p.tag}”`, code: (g) => `BC.who(ctx, ${S(g.f("who"))})?.hasTag(String(${g.e("tag")})) === true`,
   },
   {
     type: "target_is", label: "Target is entity type", params: [{ key: "entity", label: "Entity", kind: "entity", default: "minecraft:zombie" }],
-    summary: (p) => `target is ${p.entity}`, code: (p) => `ctx.target?.typeId === ${S(p.entity)}`,
+    summary: (p) => `target is ${p.entity}`, code: (g) => `ctx.target?.typeId === ${S(g.f("entity"))}`,
   },
   {
     type: "health_below", label: "Health is below", params: [who(), { key: "value", label: "Health", kind: "number", default: 6 }],
     summary: (p) => `${p.who} health < ${p.value}`,
-    code: (p) => `(BC.who(ctx, ${S(p.who)})?.getComponent("minecraft:health")?.currentValue ?? 0) < ${N(p.value)}`,
+    code: (g) => `(BC.who(ctx, ${S(g.f("who"))})?.getComponent("minecraft:health")?.currentValue ?? 0) < (${g.e("value")})`,
   },
   {
     type: "in_water", label: "Is in water", params: [who()],
-    summary: (p) => `${p.who} is in water`, code: (p) => `BC.who(ctx, ${S(p.who)})?.isInWater === true`,
+    summary: (p) => `${p.who} is in water`, code: (g) => `BC.who(ctx, ${S(g.f("who"))})?.isInWater === true`,
   },
   {
     type: "dimension", label: "In dimension",
     params: [{ key: "dimension", label: "Dimension", kind: "select", options: ["overworld", "nether", "the_end"], default: "overworld" }],
-    summary: (p) => `in the ${p.dimension}`, code: (p) => `BC.dim(ctx).id === ${S(`minecraft:${p.dimension}`)}`,
+    summary: (p) => `in the ${p.dimension}`, code: (g) => `BC.dim(ctx).id === ${S(`minecraft:${g.f("dimension")}`)}`,
   },
   {
     type: "daytime", label: "It is daytime", params: [],
@@ -283,7 +334,18 @@ export const CONDITIONS: ConditionSpec[] = [
   },
   {
     type: "y_above", label: "Height is above", params: [who(), { key: "y", label: "Y level", kind: "number", default: 64 }],
-    summary: (p) => `${p.who} is above y=${p.y}`, code: (p) => `(BC.at(ctx, ${S(p.who)})?.y ?? 0) > ${N(p.y)}`,
+    summary: (p) => `${p.who} is above y=${p.y}`, code: (g) => `(BC.at(ctx, ${S(g.f("who"))})?.y ?? 0) > (${g.e("y")})`,
+  },
+  {
+    type: "var_compare", label: "Variable compares to",
+    params: [
+      { key: "variable", label: "Variable", kind: "variable", default: "" },
+      { key: "op", label: "Is", kind: "select", options: ["=", "≠", "<", "≤", ">", "≥"], default: "≥" },
+      { key: "value", label: "Value", kind: "text", default: "1" },
+      { key: "who", label: "Whose (player variables)", kind: "who", default: "player" },
+    ],
+    summary: (p) => `${p.variable || "(variable)"} ${p.op} ${p.value}`,
+    code: (g) => `BC.compare(BC.getVar(ctx, ${S(g.f("variable"))}, ${S(g.f("who"))}), ${S(g.f("op"))}, ${g.e("value")})`,
   },
 ];
 
@@ -310,6 +372,7 @@ export const TRIGGERS: TriggerSpec[] = [
   { type: "player_join", label: "Player joins the world", filter: null, has: { target: false, block: false }, help: "" },
   { type: "player_respawn", label: "Player respawns", filter: null, has: { target: false, block: false }, help: "" },
   { type: "tick", label: "Every few ticks (for each player)", filter: null, has: { target: false, block: false }, help: "20 ticks = 1 second." },
+  { type: "manual", label: "Only when run by another procedure, command or form", filter: null, has: { target: true, block: true }, help: "Use the “Run another procedure” step to start it. It sees the same player and target as whatever ran it." },
 ];
 
 export const actionSpec = (t: string) => ACTIONS.find((a) => a.type === t);

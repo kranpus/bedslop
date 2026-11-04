@@ -135,6 +135,97 @@ export function fixtureProject(): Project {
   fn.runEveryTick = true;
   fn.body = "/say hi\neffect @a speed 1 0 true";
 
+  // ---- Phase 2 logic: variables, blocks, manual procedures, forms, command arguments ----
+  p.variables = [
+    { id: "v1", name: "gems", scope: "player", type: "number", initial: "0" },
+    { id: "v2", name: "boss_defeated", scope: "world", type: "boolean", initial: "false" },
+    { id: "v3", name: "nickname", scope: "player", type: "text", initial: "" },
+  ];
+  const num = (n: number) => ({ shadow: { type: "math_number", fields: { NUM: n } } });
+  const txt = (t: string) => ({ shadow: { type: "text", fields: { TEXT: t } } });
+  const blocksProc = createElement("procedure", "gem_counter", "Gem counter");
+  blocksProc.trigger = "block_break";
+  blocksProc.filter = "test:ruby_ore";
+  blocksProc.editor = "blocks";
+  blocksProc.blocks = JSON.stringify({
+    variables: [{ name: "count", id: "var1" }, { name: "i", id: "var2" }],
+    blocks: { languageVersion: 0, blocks: [{
+      type: "bc_start", id: "s",
+      next: { block: {
+        type: "variables_set", fields: { VAR: { id: "var1" } }, inputs: { VALUE: { block: { type: "math_random_int", inputs: { FROM: num(1), TO: num(3) } } } },
+        next: { block: {
+          type: "bc_act_set_var", fields: { variable: "gems", op: "add", who: "player" }, inputs: { value: { block: { type: "variables_get", fields: { VAR: { id: "var1" } } } } },
+          next: { block: {
+            type: "controls_if", extraState: { elseIfCount: 1, hasElse: true },
+            inputs: {
+              IF0: { block: { type: "logic_compare", fields: { OP: "GTE" }, inputs: { A: { block: { type: "bc_var_get", fields: { VAR: "gems", WHO: "player" } } }, B: num(10) } } },
+              DO0: { block: { type: "bc_act_title", inputs: { text: { block: { type: "text_join", extraState: { itemCount: 2 }, inputs: { ADD0: txt("Gems: "), ADD1: { block: { type: "bc_var_get", fields: { VAR: "gems", WHO: "player" } } } } } }, subtitle: txt("{player}") } } },
+              IF1: { block: { type: "logic_operation", fields: { OP: "AND" }, inputs: { A: { block: { type: "bc_cond_sneaking" } }, B: { block: { type: "logic_negate", inputs: { BOOL: { block: { type: "bc_cond_daytime" } } } } } } } },
+              DO1: { block: { type: "controls_repeat_ext", inputs: { TIMES: num(3), DO: { block: { type: "bc_act_give", fields: { item: "minecraft:emerald" }, inputs: { count: { block: { type: "math_arithmetic", fields: { OP: "MULTIPLY" }, inputs: { A: { block: { type: "variables_get", fields: { VAR: { id: "var1" } } } }, B: num(2) } } } } } } } } },
+              ELSE: { block: { type: "bc_act_message", fields: { to: "player" }, inputs: { text: { block: { type: "bc_info", fields: { WHAT: "player_name" } } } } } },
+            },
+            next: { block: {
+              type: "controls_for", fields: { VAR: { id: "var2" } }, inputs: { FROM: num(1), TO: num(3), BY: num(1), DO: { block: { type: "bc_act_spawn", fields: { at: "block", entity: "minecraft:xp_orb" }, inputs: { count: { block: { type: "variables_get", fields: { VAR: { id: "var2" } } } } } } } },
+              next: { block: {
+                type: "bc_wait", inputs: { TICKS: num(40), DO: { block: { type: "bc_each_player", inputs: { DO: { block: { type: "bc_act_actionbar", inputs: { text: txt("Someone found {gems} gems") } } } } } } },
+                next: { block: {
+                  type: "controls_whileUntil", fields: { MODE: "WHILE" }, inputs: { BOOL: { block: { type: "logic_compare", fields: { OP: "LT" }, inputs: { A: { block: { type: "variables_get", fields: { VAR: { id: "var1" } } } }, B: num(5) } } }, DO: { block: { type: "math_change", fields: { VAR: { id: "var1" } }, inputs: { DELTA: num(1) } } } },
+                  next: { block: { type: "bc_act_show_form", fields: { form: "gem_shop" }, next: { block: { type: "bc_act_run_procedure", fields: { procedure: "reward" } } } } },
+                } },
+              } },
+            } },
+          } },
+        } },
+      } },
+    }] },
+  });
+
+  const reward = createElement("procedure", "reward", "Reward");
+  reward.trigger = "manual";
+  reward.conditions = [{ id: "r1", type: "var_compare", params: { variable: "gems", op: "≥", value: "5", who: "player" }, negate: false }];
+  reward.actions = [
+    { id: "r2", type: "set_var", params: { variable: "boss_defeated", op: "toggle", value: "", who: "player" }, chance: 100 },
+    { id: "r3", type: "message", params: { text: "You have {gems} gems, {nickname}", to: "player" }, chance: 100 },
+  ];
+
+  const shop = createElement("form", "gem_shop", "Gem shop");
+  shop.buttons = [
+    { id: "b1", text: "Buy a sword ({gems} gems)", icon: tool.texture, actions: [{ id: "a", type: "give", params: { item: "test:ruby_pickaxe", count: 1 }, chance: 100 }] },
+    { id: "b2", text: "Settings", icon: "", actions: [{ id: "b", type: "show_form", params: { form: "settings" }, chance: 100 }] },
+  ];
+  const settings = createElement("form", "settings", "Settings");
+  settings.formType = "input";
+  settings.fields = [
+    { id: "f1", kind: "label", key: "", label: "Pick your options", placeholder: "", min: 0, max: 0, step: 1, options: [], defaultValue: "", variable: "" },
+    { id: "f2", kind: "text", key: "name", label: "Nickname", placeholder: "Steve", min: 0, max: 0, step: 1, options: [], defaultValue: "{player}", variable: "nickname" },
+    { id: "f3", kind: "slider", key: "amount", label: "Gems", placeholder: "", min: 0, max: 64, step: 1, options: [], defaultValue: "8", variable: "gems" },
+    { id: "f4", kind: "dropdown", key: "color", label: "Colour", placeholder: "", min: 0, max: 0, step: 1, options: ["Red", "Blue"], defaultValue: "Blue", variable: "" },
+    { id: "f5", kind: "toggle", key: "loud", label: "Announce", placeholder: "", min: 0, max: 0, step: 1, options: [], defaultValue: "true", variable: "" },
+  ];
+  settings.submitActions = [{ id: "s1", type: "message", params: { text: "Hi {name}, colour {color}, loud {loud}", to: "player" }, chance: 100 }];
+  const confirm = createElement("form", "reset_confirm", "Reset?");
+  confirm.formType = "confirm";
+  confirm.yesActions = [{ id: "y", type: "set_var", params: { variable: "gems", op: "set", value: "0", who: "player" }, chance: 100 }];
+  confirm.noActions = [{ id: "n", type: "message", params: { text: "Kept your gems", to: "player" }, chance: 100 }];
+
+  const giveCmd = createElement("command", "give_gems", "Give gems");
+  giveCmd.args = [
+    { id: "a1", name: "amount", type: "integer", optional: false },
+    { id: "a2", name: "target", type: "player", optional: true },
+  ];
+  giveCmd.actions = [
+    { id: "g1", type: "message", params: { text: "Giving {amount} gems to {target}", to: "player" }, chance: 100 },
+    { id: "g2", type: "show_form", params: { form: "reset_confirm" }, chance: 100 },
+  ];
+  const blockCmd = createElement("command", "count", "Count");
+  blockCmd.editor = "blocks";
+  blockCmd.args = [{ id: "c1", name: "times", type: "integer", optional: false }];
+  blockCmd.blocks = JSON.stringify({ blocks: { languageVersion: 0, blocks: [{ type: "bc_start", next: { block: {
+    type: "controls_repeat_ext", inputs: { TIMES: { block: { type: "bc_arg", fields: { NAME: "times" } } }, DO: { block: { type: "bc_act_message", fields: { to: "player" }, inputs: { text: txt("tick") } } } },
+  } } }] } });
+
+  p.elements.push(blocksProc, reward, shop, settings, confirm, giveCmd, blockCmd);
+
   p.elements.push(block, ore, loot, plant, item, tool, armor, food, mob, pig, shaped, shapeless, smelt, gen, proc, breakProc, hurtProc, tick, cmd, fn);
   return p;
 }

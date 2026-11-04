@@ -27,6 +27,7 @@ export const KINDS: KindInfo[] = [
   { kind: "procedure", label: "Procedure", blurb: "When something happens, do something: no coding needed.", group: "Logic", glyph: "▶", color: "#2f7d6d" },
   { kind: "command", label: "Command", blurb: "A custom slash command, e.g. /myaddon:heal, that runs actions.", group: "Logic", glyph: "/", color: "#2c6a8c" },
   { kind: "function", label: "Function", blurb: "A .mcfunction file of vanilla commands, optionally run every tick.", group: "Logic", glyph: "ƒ", color: "#46607a" },
+  { kind: "form", label: "Form (GUI)", blurb: "A menu of buttons, an input form or a yes/no dialog that runs actions.", group: "Logic", glyph: "▤", color: "#3c6e8f" },
   { kind: "sound", label: "Sound", blurb: "Import an .ogg sound to play from procedures and commands.", group: "Assets", glyph: "♪", color: "#7a4f86" },
 ];
 
@@ -98,6 +99,12 @@ export function createElement<K extends ElementKind>(kind: K, name: string, disp
     }),
     sound: () => ({
       ...base, kind: "sound", file: "", fileName: "", category: "neutral", volume: 1, pitch: 1,
+    }),
+    form: () => ({
+      ...base, kind: "form", formType: "menu", title: displayName, body: "Choose an option",
+      buttons: [{ id: uid(), text: "Option 1", icon: "", actions: [] }],
+      fields: [], submitText: "Done", submitActions: [],
+      yesText: "Yes", noText: "No", yesActions: [], noActions: [],
     }),
   };
   return map[kind]() as ElementOf<K>;

@@ -1,6 +1,7 @@
-import { actionSpec, conditionSpec } from "../model/logic";
+import { actionSpec, conditionSpec, fnName, literalGen } from "../model/logic";
 import type { Action, CommandElement, Condition, ProcedureElement } from "../model/types";
 import type { GenContext } from "./context";
+import { blocksToBody } from "./blocks";
 
 const S = JSON.stringify;
 
@@ -21,7 +22,54 @@ export const RUNTIME = `const BC = {
     if (e.typeId === "minecraft:player") return e.name;
     return e.nameTag || e.typeId.split(":").pop().replace(/_/g, " ");
   },
-  fmt(ctx, t) { return String(t).replace(/\\{player\\}/g, BC.name(ctx.player)).replace(/\\{target\\}/g, BC.name(ctx.target)); },
+  fmt(ctx, t) {
+    return String(t ?? "").replace(/\\{(\\w+)\\}/g, (m, k) => {
+      if (k === "player") return BC.name(ctx.player);
+      if (k === "target") return BC.name(ctx.target);
+      if (ctx.args && k in ctx.args) return String(ctx.args[k]);
+      if (k in BC_VARS) return String(BC.getVar(ctx, k, "player"));
+      return m;
+    });
+  },
+  key(name) { return NAMESPACE + ":" + name; },
+  holder(ctx, name, who) { const d = BC_VARS[name]; return d && (d[0] === "world" ? world : BC.who(ctx, who)); },
+  getVar(ctx, name, who) {
+    const d = BC_VARS[name];
+    if (!d) return 0;
+    let v;
+    try { v = BC.holder(ctx, name, who)?.getDynamicProperty(BC.key(name)); } catch {}
+    return v === undefined ? d[2] : v;
+  },
+  setVar(ctx, name, who, op, value) {
+    const d = BC_VARS[name];
+    const h = BC.holder(ctx, name, who);
+    if (!d || !h) return;
+    const cur = BC.getVar(ctx, name, who);
+    let next;
+    if (d[1] === "number") {
+      const n = Number(value) || 0, c = Number(cur) || 0;
+      next = op === "add" ? c + n : op === "subtract" ? c - n : op === "multiply" ? c * n : op === "divide" ? (n ? c / n : c) : n;
+    } else if (d[1] === "boolean") {
+      next = op === "toggle" ? !cur : value === true || value === 1 || value === "true";
+    } else {
+      next = op === "add" ? String(cur) + String(value) : String(value ?? "");
+    }
+    h.setDynamicProperty(BC.key(name), next);
+  },
+  compare(a, op, b) {
+    const na = Number(a), nb = Number(b);
+    const num = a !== "" && b !== "" && Number.isFinite(na) && Number.isFinite(nb);
+    const x = num ? na : String(a), y = num ? nb : String(b);
+    switch (op) {
+      case "≠": return x !== y;
+      case "<": return x < y;
+      case "≤": return x <= y;
+      case ">": return x > y;
+      case "≥": return x >= y;
+      default: return x === y;
+    }
+  },
+  randInt(a, b) { const lo = Math.ceil(Math.min(Number(a), Number(b))), hi = Math.floor(Math.max(Number(a), Number(b))); return lo + Math.floor(Math.random() * (hi - lo + 1)); },
   held(p) {
     if (!p || p.typeId !== "minecraft:player") return undefined;
     return p.getComponent("minecraft:inventory")?.container?.getItem(p.selectedSlotIndex)?.typeId;
@@ -35,6 +83,7 @@ export const RUNTIME = `const BC = {
     ctx.player?.onScreenDisplay.setTitle(BC.fmt(ctx, t), { subtitle: BC.fmt(ctx, sub), fadeInDuration: 10, stayDuration: 50, fadeOutDuration: 10 });
   },
   cmd(ctx, as, command) {
+    command = String(command).replace(/^\\s*\\//, "");
     const e = as === "world" ? undefined : BC.who(ctx, as);
     if (e) return e.runCommand(command);
     const l = BC.at(ctx, "block");
@@ -72,39 +121,39 @@ export const RUNTIME = `const BC = {
 };
 `;
 
-function conditionsCode(conditions: Condition[]): string {
+export function conditionsCode(conditions: Condition[], depth = 1): string {
+  const pad = "  ".repeat(depth);
   return conditions
     .map((c) => {
       const spec = conditionSpec(c.type);
       if (!spec) return "";
-      const expr = spec.code(c.params);
-      return `  if (${c.negate ? "" : "!"}(${expr})) return;\n`;
+      const expr = spec.code(literalGen(c.params, spec.params));
+      return `${pad}if (${c.negate ? "" : "!"}(${expr})) return;\n`;
     })
     .join("");
 }
 
-function actionsCode(actions: Action[], label: string): string {
+/** Code for a list of simple-editor steps, each guarded so one failure doesn't stop the rest. */
+export function actionsBody(actions: Action[], label: string, depth = 1): string {
+  const pad = "  ".repeat(depth);
   return actions
     .map((a, i) => {
       const spec = actionSpec(a.type);
       if (!spec) return "";
-      const body = spec.code(a.params).split("\n").map((l) => "    " + l).join("\n");
-      const run = `  BC.run(${S(`${label} → step ${i + 1} (${spec.label})`)}, () => {\n${body}\n  });\n`;
-      return a.chance < 100 ? `  if (Math.random() * 100 < ${Number(a.chance) || 0}) {\n${run.replace(/^/gm, "  ")}  }\n` : run;
+      const body = spec.code(literalGen(a.params, spec.params)).split("\n").map((l) => pad + "  " + l).join("\n");
+      const run = `${pad}BC.run(${S(`${label} → step ${i + 1} (${spec.label})`)}, () => {\n${body}\n${pad}});\n`;
+      return a.chance < 100 ? `${pad}if (Math.random() * 100 < ${Number(a.chance) || 0}) {\n${run.replace(/^/gm, "  ")}${pad}}\n` : run;
     })
     .join("");
 }
 
-function fnName(prefix: string, name: string) {
-  return `${prefix}_${name.replace(/[^a-zA-Z0-9_]/g, "_")}`;
-}
+const actionsCode = (actions: Action[], label: string) => actionsBody(actions, label, 1);
 
 export function genProcedure(ctx: GenContext, p: ProcedureElement) {
   const fn = fnName("proc", p.name);
-  if (!p.actions.length) ctx.warn(p, "has no actions yet, so it does nothing.");
   const filter = p.filter.trim();
   const f = filter ? S(filter) : "";
-  const body = `function ${fn}(ctx) {\n${conditionsCode(p.conditions)}${actionsCode(p.actions, p.displayName)}}\n`;
+  const body = `function ${fn}(ctx) {\n${logicBody(ctx, p, p.displayName)}}\n`;
   let hook = "";
   switch (p.trigger) {
     case "player_join":
@@ -138,12 +187,26 @@ export function genProcedure(ctx: GenContext, p: ProcedureElement) {
     case "entity_die":
       hook = `world.afterEvents.entityDie.subscribe((ev) => {\n  const t = ev.deadEntity;\n${f ? `  if (t.typeId !== ${f}) return;\n` : ""}  let location, dimension;\n  try { location = t.location; dimension = t.dimension; } catch {}\n  const a = ev.damageSource.damagingEntity;\n  ${fn}({ player: a?.typeId === "minecraft:player" ? a : undefined, target: t, dimension, location, block: location });\n});`;
       break;
+    case "manual":
+      hook = "";
+      break;
     case "tick":
       hook = `system.runInterval(() => {\n  for (const player of world.getAllPlayers()) ${fn}(BC.ctxP(player));\n}, ${Math.max(1, Math.round(p.intervalTicks) || 20)});`;
       break;
   }
   ctx.script.sections.push(`// Procedure: ${p.displayName}\n${body}${hook}\n`);
-  if (p.actions.some((a) => a.type === "give" || a.type === "drop_item")) ctx.script.imports.add("ItemStack");
+}
+
+/** Function body for a procedure or command, from either editor. */
+function logicBody(ctx: GenContext, el: ProcedureElement | CommandElement, label: string): string {
+  if (el.editor === "blocks") {
+    const r = blocksToBody(el.blocks, label);
+    for (const p of r.problems) ctx.warn(el, p);
+    if (r.count === 0 && !r.problems.length) ctx.warn(el, "has no blocks under the start block yet, so it does nothing.");
+    return r.code;
+  }
+  if (!el.actions.length) ctx.warn(el, "has no actions yet, so it does nothing.");
+  return conditionsCode(el.conditions) + actionsCode(el.actions, label);
 }
 
 const PERMISSION: Record<CommandElement["permission"], string> = {
@@ -155,17 +218,31 @@ export function genCommands(ctx: GenContext, commands: CommandElement[]) {
   ctx.script.imports.add("CommandPermissionLevel").add("CustomCommandStatus");
   const fns: string[] = [];
   const regs: string[] = [];
+  const ARG_TYPE: Record<string, string> = { integer: "Integer", float: "Float", string: "String", boolean: "Boolean", player: "PlayerSelector" };
   for (const c of commands) {
     const fn = fnName("cmd", c.name);
-    if (!c.actions.length) ctx.warn(c, "has no actions yet, so it does nothing.");
-    if (c.actions.some((a) => a.type === "give" || a.type === "drop_item")) ctx.script.imports.add("ItemStack");
-    fns.push(`// Command: /${ctx.ns}:${c.name}\nfunction ${fn}(ctx) {\n${conditionsCode(c.conditions)}${actionsCode(c.actions, `/${c.name}`)}}\n`);
+    fns.push(`// Command: /${ctx.ns}:${c.name}\nfunction ${fn}(ctx) {\n${logicBody(ctx, c, `/${c.name}`)}}\n`);
+    // Required arguments must come before optional ones.
+    const args = [...(c.args ?? [])].filter((a) => a.name.trim()).sort((a, b) => Number(a.optional) - Number(b.optional));
+    if (args.length) ctx.script.imports.add("CustomCommandParamType");
+    const param = (a: (typeof args)[number]) => `{ name: ${S(a.name)}, type: CustomCommandParamType.${ARG_TYPE[a.type]} }`;
+    const mandatory = args.filter((a) => !a.optional), optional = args.filter((a) => a.optional);
+    const argNames = args.map((a) => a.name.replace(/[^a-zA-Z0-9_]/g, "_"));
+    const collect = args.map((a, i) => a.type === "player"
+      ? `      if (${argNames[i]}?.length) { ctx.target = ${argNames[i]}[0]; ctx.args[${S(a.name)}] = ${argNames[i]}[0].name; }\n`
+      : `      if (${argNames[i]} !== undefined) ctx.args[${S(a.name)}] = ${argNames[i]};\n`).join("");
     regs.push(`  registry.registerCommand(
-    { name: ${S(`${ctx.ns}:${c.name}`)}, description: ${S(c.description || c.displayName)}, permissionLevel: CommandPermissionLevel.${PERMISSION[c.permission]}, cheatsRequired: ${c.cheatsRequired} },
-    (origin) => {
+    {
+      name: ${S(`${ctx.ns}:${c.name}`)},
+      description: ${S(c.description || c.displayName)},
+      permissionLevel: CommandPermissionLevel.${PERMISSION[c.permission]},
+      cheatsRequired: ${c.cheatsRequired},${mandatory.length ? `\n      mandatoryParameters: [${mandatory.map(param).join(", ")}],` : ""}${optional.length ? `\n      optionalParameters: [${optional.map(param).join(", ")}],` : ""}
+    },
+    (origin${argNames.map((n) => `, ${n}`).join("")}) => {
       const src = origin.sourceEntity ?? origin.initiator;
       const ctx = src?.typeId === "minecraft:player" ? BC.ctxP(src) : { dimension: src?.dimension ?? world.getDimension("overworld"), target: src, location: src?.location };
-      system.run(() => ${fn}(ctx));
+      ctx.args = {};
+${collect}      system.run(() => ${fn}(ctx));
       return { status: CustomCommandStatus.Success };
     },
   );`);
@@ -232,12 +309,29 @@ world.afterEvents.itemCompleteUse.subscribe((ev) => {
 export function buildScript(ctx: GenContext): string | null {
   const extra = toolsAndFood(ctx);
   if (!ctx.script.sections.length && !extra) return null;
+  let sections = ctx.script.sections.join("\n");
+  // Steps can run procedures and show forms by name: make sure each one exists.
+  const defined = new Set([...sections.matchAll(/^function ((?:proc|form)_\w+)\(/gm)].map((m) => m[1]));
+  const stubs: string[] = [];
+  for (const m of new Set([...sections.matchAll(/\b((?:proc|form)_\w+)\(ctx/g)].map((m) => m[1]))) {
+    if (defined.has(m)) continue;
+    const [kind, ...rest] = m.split("_");
+    ctx.warn(undefined, `A step uses the ${kind === "proc" ? "procedure" : "form"} "${rest.join("_")}", which doesn't exist (renamed or deleted?). That step does nothing.`, "error");
+    stubs.push(`function ${m}(ctx) {}`);
+  }
+  if (stubs.length) sections += "\n// Missing references\n" + stubs.join("\n") + "\n";
+  const vars = Object.fromEntries((ctx.project.variables ?? []).filter((v) => v.name).map((v) => [
+    v.name, [v.scope, v.type, v.type === "number" ? Number(v.initial) || 0 : v.type === "boolean" ? v.initial === "true" : v.initial],
+  ]));
   const imports = Array.from(ctx.script.imports).sort().join(", ");
+  const ui = Array.from(ctx.script.uiImports).sort();
   return `// Generated by Bedrock Creator. Edits here are overwritten on the next export.
 import { ${imports} } from "@minecraft/server";
-
+${ui.length ? `import { ${ui.join(", ")} } from "@minecraft/server-ui";\n` : ""}
 const NAMESPACE = ${S(ctx.ns)};
+/** Global variables: name -> [scope, type, starting value]. Saved as dynamic properties. */
+const BC_VARS = ${S(vars)};
 ${RUNTIME}
 ${extra}
-${ctx.script.sections.join("\n")}`;
+${sections}`;
 }

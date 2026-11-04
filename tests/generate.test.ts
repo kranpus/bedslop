@@ -89,6 +89,28 @@ describe("generateAddon", () => {
     expect(json(files, "BP/functions/tick.json").values).toEqual(["test/welcome"]);
   });
 
+  it("adds the forms API dependency when forms are used", () => {
+    expect(json(files, "BP/manifest.json").dependencies).toContainEqual({ module_name: "@minecraft/server-ui", version: "2.0.0" });
+  });
+
+  it("compiles block procedures, manual procedures, forms and command arguments", () => {
+    const js = text(files, "BP/scripts/main.js");
+    expect(js).toContain('const BC_VARS = {"gems":["player","number",0],"boss_defeated":["world","boolean",false],"nickname":["player","text",""]}');
+    expect(js).toMatch(/function proc_gem_counter\(ctx\) \{\n  let v_count = 0;\n  let v_i = 0;/);
+    expect(js).toContain('BC.setVar(ctx, "gems", "player", "add", v_count);');
+    expect(js).toContain("} else if (((ctx.player?.isSneaking === true) && !((BC.isDay()))))");
+    expect(js).toContain("for (let i1 = 0; i1 < Math.min(10000, Number(3)); i1++) {");
+    expect(js).toContain("system.runTimeout(() => {");
+    expect(js).toContain("for (const each");
+    expect(js).toMatch(/function proc_reward\(ctx\) \{\n  if \(!\(BC\.compare\(BC\.getVar\(ctx, "gems", "player"\), "≥", "5"\)\)\) return;/);
+    expect(js).not.toMatch(/proc_reward\(BC/); // manual: no event subscription
+    expect(js).toContain('import { ActionFormData, MessageFormData, ModalFormData } from "@minecraft/server-ui";');
+    expect(js).toContain('form.button(BC.fmt(ctx, "Buy a sword ({gems} gems)"), "textures/items/test_ruby_pickaxe");');
+    expect(js).toContain('mandatoryParameters: [{ name: "amount", type: CustomCommandParamType.Integer }]');
+    expect(js).toContain('optionalParameters: [{ name: "target", type: CustomCommandParamType.PlayerSelector }]');
+    expect(js).toContain('(ctx.args?.["times"] ?? "")');
+  });
+
   it("emits a script that type-checks against @minecraft/server 2.1.0", () => {
     const src = text(files, "BP/scripts/main.js");
     const dir = mkdtempSync(join(tmpdir(), "bc-script-"));
@@ -100,7 +122,10 @@ describe("generateAddon", () => {
       allowJs: true, checkJs: true, noEmit: true, strict: false, noImplicitAny: false,
       target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022, moduleResolution: ts.ModuleResolutionKind.Bundler,
       lib: ["lib.es2022.d.ts"], types: [],
-      baseUrl: resolve("."), paths: { "@minecraft/server": [resolve("node_modules/@minecraft/server/index.d.ts")] },
+      baseUrl: resolve("."), paths: {
+        "@minecraft/server": [resolve("node_modules/@minecraft/server/index.d.ts")],
+        "@minecraft/server-ui": [resolve("node_modules/@minecraft/server-ui/index.d.ts")],
+      },
     });
     const diags = ts.getPreEmitDiagnostics(program).map((d) => {
       const msg = ts.flattenDiagnosticMessageText(d.messageText, "\n");
@@ -109,6 +134,16 @@ describe("generateAddon", () => {
       return `${line + 1}: ${msg}\n    ${src.split("\n")[line]}`;
     });
     expect(diags).toEqual([]);
+  });
+});
+
+describe("references", () => {
+  it("reports steps that use a procedure or form that doesn't exist", () => {
+    const p = fixtureProject();
+    p.elements = p.elements.filter((e) => e.name !== "reward");
+    const { warnings, files } = generateAddon(p);
+    expect(warnings.some((w) => w.level === "error" && w.message.includes('procedure "reward"'))).toBe(true);
+    expect(text(files, "BP/scripts/main.js")).toContain("function proc_reward(ctx) {}");
   });
 });
 

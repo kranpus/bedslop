@@ -26,6 +26,8 @@ export interface Warning {
 
 export interface ScriptParts {
   imports: Set<string>;
+  /** Imports from @minecraft/server-ui (forms). */
+  uiImports: Set<string>;
   sections: string[];
   /** Ids of tools mapped to [durability cost when mining, cost when hitting]. */
   tools: Record<string, [number, number]>;
@@ -42,7 +44,7 @@ export class GenContext {
   readonly blockSounds: Record<string, { sound: string }> = {};
   readonly soundDefs: Record<string, unknown> = {};
   readonly tickFunctions: string[] = [];
-  readonly script: ScriptParts = { imports: new Set(["world", "system"]), sections: [], tools: {}, foods: {} };
+  readonly script: ScriptParts = { imports: new Set(["world", "system", "ItemStack"]), uiImports: new Set(), sections: [], tools: {}, foods: {} };
   private writtenTextures = new Map<string, string>();
 
   constructor(readonly project: Project) {

@@ -4,6 +4,8 @@ import { GenContext, type FileMap, type Warning, dataUrlToBytes, vec } from "./c
 import { genFunction, genLoot, genOre, genRecipe, genSound } from "./data";
 import { genEntity } from "./entity";
 import { buildScript, genCommands, genProcedure } from "./scripts";
+import { genForm } from "./forms";
+import { uiVersionFor } from "../model/project";
 
 export interface GenerateResult {
   files: FileMap;
@@ -17,6 +19,12 @@ export function validateProject(project: Project): Warning[] {
   const w: Warning[] = [];
   if (!/^[a-z][a-z0-9_]{1,31}$/.test(project.namespace)) {
     w.push({ level: "error", message: "Namespace must be 2-32 characters: lowercase letters, numbers and _ , starting with a letter." });
+  }
+  const varNames = new Set<string>();
+  for (const v of project.variables ?? []) {
+    if (!/^[a-z][a-z0-9_]*$/.test(v.name)) w.push({ level: "error", message: `Variable "${v.name}" needs a name of lowercase letters, numbers and _, starting with a letter.` });
+    if (varNames.has(v.name)) w.push({ level: "error", message: `Two variables are called "${v.name}".` });
+    varNames.add(v.name);
   }
   if (RESERVED_NAMESPACES.includes(project.namespace)) w.push({ level: "error", message: `"${project.namespace}" is reserved by Minecraft. Pick your own namespace.` });
   const seen = new Map<string, ModElement>();
@@ -68,6 +76,7 @@ function manifests(ctx: GenContext, usesScripts: boolean) {
   if (usesScripts) {
     bpModules.push({ type: "script", language: "javascript", uuid: p.uuids.bpScript, version, entry: "scripts/main.js" });
     bpDeps.push({ module_name: "@minecraft/server", version: p.scriptApi });
+    if (ctx.script.uiImports.size) bpDeps.push({ module_name: "@minecraft/server-ui", version: uiVersionFor(p.scriptApi) });
   }
   ctx.bp("manifest.json", {
     format_version: 2,
@@ -113,6 +122,7 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
       case "sound": genSound(ctx, el); break;
       case "procedure": genProcedure(ctx, el); break;
       case "command": commands.push(el); break;
+      case "form": genForm(ctx, el); break;
     }
   }
   if (commands.length && compareVersion(project.scriptApi, "2.1.0") < 0) {

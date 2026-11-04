@@ -15,7 +15,8 @@ export type ElementKind =
   | "procedure"
   | "command"
   | "function"
-  | "sound";
+  | "sound"
+  | "form";
 
 export type MenuCategory = "construction" | "equipment" | "items" | "nature" | "none";
 
@@ -295,7 +296,8 @@ export type TriggerType =
   | "entity_hit"
   | "entity_hurt"
   | "entity_die"
-  | "tick";
+  | "tick"
+  | "manual";
 
 export interface ProcedureElement extends BaseElement {
   kind: "procedure";
@@ -304,6 +306,19 @@ export interface ProcedureElement extends BaseElement {
   intervalTicks: number;
   conditions: Condition[];
   actions: Action[];
+  /** Which editor the procedure uses. Missing = "simple". */
+  editor?: "simple" | "blocks";
+  /** Blockly workspace JSON (blocks editor). */
+  blocks?: string;
+}
+
+export type CommandArgType = "integer" | "float" | "string" | "boolean" | "player";
+
+export interface CommandArg {
+  id: string;
+  name: string;
+  type: CommandArgType;
+  optional: boolean;
 }
 
 export interface CommandElement extends BaseElement {
@@ -313,6 +328,9 @@ export interface CommandElement extends BaseElement {
   cheatsRequired: boolean;
   conditions: Condition[];
   actions: Action[];
+  args?: CommandArg[];
+  editor?: "simple" | "blocks";
+  blocks?: string;
 }
 
 export interface FunctionElement extends BaseElement {
@@ -331,6 +349,54 @@ export interface SoundElement extends BaseElement {
   pitch: number;
 }
 
+export interface FormButton {
+  id: string;
+  text: string;
+  /** Texture id for the button icon, "" for none. */
+  icon: string;
+  actions: Action[];
+}
+
+export interface FormField {
+  id: string;
+  kind: "text" | "slider" | "dropdown" | "toggle" | "label";
+  /** Name used in text as {key}, and in blocks as a form value. */
+  key: string;
+  label: string;
+  placeholder: string;
+  min: number;
+  max: number;
+  step: number;
+  options: string[];
+  defaultValue: string;
+  /** Global variable that receives the value, "" for none. */
+  variable: string;
+}
+
+export interface FormElement extends BaseElement {
+  kind: "form";
+  formType: "menu" | "input" | "confirm";
+  title: string;
+  body: string;
+  buttons: FormButton[];
+  fields: FormField[];
+  submitText: string;
+  submitActions: Action[];
+  yesText: string;
+  noText: string;
+  yesActions: Action[];
+  noActions: Action[];
+}
+
+/** A value saved in the world (or on each player) that procedures can read and change. */
+export interface GlobalVariable {
+  id: string;
+  name: string;
+  scope: "world" | "player";
+  type: "number" | "text" | "boolean";
+  initial: string;
+}
+
 export type ModElement =
   | BlockElement
   | PlantElement
@@ -345,7 +411,8 @@ export type ModElement =
   | ProcedureElement
   | CommandElement
   | FunctionElement
-  | SoundElement;
+  | SoundElement
+  | FormElement;
 
 export type ElementOf<K extends ElementKind> = Extract<ModElement, { kind: K }>;
 
@@ -372,6 +439,7 @@ export interface Project {
   packIcon: string; // texture id, "" = auto
   elements: ModElement[];
   textures: TextureAsset[];
+  variables?: GlobalVariable[];
   createdAt: number;
   updatedAt: number;
 }
