@@ -50,7 +50,7 @@ export interface TextureAsset {
 export type BlockTextureMode = "all" | "pillar" | "six";
 export type BlockFace = "all" | "top" | "bottom" | "side" | "north" | "south" | "east" | "west";
 
-export type BlockShape = "cube" | "slab" | "stairs" | "carpet" | "trapdoor" | "door" | "fence" | "wall" | "pane";
+export type BlockShape = "cube" | "slab" | "stairs" | "carpet" | "trapdoor" | "door" | "fence" | "wall" | "pane" | "fence_gate" | "button" | "pressure_plate";
 
 /** A state you add to a block, e.g. "lit" (on/off), "stage" (0-3) or "colour" (red/green/blue). */
 export interface CustomBlockState {

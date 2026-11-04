@@ -480,6 +480,36 @@ export function genBlockScripts(ctx: GenContext) {
         e.dimension.playSound(open ? "random.door_open" : "random.door_close", e.block.location);
       });
     },`);
+    if (b.shape === "stairs") handlers.push(`    onPlace(e) { BC.run(${label("stair shape")}, () => bcStairsAround(e.block)); },
+    onPlayerBreak(e) { BC.run(${label("stair shape")}, () => bcStairsAround(e.block)); },`);
+    if (b.shape === "button") handlers.push(`    onPlayerInteract(e) {
+      BC.run(${label("press")}, () => {
+        if (bcGetState(e.block, ${S(`${ns}:pressed`)})) return;
+        bcSetState(e.block, ${S(`${ns}:pressed`)}, true);
+        e.dimension.playSound("random.click", e.block.location, { pitch: 0.6 });
+        const l = e.block.location, dim = e.dimension;
+        // Pops back out after a second, like a stone button.
+        system.runTimeout(() => BC.run(${label("release")}, () => {
+          const b = dim.getBlock(l);
+          if (b?.typeId !== ${S(b.id)}) return;
+          bcSetState(b, ${S(`${ns}:pressed`)}, false);
+          dim.playSound("random.click", l, { pitch: 0.5 });
+        }), 20);
+      });
+    },`);
+    if (b.shape === "plate") handlers.push(`    onStepOn(e) {
+      BC.run(${label("press")}, () => {
+        if (bcGetState(e.block, ${S(`${ns}:pressed`)})) return;
+        bcSetState(e.block, ${S(`${ns}:pressed`)}, true);
+        e.dimension.playSound("random.click", e.block.location, { pitch: 0.8 });
+      });
+    },
+    onStepOff(e) {
+      BC.run(${label("release")}, () => {
+        bcSetState(e.block, ${S(`${ns}:pressed`)}, false);
+        e.dimension.playSound("random.click", e.block.location, { pitch: 0.7 });
+      });
+    },`);
     if (b.shape === "connect") handlers.push(`    onPlace(e) { BC.run(${label("connect")}, () => bcConnectAround(e.block, true)); },
     onPlayerBreak(e) { BC.run(${label("disconnect")}, () => bcConnectAround(e.block, false)); },`);
     if (b.crop) handlers.push(`    onRandomTick(e) {
@@ -527,16 +557,59 @@ function bcTakeHeld(player, typeId) {
   if (item.amount > 1) { item.amount -= 1; inv.setItem(slot, item); } else inv.setItem(slot, undefined);
   return true;
 }
-/** Fences, walls and panes: which of our blocks connect, and in which group. */
+${blocks.some((b) => b.shape === "stairs") ? `// Stairs: like vanilla, they form inner and outer corners with the stairs around them.
+const BC_STAIRS = new Set(${S(blocks.filter((b) => b.shape === "stairs").map((b) => b.id))});
+const BC_STEP = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] };
+const BC_OPP = { north: "south", south: "north", east: "west", west: "east" };
+const BC_CCW = { north: "west", west: "south", south: "east", east: "north" };
+const BC_CW = { north: "east", east: "south", south: "west", west: "north" };
+function bcNext(b, dir) {
+  if (!b) return undefined;
+  const [dx, dz] = BC_STEP[dir];
+  try { return b.dimension.getBlock({ x: b.location.x + dx, y: b.location.y, z: b.location.z + dz }); } catch { return undefined; }
+}
+/** A stair's climbing direction (its high side) and half, or null for other blocks. */
+function bcStair(b) {
+  if (!b || !BC_STAIRS.has(b.typeId)) return null;
+  return { up: BC_OPP[String(bcGetState(b, "minecraft:cardinal_direction"))] ?? "south", half: bcGetState(b, "minecraft:vertical_half") };
+}
+const bcAxis = (d) => (d === "north" || d === "south" ? "z" : "x");
+const bcQuarter = (a, b) => [a, b].find((d) => d === "north" || d === "south")[0] + [a, b].find((d) => d === "east" || d === "west")[0];
+function bcStairShape(b, me) {
+  const free = (dir) => { const o = bcStair(bcNext(b, dir)); return !o || o.up !== me.up || o.half !== me.half; };
+  const back = bcStair(bcNext(b, me.up));
+  if (back && back.half === me.half && bcAxis(back.up) !== bcAxis(me.up) && free(BC_OPP[back.up])) return back.up === BC_CCW[me.up] ? "outer_left" : "outer_right";
+  const front = bcStair(bcNext(b, BC_OPP[me.up]));
+  if (front && front.half === me.half && bcAxis(front.up) !== bcAxis(me.up) && free(front.up)) return front.up === BC_CCW[me.up] ? "inner_left" : "inner_right";
+  return "straight";
+}
+function bcUpdateStair(b) {
+  const me = bcStair(b);
+  if (!b || !me) return;
+  const F = me.up, L = BC_CCW[F], R = BC_CW[F], B = BC_OPP[F];
+  const shape = bcStairShape(b, me);
+  const q = shape === "outer_left" ? [bcQuarter(F, L)] : shape === "outer_right" ? [bcQuarter(F, R)]
+    : [bcQuarter(F, L), bcQuarter(F, R), ...(shape === "inner_left" ? [bcQuarter(B, L)] : shape === "inner_right" ? [bcQuarter(B, R)] : [])];
+  let p = b.permutation;
+  for (const k of ["nw", "ne", "sw", "se"]) p = bcWith(p, ${S(ctx.ns)} + ":q_" + k, q.includes(k));
+  b.setPermutation(p);
+}
+function bcStairsAround(b) {
+  bcUpdateStair(b);
+  for (const d of ["north", "south", "east", "west"]) bcUpdateStair(bcNext(b, d));
+}
+` : ""}/** Fences, walls and panes: which of our blocks connect, and in which group. */
 const BC_CONNECT = ${S(Object.fromEntries(blocks.filter((b) => b.shape === "connect").map((b) => [b.id, b.group])))};
 // Blocks that aren't solid enough to connect to (plants, decorations, partial blocks).
 const BC_NOT_SOLID = /(flower|grass|fern|sapling|torch|button|sign|carpet|rail|slab|stairs|door|lever|pressure_plate|banner|bed|snow_layer|bush|vine|ladder|lantern|chain|candle|flower_pot|head|skull|cake|mushroom|sugar_cane|wheat|carrots|potatoes|beetroot|kelp|seagrass|coral_fan|redstone_wire|repeater|comparator|tripwire|web|scaffolding|fence_gate|azalea|dripleaf|roots|sprouts)/;
+const BC_GATES = new Set(${S(ctx.project.elements.filter((e) => e.kind === "block" && e.shape === "fence_gate").map((e) => ctx.id(e.name)))});
 const BC_SHAPED = new Set(${S(blocks.filter((b) => b.shape && b.shape !== "connect").map((b) => b.id))});
 function bcConnects(n, group) {
   if (!n || n.isAir || n.isLiquid) return false;
   const id = n.typeId;
   if (id in BC_CONNECT) return BC_CONNECT[id] === group;
-  if (group === "fence" && id.includes("fence") && !id.includes("gate")) return true;
+  if (group === "fence" && id.includes("fence")) return true; // fences and fence gates
+  if (group === "fence" && BC_GATES.has(id)) return true;
   if (group === "wall" && id.endsWith("_wall")) return true;
   if (group === "pane" && (id.includes("pane") || id === "minecraft:iron_bars")) return true;
   return !BC_SHAPED.has(id) && !BC_NOT_SOLID.test(id) && !id.includes("fence") && !id.includes("pane");

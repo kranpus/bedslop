@@ -167,6 +167,7 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
     const component = `${ctx.ns}:${b.name}_logic`;
     components[component] = {};
     need("1.21.90", shape?.logic ? `${b.shape} behaviour` : "lever / redstone behaviour");
+    if (shape?.logic === "button" || shape?.logic === "plate") need("1.21.120", "redstone output");
     ctx.script.blocks.push({
       id, component, toggleState: toggle ? onState : undefined, litState: input && hasOnState ? onState : undefined, input,
       shape: shape?.logic, group: shape?.logic === "connect" ? b.shape : undefined,

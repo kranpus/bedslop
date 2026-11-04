@@ -52,7 +52,10 @@ const DOOR_SLOTS: { face: BlockFace; label: string }[] = [{ face: "bottom", labe
 const shapeOf = (b: BlockElement): BlockShape | "custom" => (b.geometry === "custom" ? "custom" : b.shape ?? "cube");
 const SHAPE_HELP: Partial<Record<BlockShape, string>> = {
   slab: "Place a slab on a slab to make a double slab.",
-  stairs: "Straight stairs; corners aren't joined automatically yet.",
+  stairs: "Joins into inner and outer corners with stairs next to it. Place on the top half of a block for upside-down stairs.",
+  fence_gate: "Right-click to open and close. Fences join up with it.",
+  button: "Goes on the side of a block. Pressing it sends a redstone pulse for 1 second.",
+  pressure_plate: "Gives a redstone signal while a player or mob stands on it.",
   trapdoor: "Right-click to open and close.",
   door: "Places its top half automatically. Right-click to open and close.",
   fence: "Joins up with neighbouring fences and solid blocks.",
@@ -104,9 +107,11 @@ export function BlockEditor({ el, patch }: { el: BlockElement; patch: Patch<Bloc
               options={[
                 { value: "cube", label: "Full cube" }, { value: "slab", label: "Slab (stacks into a double slab)" }, { value: "stairs", label: "Stairs" },
                 { value: "carpet", label: "Carpet / thin layer" }, { value: "trapdoor", label: "Trapdoor (click to open)" }, { value: "door", label: "Door (two blocks tall)" },
-                { value: "fence", label: "Fence (connects)" }, { value: "wall", label: "Wall (connects)" }, { value: "pane", label: "Pane / bars (connects)" },
+                { value: "fence", label: "Fence (connects)" }, { value: "fence_gate", label: "Fence gate (click to open)" }, { value: "wall", label: "Wall (connects)" }, { value: "pane", label: "Pane / bars (connects)" },
+                { value: "button", label: "Button (redstone pulse)" }, { value: "pressure_plate", label: "Pressure plate (redstone)" },
                 { value: "custom", label: "Custom Blockbench model" },
               ]} />
+            {el.geometry !== "custom" && (el.shape === "button" || el.shape === "pressure_plate") && <VersionNeed el={el} />}
             {el.geometry === "custom"
               ? <BlockModelImport el={el} patch={patch} load={load} msg={msg} />
               : (
@@ -515,6 +520,7 @@ function blockNeeds(b: BlockElement): { engine: number[]; api: string; reasons: 
   if ((b.function ?? "none") === "storage") needs.push({ engine: [1, 26, 60], api: "2.11.0", reason: "storage" });
   if (b.redstoneInput) needs.push({ engine: [1, 26, 0], api: "2.5.0", reason: "redstone input" });
   if ((b.redstonePower ?? 0) > 0) needs.push({ engine: [1, 21, 120], api: "2.3.0", reason: "redstone output" });
+  if (b.geometry !== "custom" && (b.shape === "button" || b.shape === "pressure_plate")) needs.push({ engine: [1, 21, 120], api: "2.3.0", reason: `${b.shape === "button" ? "button" : "pressure plate"} redstone` });
   const cmp = (a: number[], c: number[]) => a[0] - c[0] || a[1] - c[1] || a[2] - c[2];
   const top = needs.sort((a, c) => cmp(c.engine, a.engine))[0];
   return top ? { engine: top.engine, api: top.api, reasons: needs.map((n) => n.reason) } : { engine: [0, 0, 0], api: "0.0.0", reasons: [] };

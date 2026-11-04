@@ -52,7 +52,7 @@ export interface ShapeParts {
   states?: Record<string, unknown[]>;
   permutations: { condition: string; components: Record<string, unknown> }[];
   /** Script behaviour the shape needs (registered in main.js). */
-  logic?: "slab" | "trapdoor" | "door" | "connect";
+  logic?: "slab" | "trapdoor" | "door" | "connect" | "stairs" | "button" | "plate";
   /** Faces of the texture slots used by this shape (for the editor). */
   textureSlots: ("all" | "top" | "bottom")[];
 }
@@ -76,19 +76,35 @@ export function shapeParts(shape: BlockShape, ns: string, name: string): ShapePa
         logic: "slab",
         textureSlots: ["all"],
       };
-    case "stairs":
+    case "stairs": {
+      // A half slab plus four quarter steps. The script picks which quarters show (straight, inner or outer
+      // corner) from the neighbouring stairs, like vanilla. Quarters are named by world direction; the
+      // model's x is mirrored, so east quarters sit at negative x.
+      const quarters = { nw: [[0, 8], [-8, 0]], ne: [[-8, 0], [-8, 0]], sw: [[0, 8], [0, 8]], se: [[-8, 0], [0, 8]] } as const;
+      const bones = [
+        { name: "base_low", cubes: [cube([-8, 0, -8], [8, 8, 8])] },
+        { name: "base_high", cubes: [cube([-8, 8, -8], [8, 16, 8])] },
+        ...Object.entries(quarters).flatMap(([k, [[x0, x1], [z0, z1]]]) => [
+          { name: `q_${k}_high`, cubes: [cube([x0, 8, z0], [x1, 16, z1])] },
+          { name: `q_${k}_low`, cubes: [cube([x0, 0, z0], [x1, 8, z1])] },
+        ]),
+      ];
       return {
-        geometry: geometry(geoId, [{ name: "stairs", cubes: [cube([-8, 0, -8], [8, 8, 8]), cube([-8, 8, 0], [8, 16, 8])] }]),
+        geometry: geometry(geoId, bones),
         geometryId: geoId,
-        // The lower half only, so players can walk up stairs without jumping.
+        boneVisibility: {
+          base_low: `!(${top})`, base_high: top,
+          ...Object.fromEntries(Object.keys(quarters).flatMap((k) => [[`q_${k}_high`, `!(${top}) && ${q(`q_${k}`)}`], [`q_${k}_low`, `${top} && ${q(`q_${k}`)}`]])),
+        },
+        // The solid half only, so players can walk up stairs without jumping.
         collision: box([-8, 0, -8], [8, 8, 8]), selection: FULL,
         traits: { ...facingTrait, "minecraft:placement_position": { enabled_states: ["minecraft:vertical_half"] } },
-        permutations: FACINGS.flatMap(([d, y]) => [
-          { condition: `${dirIs(d)} && !(${top})`, components: { "minecraft:transformation": { rotation: [0, y, 0] } } },
-          { condition: `${dirIs(d)} && ${top}`, components: { "minecraft:transformation": { rotation: [0, y, 180] } } },
-        ]),
+        states: Object.fromEntries(Object.keys(quarters).map((k) => [st(`q_${k}`), [false, true]])),
+        permutations: [{ condition: top, components: { "minecraft:collision_box": box([-8, 8, -8], [8, 16, 8]) } }],
+        logic: "stairs",
         textureSlots: ["all"],
       };
+    }
     case "carpet":
       return {
         geometry: geometry(geoId, [{ name: "carpet", cubes: [cube([-8, 0, -8], [8, 1, 8])] }]),
@@ -146,8 +162,9 @@ export function shapeParts(shape: BlockShape, ns: string, name: string): ShapePa
         switch (dir) {
           case "north": return cube([-a, y0, -8], [a, y1, -p]);
           case "south": return cube([-a, y0, p], [a, y1, 8]);
-          case "west": return cube([-8, y0, -a], [-p, y1, a]);
-          default: return cube([p, y0, -a], [8, y1, a]);
+          // Bedrock models store x mirrored: +x in the model is west in the world.
+          case "west": return cube([p, y0, -a], [8, y1, a]);
+          default: return cube([-8, y0, -a], [-p, y1, a]);
         }
       });
       const dirs = ["north", "south", "east", "west"] as const;
@@ -169,6 +186,64 @@ export function shapeParts(shape: BlockShape, ns: string, name: string): ShapePa
         textureSlots: ["all"],
       };
     }
+    case "fence_gate": {
+      // Posts at the ends, two rails between them; opening swings the rails back.
+      const posts = [cube([-8, 5, -1], [-6, 16, 1]), cube([6, 5, -1], [8, 16, 1])];
+      const rails = (z0: number, z1: number) => [cube([-6, 6, z0], [6, 9, z1]), cube([-6, 12, z0], [6, 15, z1]), cube([-2, 9, z0], [2, 12, z1])];
+      return {
+        geometry: geometry(geoId, [
+          { name: "posts", cubes: posts },
+          { name: "closed", cubes: rails(-1, 1) },
+          { name: "open", cubes: [cube([-8, 6, 1], [-6, 9, 8]), cube([-8, 12, 1], [-6, 15, 8]), cube([6, 6, 1], [8, 9, 8]), cube([6, 12, 1], [8, 15, 8])] },
+        ]),
+        geometryId: geoId,
+        boneVisibility: { posts: "true", closed: `!${q("open")}`, open: q("open") },
+        collision: box([-8, 0, -2], [8, 16, 2]), selection: box([-8, 5, -2], [8, 16, 2]),
+        traits: facingTrait,
+        states: { [st("open")]: [false, true] },
+        permutations: [
+          ...FACINGS.map(([d, y]) => ({ condition: dirIs(d), components: { "minecraft:transformation": { rotation: [0, y, 0] } } })),
+          { condition: q("open"), components: { "minecraft:collision_box": false } },
+        ],
+        logic: "trapdoor",
+        textureSlots: ["all"],
+      };
+    }
+    case "button": {
+      // Goes on the side of a block; the front faces the player who placed it.
+      return {
+        geometry: geometry(geoId, [
+          { name: "up", cubes: [cube([-3, 6, 6], [3, 10, 8])] },
+          { name: "pressed", cubes: [cube([-3, 6, 7], [3, 10, 8])] },
+        ]),
+        geometryId: geoId,
+        boneVisibility: { up: `!${q("pressed")}`, pressed: q("pressed") },
+        collision: false, selection: box([-3, 6, 6], [3, 10, 8]),
+        traits: facingTrait,
+        states: { [st("pressed")]: [false, true] },
+        permutations: [
+          ...FACINGS.map(([d, y]) => ({ condition: dirIs(d), components: { "minecraft:transformation": { rotation: [0, y, 0] } } })),
+          { condition: q("pressed"), components: { "minecraft:redstone_producer": { power: 15 } } },
+        ],
+        logic: "button",
+        textureSlots: ["all"],
+      };
+    }
+    case "pressure_plate":
+      return {
+        geometry: geometry(geoId, [
+          { name: "up", cubes: [cube([-7, 0, -7], [7, 1, 7])] },
+          { name: "pressed", cubes: [cube([-7, 0, -7], [7, 0.5, 7])] },
+        ]),
+        geometryId: geoId,
+        boneVisibility: { up: `!${q("pressed")}`, pressed: q("pressed") },
+        // A thin step so the game notices mobs standing on it.
+        collision: box([-7, 0, -7], [7, 1, 7]), selection: box([-7, 0, -7], [7, 1, 7]),
+        states: { [st("pressed")]: [false, true] },
+        permutations: [{ condition: q("pressed"), components: { "minecraft:redstone_producer": { power: 15 } } }],
+        logic: "plate",
+        textureSlots: ["all"],
+      };
     default:
       return null;
   }
@@ -179,6 +254,11 @@ export function previewGeometry(shape: BlockShape, ns: string, name: string): { 
   const parts = shapeParts(shape, ns, name);
   if (!parts) return null;
   // Show fences/walls/panes connected north-south, doors and trapdoors closed.
-  const hidden = shape === "trapdoor" ? ["closed_top", "open"] : shape === "door" ? ["open"] : CONNECTING.includes(shape) ? ["east", "west"] : [];
+  const hidden = shape === "trapdoor" ? ["closed_top", "open"]
+    : shape === "door" || shape === "fence_gate" ? ["open"]
+    : shape === "button" || shape === "pressure_plate" ? ["pressed"]
+    // Straight stairs climbing north.
+    : shape === "stairs" ? ["base_high", "q_sw_high", "q_se_high", "q_nw_low", "q_ne_low", "q_sw_low", "q_se_low"]
+    : CONNECTING.includes(shape) ? ["east", "west"] : [];
   return { json: JSON.stringify(parts.geometry), hidden };
 }
