@@ -1,4 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { geometryIdentifier } from "../../export/context";
+import { modelBounds } from "../../export/content";
+import { SCRIPT_API_VERSIONS } from "../../model/project";
+import { ModelPreview } from "../ModelPreview";
 import { convertBbmodel, isBbmodel } from "../../export/bbmodel";
 import type {
   ArmorElement, ArmorSlot, BlockElement, BlockFace, FoodElement, ItemElement, PlantElement, ToolElement, ToolType,
@@ -67,9 +71,11 @@ export function BlockEditor({ el, patch }: { el: BlockElement; patch: Patch<Bloc
                 options={[{ value: "full", label: "Full cube" }, { value: "custom", label: "Custom Blockbench model" }]} />
               <Color label="Map colour" value={el.mapColor} onChange={(mapColor) => patch({ mapColor }, "map")} />
             </Grid>
-            {el.geometry === "custom" && <GeometryUpload value={el.customGeometry} onChange={(customGeometry) => patch({ customGeometry })} />}
+            {el.geometry === "custom" && <BlockModelImport el={el} patch={patch} />}
           </div>
-          <BlockPreview b={el} />
+          {el.geometry === "custom" && geometryIdentifier(el.customGeometry)
+            ? <BlockModelView el={el} />
+            : <BlockPreview b={el} />}
         </div>
       </Section>
       <Section title="Behaviour">
@@ -91,6 +97,8 @@ export function BlockEditor({ el, patch }: { el: BlockElement; patch: Patch<Bloc
         ]} />
         {el.drops === "loot" && <LootSelect value={el.lootTable} onChange={(lootTable) => patch({ lootTable })} />}
       </Section>
+      <BlockFunctionSection el={el} patch={patch} />
+      <RedstoneSection el={el} patch={patch} />
       <CreativeSection el={el} patch={patch} />
     </>
   );
@@ -313,5 +321,154 @@ export function FoodEditor({ el, patch }: { el: FoodElement; patch: Patch<FoodEl
         <button type="button" className="btn small" onClick={() => patch({ effects: [...el.effects, { effect: "regeneration", seconds: 5, amplifier: 0, chance: 100 }] })}>Add effect</button>
       </Section>
     </>
+  );
+}
+
+// ---------- Block: custom model, function, redstone ----------
+
+function BlockModelView({ el }: { el: BlockElement }) {
+  const textures = useStore((s) => s.project!.textures);
+  const tex = textures.find((t) => t.id === (el.textures.all ?? el.textures.side))?.dataUrl ?? "";
+  const mode = el.collision ?? "model";
+  const box = mode === "full" ? { origin: [-8, 0, -8], size: [16, 16, 16] } : modelBounds(el.customGeometry);
+  return <ModelPreview geometry={el.customGeometry} texture={tex} box={mode === "none" ? null : box} />;
+}
+
+function BlockModelImport({ el, patch }: { el: BlockElement; patch: Patch<BlockElement> }) {
+  const addTexture = useStore((s) => s.addTexture);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const id = geometryIdentifier(el.customGeometry);
+  const load = async (f: File) => {
+    try {
+      const text = await f.text();
+      if (isBbmodel(text)) {
+        const c = convertBbmodel(text, el.name);
+        const p: Partial<BlockElement> = { customGeometry: c.geometry, textureMode: "all", renderMethod: "alpha_test", lightDampening: 0 };
+        if (c.texture) p.textures = { ...el.textures, all: addTexture({ ...c.texture, kind: "block" }).id };
+        patch(p);
+        setMsg({ ok: true, text: `Imported ${f.name}${c.texture ? " with its texture" : ". Now add its texture above"}.` });
+      } else {
+        if (!geometryIdentifier(text)) throw new Error(`${f.name} isn't a Blockbench model.`);
+        patch({ customGeometry: text, renderMethod: el.renderMethod === "opaque" ? "alpha_test" : el.renderMethod });
+        setMsg({ ok: true, text: `Imported ${f.name}. Add the texture you painted for it above.` });
+      }
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof Error ? e.message : "That file couldn't be read." });
+    }
+  };
+  return (
+    <div className="bb-import on">
+      <div className="row between">
+        <div className="stack tight">
+          <strong>Blockbench model</strong>
+          <span className="field-help">{id ? <>Using <span className="mono">{id}</span>. Make it in Blockbench as a “Bedrock Block”, 16×16×16 pixels.</> : "Import a .bbmodel (model + texture) or an exported .geo.json."}</span>
+        </div>
+        <label className={`btn small${id ? "" : " primary"}`}>
+          Import model…
+          <input type="file" accept=".bbmodel,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) load(f); }} />
+        </label>
+      </div>
+      <Select label="Hitbox" value={el.collision ?? "model"} onChange={(collision) => patch({ collision })} options={[
+        { value: "model", label: "Fit to the model" }, { value: "full", label: "Full block" }, { value: "none", label: "None: walk through it" },
+      ]} />
+      {msg && <p className={msg.ok ? "ok-text" : "warn-text"} role="status">{msg.text}</p>}
+    </div>
+  );
+}
+
+/** Minimum game / Script API a block's features need (mirrors the exporter's checks). */
+function blockNeeds(b: BlockElement): { engine: number[]; api: string; reasons: string[] } {
+  const needs: { engine: number[]; api: string; reason: string }[] = [];
+  if ((b.function ?? "none") === "storage") needs.push({ engine: [1, 26, 60], api: "2.11.0", reason: "storage" });
+  if (b.redstoneInput) needs.push({ engine: [1, 26, 0], api: "2.5.0", reason: "redstone input" });
+  if ((b.redstonePower ?? 0) > 0) needs.push({ engine: [1, 21, 120], api: "2.3.0", reason: "redstone output" });
+  const cmp = (a: number[], c: number[]) => a[0] - c[0] || a[1] - c[1] || a[2] - c[2];
+  const top = needs.sort((a, c) => cmp(c.engine, a.engine))[0];
+  return top ? { engine: top.engine, api: top.api, reasons: needs.map((n) => n.reason) } : { engine: [0, 0, 0], api: "0.0.0", reasons: [] };
+}
+
+function VersionNeed({ el }: { el: BlockElement }) {
+  const project = useStore((s) => s.project!);
+  const update = useStore((s) => s.update);
+  const need = blockNeeds(el);
+  if (!need.reasons.length) return null;
+  const cmp = (a: number[], c: number[]) => a[0] - c[0] || a[1] - c[1] || a[2] - c[2];
+  const ok = cmp(project.minEngine, need.engine) >= 0;
+  const target = SCRIPT_API_VERSIONS.find((v) => cmp(v.engine, need.engine) >= 0);
+  return (
+    <div className={`version-need ${ok ? "ok" : "bad"}`}>
+      <span>
+        {need.reasons.join(" and ")[0].toUpperCase() + need.reasons.join(" and ").slice(1)} need{need.reasons.length === 1 ? "s" : ""} Minecraft {need.engine.join(".")} or newer.
+        {ok ? " Your project is set up for that." : ` Your project targets ${project.minEngine.join(".")}.`}
+      </span>
+      {!ok && target && (
+        <button type="button" className="btn small primary" onClick={() => update((p) => ({ ...p, scriptApi: target.api, minEngine: [...target.engine] as [number, number, number] }))}>
+          Update project to {target.game}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function BlockFunctionSection({ el, patch }: { el: BlockElement; patch: Patch<BlockElement> }) {
+  const ns = useStore((s) => s.project!.namespace);
+  const recipes = useStore((s) => s.project!.elements);
+  const tags = el.craftingTags?.length ? el.craftingTags : [`${ns}:${el.name}`];
+  const usedBy = recipes.filter((r) => r.kind === "recipe" && r.stations?.some((t) => tags.includes(t))).length;
+  const fn = el.function ?? "none";
+  return (
+    <Section title="What it does when used">
+      <Segmented value={fn} onChange={(f) => patch({ function: f })} options={[
+        { value: "none", label: "Nothing special" }, { value: "crafting", label: "Crafting station" }, { value: "storage", label: "Storage (chest)" },
+      ]} />
+      {fn === "crafting" && (
+        <>
+          <Grid>
+            <Text label="Name shown on its screen" value={el.tableName ?? ""} onChange={(tableName) => patch({ tableName }, "tableName")} placeholder={el.displayName} />
+          </Grid>
+          <p className="field-help">
+            Opens a 3×3 crafting grid. {usedBy ? `${usedBy} recipe${usedBy > 1 ? "s" : ""} can be made here.` : "No recipes use it yet:"} In a recipe, choose “{el.displayName}” under “Craft in”.
+          </p>
+        </>
+      )}
+      {fn === "storage" && (
+        <>
+          <Grid>
+            <Slider label="Slots" min={1} max={54} value={el.slotCount ?? 27} onChange={(slotCount) => patch({ slotCount }, "slots")} format={(v) => (v === 27 ? "27 (chest)" : v === 54 ? "54 (double chest)" : v === 9 ? "9 (dispenser)" : String(v))} />
+            <Text label="Title on its screen" value={el.containerTitle ?? ""} onChange={(containerTitle) => patch({ containerTitle }, "ctitle")} placeholder={el.displayName} />
+          </Grid>
+          <p className="field-help">Right-click opens a chest screen. Uses Bedrock's built-in block containers.</p>
+        </>
+      )}
+      {fn !== "none" && <VersionNeed el={el} />}
+    </Section>
+  );
+}
+
+function RedstoneSection({ el, patch }: { el: BlockElement; patch: Patch<BlockElement> }) {
+  const power = el.redstonePower ?? 0;
+  const anyOn = (power > 0 && el.redstoneMode === "toggle") || !!el.redstoneInput;
+  return (
+    <Section title="Redstone">
+      <Grid>
+        <Slider label="Gives off a signal" min={0} max={15} value={power} onChange={(redstonePower) => patch({ redstonePower }, "power")} format={(v) => (v ? `power ${v}` : "no")} />
+        {power > 0 && (
+          <Select label="Signal" value={el.redstoneMode ?? "always"} onChange={(redstoneMode) => patch({ redstoneMode })} options={[
+            { value: "always", label: "Always on (like a redstone block)" }, { value: "toggle", label: "Right-click to switch (like a lever)" },
+          ]} />
+        )}
+      </Grid>
+      <Toggle label="Reacts to redstone" value={!!el.redstoneInput} onChange={(redstoneInput) => patch({ redstoneInput })}
+        help="Use the “A block receives / loses redstone power” procedure triggers to run anything you like." />
+      {el.redstoneInput && <Toggle label="Lets the signal pass through" value={!!el.passesPower} onChange={(passesPower) => patch({ passesPower })} />}
+      {anyOn && (
+        <>
+          <Toggle label={el.redstoneInput ? "Lights up while powered (like a redstone lamp)" : "Lights up while switched on"} value={!!el.litWhenPowered} onChange={(litWhenPowered) => patch({ litWhenPowered })} />
+          {el.litWhenPowered && <Grid><Slider label="Light level when on" min={1} max={15} value={el.litLevel ?? 15} onChange={(litLevel) => patch({ litLevel }, "lit")} /></Grid>}
+          <TexturePicker label="Texture when on (optional)" kind="block" value={el.poweredTexture} suggestedName={`${el.name}_on`} onChange={(poweredTexture) => patch({ poweredTexture })} />
+        </>
+      )}
+      {(power > 0 || el.redstoneInput) && <VersionNeed el={el} />}
+    </Section>
   );
 }

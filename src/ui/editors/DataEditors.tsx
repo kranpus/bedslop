@@ -68,6 +68,7 @@ export function RecipeEditor({ el, patch }: { el: RecipeElement; patch: Patch<Re
           {el.recipeType === "shaped" && <p className="field-help">The pattern can be used anywhere on the grid, as long as the shape matches.</p>}
         </Section>
       )}
+      {(el.recipeType === "shaped" || el.recipeType === "shapeless") && <CraftIn el={el} patch={patch} />}
 
       {(el.recipeType === "furnace" || el.recipeType === "stonecutter") && (
         <Section title="Input">
@@ -237,5 +238,31 @@ export function SoundEditor({ el, patch }: { el: SoundElement; patch: Patch<Soun
         </Grid>
       </Section>
     </>
+  );
+}
+
+/** Where a crafting recipe works: the vanilla crafting table and/or custom crafting stations. */
+function CraftIn({ el, patch }: { el: RecipeElement; patch: Patch<RecipeElement> }) {
+  const project = useStore((s) => s.project!);
+  const stations = [
+    { tag: "crafting_table", label: "Crafting table" },
+    ...project.elements.flatMap((b) => (b.kind === "block" && b.function === "crafting"
+      ? [{ tag: (b.craftingTags?.length ? b.craftingTags[0] : `${project.namespace}:${b.name}`), label: b.displayName }] : [])),
+  ];
+  const current = el.stations?.length ? el.stations : ["crafting_table"];
+  const set = (tag: string, on: boolean) => {
+    const next = on ? [...new Set([...current, tag])] : current.filter((t) => t !== tag);
+    patch({ stations: next.length ? next : ["crafting_table"] });
+  };
+  return (
+    <Section title="Craft in" hint={stations.length === 1 ? "Make a block a “Crafting station” to craft recipes only there." : "Tick every place this recipe can be crafted."}>
+      <div className="station-list">
+        {stations.map((s) => (
+          <label key={s.tag} className="inline-check big">
+            <input type="checkbox" checked={current.includes(s.tag)} onChange={(e) => set(s.tag, e.target.checked)} /> {s.label}
+          </label>
+        ))}
+      </div>
+    </Section>
   );
 }

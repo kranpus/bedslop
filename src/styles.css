@@ -471,3 +471,13 @@ table.vars td:first-child input { min-width: 140px; }
 table.vars td:nth-child(4) input { width: 90px; }
 table.vars th, table.vars td { padding: 9px 8px; }
 table.vars td:nth-child(5) { min-width: 0; }
+
+.model-preview { position: relative; width: 260px; height: 260px; max-width: 100%; flex: none; margin: 0 auto; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 35%, var(--surface) 0%, var(--surface-2) 75%); touch-action: none; }
+.model-preview canvas { display: block; cursor: grab; }
+.version-need { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 9px 12px; border-radius: var(--radius); font-size: 13px; }
+.version-need.ok { background: var(--surface-2); color: var(--muted); }
+.version-need.bad { background: var(--warn-soft); color: var(--warn); }
+.station-list { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.inline-check.big { font-size: 13.5px; color: var(--ink); }
+.slider output { white-space: nowrap; }
