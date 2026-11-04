@@ -162,6 +162,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 
 ## Changelog
 
+- **0.6.1**: Fix the extra whole-page scrollbar: on/off switches' hidden checkboxes were positioned against the page, stretching it below the window. The layout rows are now also capped so only the sidebar and editor scroll.
+
 - **0.6.0** (Phase 2, item 9): Particle effects. Designer with live 3D preview, built-in sprites or your own texture, colour/opacity/size over lifetime, burst or stream, spawn area and direction, gravity, air resistance, spin, block collisions, and seven presets. New "Spawn particles" step (your effects or Minecraft's). The example wand now sparkles. 97 tests.
 
 - **0.5.1**: Fix custom block model import: file pickers no longer filter by file type (phones and tablets greyed out `.bbmodel` and `.mcstructure` files); "Import .bbmodel…" button right under Shape on every block (switches it to the custom model); drag-and-drop a model onto the block's Look section; the model panel now sits under Shape instead of below the textures; clearer messages for wrong files; models too big or too far outside the block for Minecraft to draw are flagged in the editor and at export. 88 tests.
