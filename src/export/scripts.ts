@@ -512,21 +512,40 @@ export function genBlockScripts(ctx: GenContext) {
     },`);
     if (b.shape === "connect") handlers.push(`    onPlace(e) { BC.run(${label("connect")}, () => bcConnectAround(e.block, true)); },
     onPlayerBreak(e) { BC.run(${label("disconnect")}, () => bcConnectAround(e.block, false)); },`);
-    if (b.crop) handlers.push(`    onRandomTick(e) {
+    if (b.crop) {
+      const c = b.crop, last = c.stages - 1, growth = S(`${ns}:growth`);
+      handlers.push(`    onRandomTick(e) {
       BC.run(${label("grow")}, () => {
-        const stage = Number(bcGetState(e.block, ${S(`${ns}:growth`)}) ?? 0);
-        if (stage < ${b.crop.stages - 1} && Math.random() * 100 < ${b.crop.chance}) bcSetState(e.block, ${S(`${ns}:growth`)}, stage + 1);
+        const stage = Number(bcGetState(e.block, ${growth}) ?? 0);
+        if (stage >= ${last} || Math.random() * 100 >= ${c.chance}) return;${c.needsWater ? `
+        // Needs wet farmland underneath.
+        const below = e.block.below();
+        if (below?.typeId !== "minecraft:farmland" || Number(below.permutation.getState("moisturized_amount") ?? 0) <= 0) return;` : ""}${c.needsSky ? `
+        // Needs daylight: daytime, with nothing but air above it.
+        if (!BC.isDay()) return;
+        const topY = e.dimension.getTopmostBlock({ x: e.block.location.x, z: e.block.location.z })?.location.y ?? e.block.location.y;
+        if (topY > e.block.location.y) return;` : ""}
+        bcSetState(e.block, ${growth}, stage + 1);
       });
-    },${b.crop.boneMeal ? `
+    },${c.boneMeal || c.pick ? `
     onPlayerInteract(e) {
-      BC.run(${label("bone meal")}, () => {
-        const stage = Number(bcGetState(e.block, ${S(`${ns}:growth`)}) ?? 0);
-        if (!e.player || stage >= ${b.crop.stages - 1}) return;
-        if (!bcTakeHeld(e.player, "minecraft:bone_meal")) return;
-        bcSetState(e.block, ${S(`${ns}:growth`)}, Math.min(${b.crop.stages - 1}, stage + BC.randInt(2, 5)));
-        e.dimension.spawnParticle("minecraft:crop_growth_emitter", BC.center(e.block.location));
+      BC.run(${label("use")}, () => {
+        if (!e.player) return;
+        const stage = Number(bcGetState(e.block, ${growth}) ?? 0);${c.boneMeal ? `
+        if (stage < ${last} && bcTakeHeld(e.player, "minecraft:bone_meal")) {
+          bcSetState(e.block, ${growth}, Math.min(${last}, stage + BC.randInt(2, 5)));
+          e.dimension.spawnParticle("minecraft:crop_growth_emitter", BC.center(e.block.location));
+          return;
+        }` : ""}${c.pick ? `
+        // Picking: drop the produce and go back to an earlier stage, like sweet berries.
+        if (stage < ${last}) return;
+        const n = BC.randInt(${Math.max(1, c.pick.min)}, ${Math.max(1, c.pick.max)});
+        e.dimension.spawnItem(new ItemStack(${S(c.pick.item)}, n), BC.center(e.block.location));
+        bcSetState(e.block, ${growth}, ${c.pick.back});
+        e.dimension.playSound("block.sweet_berry_bush.pick", e.block.location);` : ""}
       });
     },` : ""}`);
+    }
     if (b.toggleState) handlers.push(`    onPlayerInteract(e) {
       BC.run(${S(`${b.id}: switch`)}, () => {
         const block = e.block;

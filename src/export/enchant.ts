@@ -13,7 +13,7 @@ const S = JSON.stringify;
 export function genEnchantments(ctx: GenContext) {
   const list = ctx.project.elements.filter((e): e is EnchantmentElement => e.kind === "enchantment");
   if (!list.length) return;
-  const ownBows = ctx.project.elements.filter((e) => e.kind === "item" && e.use === "bow").map((e) => ctx.id(e.name));
+  const ownBows = ctx.project.elements.filter((e) => e.kind === "item" && (e.use === "bow" || e.use === "crossbow")).map((e) => ctx.id(e.name));
   const books: Record<string, string> = {};
 
   const defs = list.map((en) => {

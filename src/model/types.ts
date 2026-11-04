@@ -143,7 +143,7 @@ export interface PlantElement extends BaseElement {
 export interface ItemElement extends BaseElement {
   kind: "item";
   /** What using the item does: throw a projectile (like a snowball), shoot ammo (like a bow), or be ammo. */
-  use?: "none" | "throw" | "bow" | "ammo";
+  use?: "none" | "throw" | "bow" | "crossbow" | "ammo";
   /** Projectile element name thrown/fired by this item (throw, ammo). */
   projectile?: string;
   /** Bow: item ids it can fire (ammo items, e.g. minecraft:arrow). */
@@ -575,6 +575,13 @@ export interface CropElement extends BaseElement {
   seedsTexture: string;
   seedsMax: number;
   placeableOn: string[];
+  /** Only grows on wet (watered) farmland. */
+  needsWater?: boolean;
+  /** Only grows in daytime under open sky (scripts can't read light levels on stable Minecraft). */
+  needsSky?: boolean;
+  /** Right-click when grown to pick the produce; it goes back to stage pickBackTo (like sweet berries). */
+  pickable?: boolean;
+  pickBackTo?: number;
 }
 
 export interface StructureElement extends BaseElement {

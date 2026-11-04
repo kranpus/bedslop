@@ -143,3 +143,35 @@ describe("more block shapes", () => {
     expect(inner["0,0"]).toBe("nw ne se");
   });
 });
+
+describe("crop rules and crossbows", () => {
+  const p = createProject("Farm");
+  p.namespace = "frm";
+  const crop = createElement("crop", "berries", "Berries");
+  Object.assign(crop, { produce: "minecraft:sweet_berries", needsWater: true, needsSky: true, pickable: true, pickBackTo: 1 });
+  const xbow = createElement("item", "ruby_crossbow", "Ruby Crossbow");
+  Object.assign(xbow, { use: "crossbow", ammo: ["minecraft:arrow"], drawSeconds: 1.25 });
+  p.elements.push(crop, xbow);
+  const { files, warnings } = generateAddon(p);
+  const js = files.get("BP/scripts/main.js") as string;
+
+  it("exports and type-checks", () => {
+    expect(warnings.filter((w) => w.level === "error")).toEqual([]);
+    expect(typecheckScript(js)).toEqual([]);
+  });
+
+  it("only grows on wet farmland in enough light, and can be picked", () => {
+    expect(js).toContain(`getState("moisturized_amount")`);
+    expect(js).toContain("if (!BC.isDay()) return;");
+    expect(js).toContain("getTopmostBlock(");
+    expect(js).toContain(`new ItemStack("minecraft:sweet_berries", n)`);
+    expect(js).toContain(`bcSetState(e.block, "frm:growth", 1);`);
+  });
+
+  it("makes crossbows that load first, then fire", () => {
+    const c = JSON.parse(files.get("BP/items/ruby_crossbow.json") as string)["minecraft:item"].components;
+    expect(c["minecraft:shooter"]).toMatchObject({ charge_on_draw: true, scale_power_by_draw_duration: false, max_draw_duration: 1.25 });
+    expect(c["minecraft:use_animation"]).toBe("crossbow");
+    expect(c["minecraft:enchantable"]).toEqual({ slot: "crossbow", value: 1 });
+  });
+});

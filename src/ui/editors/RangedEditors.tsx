@@ -118,8 +118,9 @@ export function ItemUseSection({ el, patch }: { el: ItemElement; patch: Patch<It
   const use = el.use ?? "none";
   return (
     <Section title="When used">
-      <Segmented value={use} onChange={(v) => patch({ use: v, ...(v === "bow" && !el.ammo?.length ? { ammo: ["minecraft:arrow"] } : {}) })} options={[
-        { value: "none", label: "Nothing special" }, { value: "throw", label: "Throws a projectile" }, { value: "bow", label: "Bow" }, { value: "ammo", label: "Bow ammo" },
+      <Segmented value={use} onChange={(v) => patch({ use: v, ...((v === "bow" || v === "crossbow") && !el.ammo?.length ? { ammo: ["minecraft:arrow"] } : {}) })} options={[
+        { value: "none", label: "Nothing special" }, { value: "throw", label: "Throws a projectile" }, { value: "bow", label: "Bow" },
+        { value: "crossbow", label: "Crossbow" }, { value: "ammo", label: "Ammo" },
       ]} />
       {(use === "throw" || use === "ammo") && (
         projectiles.length
@@ -128,12 +129,13 @@ export function ItemUseSection({ el, patch }: { el: ItemElement; patch: Patch<It
               help={use === "throw" ? "Thrown on right-click; one is used up each throw." : "What flies out when a bow shoots this item."} />
           : <p className="warn-text">Make a Projectile element first, then pick it here.</p>
       )}
-      {use === "bow" && (
+      {(use === "bow" || use === "crossbow") && (
         <>
           <ChipList label="Ammo" values={el.ammo ?? []} onChange={(ammo) => patch({ ammo })} kind="item" suggestions={["minecraft:arrow", ...ammoItems]}
             help="Items it can fire, in order of preference. Your own ammo items need “Bow ammo” set." />
           <Grid>
-            <Num label="Full draw time" suffix="seconds" step={0.1} min={0.1} value={el.drawSeconds ?? 1} onChange={(drawSeconds) => patch({ drawSeconds }, "draw")} help="Vanilla bow: 1." />
+            <Num label={use === "crossbow" ? "Loading time" : "Full draw time"} suffix="seconds" step={0.1} min={0.1} value={el.drawSeconds ?? (use === "crossbow" ? 1.25 : 1)} onChange={(drawSeconds) => patch({ drawSeconds }, "draw")}
+              help={use === "crossbow" ? "Vanilla crossbow: 1.25. Once loaded, the next use fires." : "Vanilla bow: 1."} />
             <Num label="Durability" min={0} value={el.durability ?? 384} onChange={(durability) => patch({ durability }, "dur")} help="Shots before it breaks. Vanilla: 384." />
           </Grid>
         </>
@@ -172,6 +174,9 @@ export function CropEditor({ el, patch }: { el: CropElement; patch: Patch<CropEl
         <Slider label="Growth chance" min={1} max={100} value={el.growthChance} onChange={(growthChance) => patch({ growthChance }, "grow")} format={(v) => `${v}% per random tick`}
           help="Higher grows faster. About 33% is close to wheat on wet farmland." />
         <Toggle label="Bone meal speeds it up" value={el.boneMeal} onChange={(boneMeal) => patch({ boneMeal })} />
+        <Toggle label="Only grows on watered farmland" value={!!el.needsWater} onChange={(needsWater) => patch({ needsWater })} help="Like wheat: dry farmland stops it growing." />
+        <Toggle label="Only grows in daylight" value={!!el.needsSky} onChange={(needsSky) => patch({ needsSky })}
+          help="Daytime under open sky. (Minecraft doesn't let add-ons read light levels, so torches don't count.)" />
         <ChipList label="Can be planted on" values={el.placeableOn} onChange={(placeableOn) => patch({ placeableOn })} kind="block" suggestions={["minecraft:farmland", "minecraft:grass_block", "minecraft:dirt", "minecraft:soul_sand"]} />
         <TagField kind="block" values={el.tags ?? []} onChange={(tags) => patch({ tags })} />
       </Section>
@@ -182,6 +187,14 @@ export function CropEditor({ el, patch }: { el: CropElement; patch: Patch<CropEl
           <Num label="Produce max" min={el.produceMin} value={el.produceMax} onChange={(produceMax) => patch({ produceMax }, "pmax")} />
           <Num label="Extra seeds (max)" min={0} value={el.seedsMax} onChange={(seedsMax) => patch({ seedsMax }, "smax")} />
         </Grid>
+      </Section>
+      <Section title="Picking">
+        <Toggle label="Right-click to pick when grown" value={!!el.pickable} onChange={(pickable) => patch({ pickable })}
+          help="Drops the produce without breaking the plant, which then grows back, like sweet berries." />
+        {el.pickable && (
+          <Select label="Goes back to" value={String(Math.min(el.pickBackTo ?? 0, stages - 2))} onChange={(v) => patch({ pickBackTo: Number(v) })}
+            options={Array.from({ length: stages - 1 }, (_, i) => ({ value: String(i), label: `Stage ${i + 1}` }))} />
+        )}
       </Section>
       <Section title="Seeds" hint={`The item players plant: ${ns}:${el.name}_seeds.`}>
         <TexturePicker label="Seeds icon" kind="item" template="seeds" value={el.seedsTexture || undefined} suggestedName={`${el.name}_seeds`} onChange={(seedsTexture) => patch({ seedsTexture })} />

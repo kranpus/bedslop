@@ -114,19 +114,20 @@ export function rangedItemComponents(ctx: GenContext, it: ItemElement): Record<s
   } else if (use === "ammo") {
     const pid = projectileId(it.projectile);
     if (pid) out["minecraft:projectile"] = { projectile_entity: pid, minimum_critical_power: 1.0 };
-  } else if (use === "bow") {
+  } else if (use === "bow" || use === "crossbow") {
     const ammo = (it.ammo?.length ? it.ammo : ["minecraft:arrow"]).filter(Boolean);
     out["minecraft:shooter"] = {
       ammunition: ammo.map((item) => ({ item, use_offhand: true, search_inventory: true, use_in_creative: true })),
       max_draw_duration: round(Math.max(0.1, it.drawSeconds ?? 1)),
-      scale_power_by_draw_duration: true,
-      charge_on_draw: false,
+      // Bows fire on release, harder the longer they're drawn; crossbows load first, then fire on the next use.
+      scale_power_by_draw_duration: use === "bow",
+      charge_on_draw: use === "crossbow",
     };
-    out["minecraft:use_animation"] = "bow";
+    out["minecraft:use_animation"] = use === "crossbow" ? "crossbow" : "bow";
     out["minecraft:use_modifiers"] = { use_duration: 3600, movement_modifier: 0.35 };
     out["minecraft:max_stack_size"] = { value: 1 };
     out["minecraft:hand_equipped"] = { value: true };
-    out["minecraft:enchantable"] = { slot: "bow", value: 1 };
+    out["minecraft:enchantable"] = { slot: use === "crossbow" ? "crossbow" : "bow", value: 1 };
     if ((it.durability ?? 0) > 0) out["minecraft:durability"] = { max_durability: clampInt(it.durability!, 1, 100000) };
   }
   return out;
@@ -236,6 +237,13 @@ export function genCrop(ctx: GenContext, c: CropElement) {
       },
     },
   });
-  ctx.script.blocks.push({ id, component, input: false, crop: { stages, chance: clampInt(c.growthChance, 1, 100), boneMeal: c.boneMeal } });
+  if (c.pickable && !c.produce) ctx.warn(c, "is set to be picked, but has no produce to pick.", "error");
+  const pick = c.pickable && c.produce
+    ? { item: c.produce, min: clampInt(c.produceMin, 0, 64), max: clampInt(Math.max(c.produceMin, c.produceMax), 0, 64), back: clampInt(c.pickBackTo ?? 0, 0, stages - 2) }
+    : undefined;
+  ctx.script.blocks.push({
+    id, component, input: false,
+    crop: { stages, chance: clampInt(c.growthChance, 1, 100), boneMeal: c.boneMeal, needsWater: !!c.needsWater, needsSky: !!c.needsSky, pick },
+  });
   ctx.requires.push({ engine: "1.21.90", reason: `${c.displayName}: crops`, elementId: c.id });
 }
