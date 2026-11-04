@@ -43,10 +43,11 @@ function direction(e: ParticleElement, p: [number, number, number]): [number, nu
 }
 
 const VERT = `
-attribute vec3 iPos; attribute float iSize; attribute vec4 iColor; attribute float iRot;
+attribute vec3 iPos; attribute float iSize; attribute vec4 iColor; attribute float iRot; attribute float iFrame;
+uniform float frames;
 varying vec2 vUv; varying vec4 vColor;
 void main() {
-  vUv = uv; vColor = iColor;
+  vUv = vec2((uv.x + iFrame) / frames, uv.y); vColor = iColor;
   vec4 mv = modelViewMatrix * vec4(iPos, 1.0);
   float c = cos(iRot), s = sin(iRot);
   vec2 p = vec2(c * position.x - s * position.y, s * position.x + c * position.y);
@@ -103,13 +104,15 @@ export function ParticlePreview({ el, texture, replay }: { el: ParticleElement; 
     const iSize = new THREE.InstancedBufferAttribute(new Float32Array(MAX), 1);
     const iColor = new THREE.InstancedBufferAttribute(new Float32Array(MAX * 4), 4);
     const iRot = new THREE.InstancedBufferAttribute(new Float32Array(MAX), 1);
-    for (const a of [iPos, iSize, iColor, iRot]) a.setUsage(THREE.DynamicDrawUsage);
+    const iFrame = new THREE.InstancedBufferAttribute(new Float32Array(MAX), 1);
+    for (const a of [iPos, iSize, iColor, iRot, iFrame]) a.setUsage(THREE.DynamicDrawUsage);
+    geo.setAttribute("iFrame", iFrame);
     geo.setAttribute("iPos", iPos); geo.setAttribute("iSize", iSize); geo.setAttribute("iColor", iColor); geo.setAttribute("iRot", iRot);
     geo.instanceCount = 0;
     const map = new THREE.DataTexture(spritePixels("dot"), SPRITE_SIZE, SPRITE_SIZE, THREE.RGBAFormat);
     map.magFilter = THREE.NearestFilter;
     map.needsUpdate = true;
-    const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: { map: { value: map }, cutout: { value: 0 } }, transparent: true, depthWrite: false });
+    const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: { map: { value: map }, cutout: { value: 0 }, frames: { value: 1 } }, transparent: true, depthWrite: false });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.frustumCulled = false;
     scene.add(mesh);
@@ -157,6 +160,8 @@ export function ParticlePreview({ el, texture, replay }: { el: ParticleElement; 
         if (clock > e.duration + lifeMax + 0.5) restart();
       } else if (clock > lifeMax + 0.7) restart();
 
+      const frameCount = e.sprite === "custom" ? Math.max(1, Math.round(e.frames ?? 1)) : 1;
+      mat.uniforms.frames.value = frameCount;
       const [r0, g0, b0] = hexRgb(e.colorStart), [r1, g1, b1] = hexRgb(e.colorEnd);
       const a0 = e.alphaStart / 100, a1 = e.alphaEnd / 100;
       let n = 0;
@@ -180,11 +185,12 @@ export function ParticlePreview({ el, texture, replay }: { el: ParticleElement; 
         iSize.setX(n, Math.max(0.005, e.sizeStart + (e.sizeEnd - e.sizeStart) * t));
         iColor.setXYZW(n, r0 + (r1 - r0) * t, g0 + (g1 - g0) * t, b0 + (b1 - b0) * t, a0 + (a1 - a0) * t);
         iRot.setX(n, p.rot);
+        iFrame.setX(n, Math.min(frameCount - 1, Math.floor(t * frameCount)));
         n++;
       }
       parts = keep;
       geo.instanceCount = n;
-      for (const a of [iPos, iSize, iColor, iRot]) a.needsUpdate = true;
+      for (const a of [iPos, iSize, iColor, iRot, iFrame]) a.needsUpdate = true;
       mat.uniforms.cutout.value = e.blend === "alpha" ? 1 : 0;
       controls.update();
       renderer.render(scene, camera);

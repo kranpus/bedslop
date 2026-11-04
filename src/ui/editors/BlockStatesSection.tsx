@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { BlockElement, BlockStateRule, CustomBlockState } from "../../model/types";
 import { createElement, uid } from "../../model/registry";
 import { stateValues } from "../../export/content";
@@ -13,6 +14,9 @@ export function BlockStatesSection({ el, patch }: { el: BlockElement; patch: Pat
   const project = useStore((s) => s.project!);
   const addElements = useStore((s) => s.addElements);
   const states = el.customStates ?? [];
+  const bones = useMemo(() => {
+    try { return (JSON.parse(el.customGeometry || "{}")["minecraft:geometry"]?.[0]?.bones ?? []).map((b: { name: string }) => b.name) as string[]; } catch { return []; }
+  }, [el.customGeometry]);
   const rules = el.stateRules ?? [];
   const setState = (i: number, p: Partial<CustomBlockState>) => patch({ customStates: states.map((x, k) => (k === i ? { ...x, ...p } : x)) }, `state-${i}`);
   const setRule = (i: number, p: Partial<BlockStateRule>) => patch({ stateRules: rules.map((x, k) => (k === i ? { ...x, ...p } : x)) }, `rule-${i}`);
@@ -92,6 +96,10 @@ export function BlockStatesSection({ el, patch }: { el: BlockElement; patch: Pat
                 <Toggle label="Change map colour" value={r.mapColor != null} onChange={(on) => setRule(i, { mapColor: on ? el.mapColor : undefined })} />
                 {r.mapColor != null && <Color label="Map colour" value={r.mapColor} onChange={(mapColor) => setRule(i, { mapColor })} />}
                 <Toggle label="Players walk through it" value={!!r.noCollision} onChange={(noCollision) => setRule(i, { noCollision: noCollision || undefined })} />
+                {el.geometry === "custom" && (
+                  <ChipList label="Hide model parts" values={r.hideBones ?? []} onChange={(hideBones) => setRule(i, { hideBones })} suggestions={bones} placeholder="part name…"
+                    help="Parts (bones) of your Blockbench model to hide, e.g. a lid or a flame." />
+                )}
               </div>
               <button type="button" className="btn ghost small" onClick={() => patch({ stateRules: rules.filter((_, k) => k !== i) })}>Remove rule</button>
             </div>

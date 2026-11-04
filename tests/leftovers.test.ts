@@ -175,3 +175,53 @@ describe("crop rules and crossbows", () => {
     expect(c["minecraft:enchantable"]).toEqual({ slot: "crossbow", value: 1 });
   });
 });
+
+describe("particle, block, enchantment and rule extras", () => {
+  const p = createProject("Extras");
+  p.namespace = "ext";
+  p.textures.push({ id: "strip", name: "flame_strip", kind: "item", width: 64, height: 16, dataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAQCAYAAABAfUpaAAAAEklEQVR42u3BAQ0AAADCoPdPbQ8HFAABMeBGAAAAAElFTkSuQmCC" });
+  const flame = createElement("particle", "flame", "Flame");
+  Object.assign(flame, { sprite: "custom", texture: "strip", frames: 4 });
+  const torch = createElement("block", "ruby_torch", "Ruby Torch");
+  Object.assign(torch, { particle: "flame", particleEvery: 0.5 });
+  const chest = createElement("block", "jar", "Jar");
+  Object.assign(chest, {
+    geometry: "custom",
+    customGeometry: JSON.stringify({ format_version: "1.12.0", "minecraft:geometry": [{ description: { identifier: "geometry.jar", texture_width: 16, texture_height: 16 }, bones: [{ name: "body", pivot: [0, 0, 0], cubes: [{ origin: [-4, 0, -4], size: [8, 8, 8], uv: [0, 0] }] }, { name: "lid", pivot: [0, 8, 0], cubes: [{ origin: [-4, 8, -4], size: [8, 1, 8], uv: [0, 0] }] }] }] }),
+    customStates: [{ name: "open", type: "bool" }],
+    stateRules: [{ id: "r", when: [{ state: "open", value: "true" }], hideBones: ["lid"] }],
+  });
+  const sharp = createElement("enchantment", "sharp", "Sharp");
+  const smite = createElement("enchantment", "smite", "Smite");
+  sharp.conflicts = ["smite"];
+  p.elements.push(flame, torch, chest, sharp, smite);
+  const { files, warnings } = generateAddon(p);
+  const js = files.get("BP/scripts/main.js") as string;
+
+  it("exports and type-checks", () => {
+    expect(warnings.filter((w) => w.level === "error")).toEqual([]);
+    expect(typecheckScript(js)).toEqual([]);
+  });
+
+  it("animates particle textures as a flipbook", () => {
+    const uv = JSON.parse(files.get("RP/particles/flame.json") as string).particle_effect.components["minecraft:particle_appearance_billboard"].uv;
+    expect(uv).toEqual({ texture_width: 64, texture_height: 16, flipbook: { base_UV: [0, 0], size_UV: [16, 16], step_UV: [16, 0], max_frame: 4, stretch_to_lifetime: true, loop: false } });
+  });
+
+  it("gives off particles from blocks on a timer", () => {
+    const c = JSON.parse(files.get("BP/blocks/ruby_torch.json") as string)["minecraft:block"].components;
+    expect(c["minecraft:tick"]).toEqual({ interval_range: [10, 10], looping: true });
+    expect(js).toContain(`spawnParticle("ext:flame"`);
+  });
+
+  it("hides model parts by state", () => {
+    const g = JSON.parse(files.get("BP/blocks/jar.json") as string)["minecraft:block"].components["minecraft:geometry"];
+    expect(g).toEqual({ identifier: "geometry.jar", bone_visibility: { lid: "!((q.block_state('ext:open')))" } });
+  });
+
+  it("stops conflicting enchantments sharing an item, both ways", () => {
+    expect(js).toContain(`"sharp": { title: "Sharp", max: 3, targets: ["sword"], items: [], conflicts: ["smite"]`);
+    expect(js).toContain(`"smite": { title: "Smite", max: 3, targets: ["sword"], items: [], conflicts: ["sharp"]`);
+    expect(js).toContain(`can't go with`);
+  });
+});

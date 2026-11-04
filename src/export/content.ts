@@ -162,20 +162,37 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
     Object.assign(states, shape.states ?? {});
   }
 
-  if (toggle || input || shape?.logic) {
+  // Particles every few seconds, like a torch's smoke.
+  const particle = b.particle ? (b.particle.includes(":") ? b.particle : ctx.project.elements.some((e) => e.kind === "particle" && e.name === b.particle) ? ctx.id(b.particle) : "") : "";
+  if (b.particle && !particle) ctx.warn(b, `gives off the particle effect "${b.particle}", which doesn't exist (renamed or deleted?).`, "error");
+  if (particle) {
+    const ticks = clampInt(Math.round((b.particleEvery ?? 1) * 20), 2, 2400);
+    components["minecraft:tick"] = { interval_range: [ticks, ticks], looping: true };
+  }
+
+  if (toggle || input || shape?.logic || particle) {
     // Script behaviour lives in a custom component registered in main.js.
     const component = `${ctx.ns}:${b.name}_logic`;
     components[component] = {};
-    need("1.21.90", shape?.logic ? `${b.shape} behaviour` : "lever / redstone behaviour");
+    need("1.21.90", shape?.logic ? `${b.shape} behaviour` : particle && !toggle && !input ? "block particles" : "lever / redstone behaviour");
     if (shape?.logic === "button" || shape?.logic === "plate") need("1.21.120", "redstone output");
     ctx.script.blocks.push({
       id, component, toggleState: toggle ? onState : undefined, litState: input && hasOnState ? onState : undefined, input,
-      shape: shape?.logic, group: shape?.logic === "connect" ? b.shape : undefined,
+      shape: shape?.logic, group: shape?.logic === "connect" ? b.shape : undefined, particle: particle || undefined,
     });
   }
 
   const custom = customStateParts(ctx, b, states, rm);
   Object.assign(states, custom.states);
+  if (custom.hidden.size && typeof components["minecraft:geometry"] === "string") {
+    // Each part shows unless one of its rules matches.
+    const known = new Set((JSON.parse(b.customGeometry || "{}")["minecraft:geometry"]?.[0]?.bones ?? []).map((x: { name: string }) => x.name));
+    for (const bone of custom.hidden.keys()) if (!known.has(bone)) ctx.warn(b, `a rule hides the part "${bone}", which isn't in the model.`);
+    components["minecraft:geometry"] = {
+      identifier: components["minecraft:geometry"],
+      bone_visibility: Object.fromEntries([...custom.hidden].map(([bone, conds]) => [bone, `!(${conds.join(" || ")})`])),
+    };
+  }
 
   const block: Record<string, unknown> = {
     description: { identifier: id, menu_category: menu(b.category, b.group), ...(Object.keys(states).length ? { states } : {}) } as Record<string, unknown>,
@@ -275,6 +292,8 @@ function customStateParts(ctx: GenContext, b: BlockElement, existing: Record<str
     defs.set(st.name, st);
   }
   const permutations: { condition: string; components: Record<string, unknown> }[] = [];
+  /** Bone -> conditions under which it's hidden. */
+  const hidden = new Map<string, string[]>();
   (b.stateRules ?? []).forEach((r, i) => {
     const tests: string[] = [];
     for (const w of r.when) {
@@ -291,10 +310,12 @@ function customStateParts(ctx: GenContext, b: BlockElement, existing: Record<str
     if (r.hardness != null) c["minecraft:destructible_by_mining"] = r.hardness < 0 ? false : { seconds_to_destroy: round(r.hardness) };
     if (r.noCollision) c["minecraft:collision_box"] = false;
     if (r.friction != null) c["minecraft:friction"] = round(Math.min(0.9, Math.max(0, r.friction)));
-    if (!Object.keys(c).length) { ctx.warn(b, `rule ${i + 1} doesn't change anything yet.`, "info"); return; }
-    permutations.push({ condition: tests.join(" && "), components: c });
+    const bones = b.geometry === "custom" ? (r.hideBones ?? []).filter(Boolean) : [];
+    for (const bone of bones) hidden.set(bone, [...(hidden.get(bone) ?? []), `(${tests.join(" && ")})`]);
+    if (!Object.keys(c).length && !bones.length) { ctx.warn(b, `rule ${i + 1} doesn't change anything yet.`, "info"); return; }
+    if (Object.keys(c).length) permutations.push({ condition: tests.join(" && "), components: c });
   });
-  return { states, permutations };
+  return { states, permutations, hidden };
 }
 
 /** The space a custom block model fills, as a collision/selection box (block pixels, x/z -8..8, y 0..16). */

@@ -35,7 +35,9 @@ export function genEnchantments(ctx: GenContext) {
       }, "items", "minecraft:itemGroup.name.enchantedBook");
       ctx.bp(`items/${en.name}_book.json`, book);
     }
-    return `  ${S(en.name)}: { title: ${S(en.displayName)}, max: ${clampInt(en.maxLevel, 1, 10)}, targets: ${S(en.targets)}, items: ${S(en.extraItems.filter(Boolean))}, effects: [${effects.join(", ")}] }`;
+    // Conflicts work both ways: if A lists B, B also can't go with A.
+    const conflicts = Array.from(new Set([...(en.conflicts ?? []), ...list.filter((o) => o.conflicts?.includes(en.name)).map((o) => o.name)])).filter((n) => n !== en.name && list.some((o) => o.name === n));
+    return `  ${S(en.name)}: { title: ${S(en.displayName)}, max: ${clampInt(en.maxLevel, 1, 10)}, targets: ${S(en.targets)}, items: ${S(en.extraItems.filter(Boolean))}, conflicts: ${S(conflicts)}, effects: [${effects.join(", ")}] }`;
   });
 
   const all = list.flatMap((e) => e.effects);
@@ -89,6 +91,8 @@ function bcEnchant(stack, name, level) {
   if (stack.isStackable) return "Only single items like tools, weapons and armour can be enchanted.";
   if (!bcFits(stack, name)) return def.title + " doesn't go on this item.";
   const map = bcEnchants(stack);
+  const clash = def.conflicts.find((c) => map[c]);
+  if (clash) return def.title + " can't go with " + (BC_ENCH[clash]?.title ?? clash) + ".";
   const now = map[name] ?? 0;
   if (Number(level) <= 0 && now >= def.max) return def.title + " is already at its highest level.";
   map[name] = Math.min(def.max, Math.max(1, Math.round(Number(level) > 0 ? Number(level) : now + 1)));
@@ -176,7 +180,7 @@ world.afterEvents.itemUse.subscribe((ev) => {
   const slots = [];
   for (let i = 0; i < inv.size; i++) {
     const s = inv.getItem(i);
-    if (s && bcFits(s, name) && bcEnchantLevel(s, name) < def.max) slots.push(i);
+    if (s && bcFits(s, name) && bcEnchantLevel(s, name) < def.max && !def.conflicts.some((c) => bcEnchantLevel(s, c))) slots.push(i);
   }
   if (!slots.length) return p.sendMessage("§7Nothing in your inventory can take " + def.title + ".");
   const form = new ActionFormData().title(def.title).body("Choose an item to enchant.");

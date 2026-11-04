@@ -9,7 +9,7 @@ import type {
   BlockShape,
   ArmorElement, ArmorSlot, BlockElement, BlockFace, FoodElement, ItemElement, PlantElement, ToolElement, ToolType,
 } from "../../model/types";
-import { BLOCK_SOUNDS, EFFECTS, MENU_CATEGORIES, VANILLA_GROUPS } from "../../model/vanilla";
+import { BLOCK_SOUNDS, EFFECTS, MENU_CATEGORIES, VANILLA_GROUPS, VANILLA_PARTICLES } from "../../model/vanilla";
 import { ChipList, Color, Field, Grid, IdField, Num, Section, Segmented, Select, Slider, Text, Toggle } from "../fields";
 import { TexturePicker } from "../TexturePicker";
 import { useStore } from "../../store/store";
@@ -18,6 +18,24 @@ import { ItemUseSection } from "./RangedEditors";
 import { BlockStatesSection } from "./BlockStatesSection";
 import { TagField } from "../TagField";
 import { ArmorPreview, ItemModelPreview } from "../ItemPreviews";
+
+/** A particle effect the block gives off now and then, like a torch's smoke. */
+function BlockParticleField({ el, patch }: { el: BlockElement; patch: Patch<BlockElement> }) {
+  const elements = useStore((s) => s.project!.elements);
+  const own = useMemo(() => elements.filter((e) => e.kind === "particle"), [elements]);
+  return (
+    <Grid>
+      <Field label="Gives off particles" help="Like a torch's smoke or a campfire's sparks.">
+        <select value={el.particle ?? ""} onChange={(e) => patch({ particle: e.target.value || undefined })}>
+          <option value="">None</option>
+          {own.length > 0 && <optgroup label="Your particle effects">{own.map((p) => <option key={p.id} value={p.name}>{p.displayName}</option>)}</optgroup>}
+          <optgroup label="Minecraft's">{VANILLA_PARTICLES.map((id) => <option key={id} value={id}>{id.replace("minecraft:", "").replace(/_/g, " ")}</option>)}</optgroup>
+        </select>
+      </Field>
+      {el.particle && <Num label="Every" suffix="seconds" min={0.1} step={0.1} value={el.particleEvery ?? 1} onChange={(particleEvery) => patch({ particleEvery }, "pevery")} />}
+    </Grid>
+  );
+}
 
 /** A texture's data URL by id (for previews). */
 function useTexUrl(id?: string) {
@@ -161,6 +179,7 @@ export function BlockEditor({ el, patch }: { el: BlockElement; patch: Patch<Bloc
         </Grid>
         <Toggle label="Can catch fire" value={el.flammable} onChange={(flammable) => patch({ flammable })} />
         <TagField kind="block" values={el.tags ?? []} onChange={(tags) => patch({ tags })} />
+        <BlockParticleField el={el} patch={patch} />
       </Section>
       <Section title="Drops">
         <Segmented value={el.drops} onChange={(drops) => patch({ drops })} options={[

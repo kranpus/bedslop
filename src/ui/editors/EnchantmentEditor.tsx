@@ -37,6 +37,8 @@ const roman = (n: number) => ["", "I", "II", "III", "IV", "V", "VI", "VII", "VII
 export function EnchantmentEditor({ el, patch }: { el: EnchantmentElement; patch: Patch<EnchantmentElement> }) {
   const project = useStore((s) => s.project!);
   const procedures = project.elements.filter((e) => e.kind === "procedure");
+  const update = useStore((s) => s.update);
+  const others = project.elements.filter((e): e is EnchantmentElement => e.kind === "enchantment" && e.id !== el.id);
   const setFx = (i: number, p: Partial<EnchantEffect>) => patch({ effects: el.effects.map((x, k) => (k === i ? { ...x, ...p } : x)) }, `fx-${i}`);
   const toggleTarget = (t: EnchantTarget, on: boolean) => patch({ targets: on ? [...el.targets, t] : el.targets.filter((x) => x !== t) });
   const levels = Array.from({ length: Math.max(1, el.maxLevel) }, (_, i) => i + 1);
@@ -54,6 +56,27 @@ export function EnchantmentEditor({ el, patch }: { el: EnchantmentElement; patch
             ))}
           </div>
         </Field>
+        {others.length > 0 && (
+          <Field label="Can't go with" help="Like Sharpness and Smite: an item can only have one of these.">
+            <div className="station-list">
+              {others.map((o) => (
+                <label key={o.id} className="inline-check big">
+                  <input type="checkbox" checked={(el.conflicts ?? []).includes(o.name) || !!o.conflicts?.includes(el.name)}
+                    onChange={(e) => {
+                      const on = e.target.checked;
+                      // Kept on both enchantments so either page can turn it off.
+                      update((p) => ({ ...p, elements: p.elements.map((x) => {
+                        if (x.kind !== "enchantment" || (x.id !== el.id && x.id !== o.id)) return x;
+                        const other = x.id === el.id ? o.name : el.name;
+                        const list = (x.conflicts ?? []).filter((n) => n !== other);
+                        return { ...x, conflicts: on ? [...list, other] : list };
+                      }) }));
+                    }} /> {o.displayName}
+                </label>
+              ))}
+            </div>
+          </Field>
+        )}
         <ChipList label="Also these items" values={el.extraItems} onChange={(extraItems) => patch({ extraItems })} kind="item" help="Your own tools, weapons and armour are matched by type automatically." />
       </Section>
 

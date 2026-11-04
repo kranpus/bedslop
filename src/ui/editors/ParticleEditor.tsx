@@ -69,6 +69,10 @@ export function ParticleEditor({ el, patch }: { el: ParticleElement; patch: Patc
           </button>
         </div>
         {el.sprite === "custom" && (
+          <Num label="Animation frames" min={1} max={64} value={el.frames ?? 1} onChange={(frames) => patch({ frames }, "frames")}
+            help="1 = a still picture. More: the texture is that many frames side by side, played once over each particle's life." />
+        )}
+        {el.sprite === "custom" && (
           <TexturePicker label="Particle texture" kind="item" template="orb" value={el.texture || undefined} suggestedName={`${el.name}_particle`} onChange={(texture) => patch({ texture })}
             help="Drawn whole on each particle. White or light textures take the colours below best." />
         )}

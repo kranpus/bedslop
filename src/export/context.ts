@@ -33,7 +33,7 @@ export interface ScriptParts {
   tools: Record<string, [number, number]>;
   foods: Record<string, [string, number, number, number][]>;
   /** Blocks with script behaviour (lever toggles, redstone input), keyed by block id. */
-  blocks: { id: string; component: string; toggleState?: string; litState?: string; input: boolean; shape?: "slab" | "trapdoor" | "door" | "connect" | "stairs" | "button" | "plate"; group?: string; crop?: { stages: number; chance: number; boneMeal: boolean; needsWater?: boolean; needsSky?: boolean; pick?: { item: string; min: number; max: number; back: number } } }[];
+  blocks: { id: string; component: string; toggleState?: string; litState?: string; input: boolean; shape?: "slab" | "trapdoor" | "door" | "connect" | "stairs" | "button" | "plate"; group?: string; crop?: { stages: number; chance: number; boneMeal: boolean; needsWater?: boolean; needsSky?: boolean; pick?: { item: string; min: number; max: number; back: number } }; particle?: string }[];
   /** Procedures started by redstone: [function name, true = powered / false = unpowered, block id or ""]. */
   redstone: [string, boolean, string][];
 }

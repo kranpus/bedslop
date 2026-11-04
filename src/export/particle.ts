@@ -47,6 +47,7 @@ export function genParticle(ctx: GenContext, p: ParticleElement) {
     ctx.rp(`${path}.png`, encodePng(SPRITE_SIZE, SPRITE_SIZE, spritePixels(p.sprite)));
   }
 
+  const frames = p.sprite === "custom" ? Math.max(1, Math.min(64, Math.round(p.frames ?? 1))) : 1;
   const components: Record<string, unknown> = {};
   if (p.mode === "burst") {
     components["minecraft:emitter_rate_instant"] = { num_particles: Math.max(1, Math.min(1000, Math.round(p.count))) };
@@ -93,7 +94,10 @@ export function genParticle(ctx: GenContext, p: ParticleElement) {
   components["minecraft:particle_appearance_billboard"] = {
     size: [sz, sz],
     facing_camera_mode: "rotate_xyz",
-    uv: { texture_width: size[0], texture_height: size[1], uv: [0, 0], uv_size: [size[0], size[1]] },
+    uv: frames > 1
+      // A strip of frames, left to right, stretched over the particle's life.
+      ? { texture_width: size[0], texture_height: size[1], flipbook: { base_UV: [0, 0], size_UV: [round(size[0] / frames), size[1]], step_UV: [round(size[0] / frames), 0], max_frame: frames, stretch_to_lifetime: true, loop: false } }
+      : { texture_width: size[0], texture_height: size[1], uv: [0, 0], uv_size: [size[0], size[1]] },
   };
   const c0 = rgba(p.colorStart, p.alphaStart), c1 = rgba(p.colorEnd, p.alphaEnd);
   components["minecraft:particle_appearance_tinting"] = {

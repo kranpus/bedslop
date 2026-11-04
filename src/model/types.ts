@@ -72,6 +72,8 @@ export interface BlockStateRule {
   hardness?: number;
   noCollision?: boolean;
   friction?: number;
+  /** Custom models only: parts (bones) to hide. */
+  hideBones?: string[];
 }
 
 export interface BlockElement extends BaseElement {
@@ -80,6 +82,9 @@ export interface BlockElement extends BaseElement {
   tags?: string[];
   customStates?: CustomBlockState[];
   stateRules?: BlockStateRule[];
+  /** Gives off this particle effect (own effect name or a vanilla id) every particleEvery seconds. */
+  particle?: string;
+  particleEvery?: number;
   textureMode: BlockTextureMode;
   textures: Partial<Record<BlockFace, string>>;
   renderMethod: "opaque" | "alpha_test" | "blend";
@@ -625,6 +630,8 @@ export interface ParticleElement extends BaseElement {
   /** A built-in white sprite (tinted by the colours below) or "custom" to use `texture`. */
   sprite: "dot" | "circle" | "spark" | "star" | "heart" | "square" | "ring" | "puff" | "custom";
   texture: string;
+  /** Own texture only: frames side by side, played over each particle's life (1 = not animated). */
+  frames?: number;
   colorStart: string;
   colorEnd: string;
   /** Opacity 0-100 at birth and at death. */
@@ -704,6 +711,8 @@ export interface EnchantmentElement extends BaseElement {
   /** Extra items it fits, by id. */
   extraItems: string[];
   effects: EnchantEffect[];
+  /** Enchantments it can't share an item with (by name). */
+  conflicts?: string[];
   /** Adds an enchanted book item that applies it. */
   book: boolean;
   bookTexture: string;

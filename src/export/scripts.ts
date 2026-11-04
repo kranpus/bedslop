@@ -480,6 +480,9 @@ export function genBlockScripts(ctx: GenContext) {
         e.dimension.playSound(open ? "random.door_open" : "random.door_close", e.block.location);
       });
     },`);
+    if (b.particle) handlers.push(`    onTick(e) {
+      BC.run(${label("particles")}, () => e.dimension.spawnParticle(${S(b.particle)}, { x: e.block.location.x + 0.5, y: e.block.location.y + 0.8, z: e.block.location.z + 0.5 }));
+    },`);
     if (b.shape === "stairs") handlers.push(`    onPlace(e) { BC.run(${label("stair shape")}, () => bcStairsAround(e.block)); },
     onPlayerBreak(e) { BC.run(${label("stair shape")}, () => bcStairsAround(e.block)); },`);
     if (b.shape === "button") handlers.push(`    onPlayerInteract(e) {
