@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { generateAddon } from "../src/export/generate";
 import { createElement } from "../src/model/registry";
 import { createProject } from "../src/model/project";
-import { parseLenientJson } from "../src/vanilla/json";
-import { VANILLA_MOBS, mobFileUrls, soundsEntry, templateFields } from "../src/vanilla/templates";
+import { parseLenientJson, parseLenientJsonWithNote } from "../src/vanilla/json";
+import { VANILLA_MOBS, mobFileUrls, readTemplateFiles, soundsEntry, templateFields } from "../src/vanilla/templates";
 import { PNG } from "./fixture";
 
 // A small stand-in shaped like Mojang's files (comments, trailing commas), not a copy of one.
@@ -100,6 +100,46 @@ describe("vanilla mob templates", () => {
   it("reports a template whose files are missing", () => {
     const { p, m } = make();
     m.vanillaBehavior = "";
-    expect(generateAddon(p).warnings.some((w) => w.level === "error" && w.message.includes("missing its behaviour or resource file"))).toBe(true);
+    expect(generateAddon(p).warnings.some((w) => w.level === "error" && w.message.includes("has no template files yet"))).toBe(true);
+  });
+});
+
+describe("squashed and mismatched template files", () => {
+  // Like a file whose lines were joined: the // comment would swallow the rest of the line.
+  const squashed = `{ "minecraft:entity": { "description": { "identifier": "minecraft:test_mob" }, "components": { "minecraft:health": { "value": 10 } }, // a note without quotes "events": { "grow": { "add": {} } } } }`;
+  const clientFor = (id: string) => JSON.stringify({ format_version: "1.10.0", "minecraft:client_entity": { description: { identifier: id } } });
+
+  it("recovers a file whose comments were squashed onto one line", () => {
+    const r = parseLenientJsonWithNote(squashed);
+    expect(r.repaired).toBe(true);
+    expect((r.value as any)["minecraft:entity"].events.grow).toBeDefined();
+    expect(parseLenientJsonWithNote(behavior).repaired).toBe(false);
+  });
+
+  it("accepts the two files in either order and notes the repair", () => {
+    const t = readTemplateFiles([{ name: "test.entity.json", text: clientFor("minecraft:test_mob") }, { name: "test.json", text: squashed }]);
+    expect(t.base).toBe("minecraft:test_mob");
+    expect(JSON.parse(t.behavior)["minecraft:entity"].events.grow).toBeDefined();
+    expect(t.notes.join(" ")).toContain("squashed onto one line");
+  });
+
+  it("explains files for different mobs, or files that aren't mob files", () => {
+    expect(() => readTemplateFiles([{ name: "a.json", text: behavior }, { name: "b.entity.json", text: clientFor("minecraft:cat") }])).toThrow(/different mobs/);
+    expect(() => readTemplateFiles([{ name: "x.json", text: "{}" }])).toThrow(/isn't a mob file/);
+    expect(() => readTemplateFiles([{ name: "a.json", text: behavior }])).toThrow(/resource file is missing/);
+  });
+
+  it("points breeding, offspring and spawned babies at the copy", () => {
+    const { p, m } = make();
+    const b = parseLenientJson(m.vanillaBehavior!) as any;
+    b["minecraft:entity"].components["minecraft:breedable"] = { breeds_with: { "minecraft:test_mob": {} } };
+    b["minecraft:entity"].components["minecraft:offspring"] = { offspring_pairs: { "minecraft:test_mob": "minecraft:test_mob" } };
+    b["minecraft:entity"].component_groups.baby["minecraft:spawn_entity"] = { entities: { spawn_entity: "minecraft:test_mob", spawn_event: "minecraft:entity_born" } };
+    m.vanillaBehavior = JSON.stringify(b);
+    const out = JSON.parse(generateAddon(p).files.get("BP/entities/grave_walker.json") as string)["minecraft:entity"];
+    expect(out.components["minecraft:breedable"].breeds_with).toEqual({ "tmpl:grave_walker": {} });
+    expect(out.components["minecraft:offspring"].offspring_pairs).toEqual({ "tmpl:grave_walker": "tmpl:grave_walker" });
+    expect(out.component_groups.baby["minecraft:spawn_entity"].entities).toEqual({ spawn_entity: "tmpl:grave_walker", spawn_event: "minecraft:entity_born" });
+    expect(out.description.runtime_identifier).toBe("minecraft:test_mob");
   });
 });

@@ -481,3 +481,5 @@ table.vars td:nth-child(5) { min-width: 0; }
 .station-list { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .inline-check.big { font-size: 13.5px; color: var(--ink); }
 .slider output { white-space: nowrap; }
+.upload-files summary { cursor: pointer; font-size: 13px; color: var(--accent); font-weight: 500; }
+.upload-files[open] summary { margin-bottom: 8px; }

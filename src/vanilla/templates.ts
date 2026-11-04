@@ -1,7 +1,7 @@
 // Vanilla mob templates. Files are downloaded from Mojang's official bedrock-samples repository
 // (pinned to a release) when the user picks a mob; nothing of Mojang's is bundled with the app.
 import index from "./index.json";
-import { parseLenientJson } from "./json";
+import { parseLenientJson, parseLenientJsonWithNote } from "./json";
 import type { EntityElement } from "../model/types";
 
 export interface VanillaMob { id: string; bp: string; rp: string; geometry?: string | null; geometryFile: string | null; texture: string | null }
@@ -81,4 +81,52 @@ export async function downloadTemplate(m: VanillaMob): Promise<Partial<EntityEle
     spawnEnabled: false, drops: [], families: [],
     ...templateFields(behavior, client),
   };
+}
+
+export interface TemplateFiles {
+  behavior: string;
+  client: string;
+  base: string;
+  notes: string[];
+}
+
+/**
+ * Checks two uploaded files (in any order): one behaviour file ("minecraft:entity") and one resource
+ * file ("minecraft:client_entity") for the same mob. Returns clean JSON text, or throws a readable error.
+ */
+export function readTemplateFiles(files: { name: string; text: string }[]): TemplateFiles {
+  let behavior: { name: string; value: any } | undefined, client: { name: string; value: any } | undefined;
+  const notes: string[] = [];
+  for (const f of files) {
+    let r;
+    try {
+      r = parseLenientJsonWithNote(f.text);
+    } catch {
+      throw new Error(`${f.name} isn't readable JSON. Download it again from the link and upload it without editing.`);
+    }
+    if (r.repaired) notes.push(`${f.name} had been squashed onto one line, so its // comments cut off the rest of the file. It was recovered, but re-downloading the original is safest.`);
+    const v = r.value as Record<string, unknown>;
+    if (v?.["minecraft:entity"]) behavior = { name: f.name, value: v };
+    else if (v?.["minecraft:client_entity"]) client = { name: f.name, value: v };
+    else throw new Error(`${f.name} isn't a mob file. You need the behaviour file (behavior_pack/entities) and the .entity.json (resource_pack/entity).`);
+  }
+  if (!behavior) throw new Error("The behaviour file is missing (from behavior_pack/entities, it contains \"minecraft:entity\").");
+  if (!client) throw new Error("The resource file is missing (from resource_pack/entity, it contains \"minecraft:client_entity\").");
+  const bId = behavior.value["minecraft:entity"]?.description?.identifier;
+  const cId = client.value["minecraft:client_entity"]?.description?.identifier;
+  if (!bId || !cId) throw new Error("One of the files has no identifier in its description.");
+  if (bId !== cId) throw new Error(`The files are for different mobs: ${behavior.name} is ${bId}, ${client.name} is ${cId}.`);
+  const legacy = client.value.format_version && Number(String(client.value.format_version).split(".")[1]) < 10 && /v1\.0/.test(client.name + JSON.stringify(client.value).slice(0, 400));
+  if (legacy) notes.push(`${client.name} looks like an older version of this mob's look. The current one is usually the file without “v1.0” in its name.`);
+  return { behavior: JSON.stringify(behavior.value, null, 2), client: JSON.stringify(client.value, null, 2), base: bId, notes };
+}
+
+/** Points every reference to the original mob (breeding, offspring, spawned babies) at the copy. */
+export function retargetSelfReferences(value: unknown, from: string, to: string): unknown {
+  if (typeof value === "string") return value === from ? to : value;
+  if (Array.isArray(value)) return value.map((v) => retargetSelfReferences(v, from, to));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k === from ? to : k, retargetSelfReferences(v, from, to)]));
+  }
+  return value;
 }

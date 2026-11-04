@@ -4,8 +4,8 @@ import { ChipList, Color, Field, Grid, IdInput, Num, Section, Segmented, Select,
 import { TexturePicker } from "../TexturePicker";
 import { MobPreview } from "../MobPreview";
 import { useMemo, useState } from "react";
-import { SAMPLES_PAGE, VANILLA_MOBS, downloadTemplate, mobFileUrls, mobLabel, templateFields } from "../../vanilla/templates";
-import { parseLenientJson } from "../../vanilla/json";
+import { SAMPLES_PAGE, VANILLA_MOBS, downloadTemplate, mobFileUrls, mobLabel, readTemplateFiles, templateFields } from "../../vanilla/templates";
+import { normalizeJsonText } from "../../vanilla/json";
 import { convertBbmodel, isBbmodel } from "../../export/bbmodel";
 import { geometryIdentifier } from "../../export/context";
 import { AUTO_LOOK, AUTO_WALK, RIG_ROLES, WHEN, activeSlots, animationLabel, defaultSlots, listAnimations, listBones, listControllers, remapSlots, resolveAnimation, resolveRig } from "../../export/entityAnimations";
@@ -234,7 +234,14 @@ function JsonFileSlot({ label, value, onChange, how, check, required }: {
         <div className="row">
           <label className="btn small">
             {value ? "Replace…" : "Upload…"}
-            <input type="file" accept=".json" hidden onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onChange(await f.text()); }} />
+            <input type="file" accept=".json" hidden onChange={async (e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (!f) return;
+              // Clean up comments and squashed lines so the file reads the same everywhere.
+              const raw = await f.text();
+              onChange(normalizeJsonText(raw)?.text ?? raw);
+            }} />
           </label>
           {value && <button type="button" className="btn small ghost" onClick={() => setEditing(!editing)} aria-expanded={editing}>{editing ? "Hide JSON" : "View / edit"}</button>}
           {value && <button type="button" className="btn small ghost" onClick={() => { onChange(""); setEditing(false); }}>Remove</button>}
@@ -382,7 +389,7 @@ function VanillaTemplatePanel({ el, patch }: { el: EntityElement; patch: Patch<E
   const [pick, setPick] = useState(el.vanillaBase ?? "minecraft:zombie");
   const [state, setState] = useState<{ busy?: boolean; error?: string; ok?: string }>({});
   const [choosing, setChoosing] = useState(!el.vanillaBehavior);
-  const [uploads, setUploads] = useState<{ behavior?: string; client?: string }>({});
+  const [uploads, setUploads] = useState<{ name: string; text: string }[]>([]);
   const list = useMemo(() => VANILLA_MOBS.filter((m) => !query || mobLabel(m.id).toLowerCase().includes(query.toLowerCase())), [query]);
   // If the search hides the current pick, use the first match so the button and the list agree.
   const mob = list.find((m) => m.id === pick) ?? list[0];
@@ -395,29 +402,29 @@ function VanillaTemplatePanel({ el, patch }: { el: EntityElement; patch: Patch<E
       setState({ ok: `Loaded ${mobLabel(mob.id)} from Mojang's files.` });
       setChoosing(false);
     } catch {
-      setState({ error: "Couldn't download from GitHub here (some views block it). Download the two files below and upload them instead." });
+      setState({ error: "Couldn't download from GitHub here (some views block it). Open the two files below, save them, and upload them instead." });
     }
   };
 
-  const upload = async (kind: "behavior" | "client", f: File) => {
-    const text = await f.text();
-    const next = { ...uploads, [kind]: text };
+  /** Uploaded files, in any order; applied once both a behaviour and a resource file are in. */
+  const upload = async (picked: File[]) => {
+    const next = [...uploads.filter((u) => !picked.some((p) => p.name === u.name)), ...(await Promise.all(picked.map(async (f) => ({ name: f.name, text: await f.text() }))))];
     setUploads(next);
-    if (next.behavior && next.client) {
-      try {
-        const base = (parseLenientJson(next.client) as { "minecraft:client_entity"?: { description?: { identifier?: string } } })["minecraft:client_entity"]?.description?.identifier ?? pick;
-        const m = VANILLA_MOBS.find((x) => x.id === base);
-        patch({
-          model: "vanilla", vanillaBase: base, vanillaBehavior: next.behavior, vanillaClient: next.client, vanillaSounds: "",
-          vanillaGeometry: "", vanillaTexture: m ? mobFileUrls(m).texture : "", spawnEnabled: false, drops: [], families: [],
-          ...templateFields(next.behavior, next.client),
-        });
-        setState({ ok: `Loaded ${mobLabel(base)} from your files. Sounds aren't included with manual files.` });
-        setChoosing(false);
-        setUploads({});
-      } catch {
-        setState({ error: "Those files couldn't be read. Upload the mob's behaviour .json and its .entity.json." });
-      }
+    try {
+      const t = readTemplateFiles(next);
+      const m = VANILLA_MOBS.find((x) => x.id === t.base);
+      patch({
+        model: "vanilla", vanillaBase: t.base, vanillaBehavior: t.behavior, vanillaClient: t.client, vanillaSounds: "",
+        vanillaGeometry: "", vanillaTexture: m ? mobFileUrls(m).texture : "", spawnEnabled: false, drops: [], families: [],
+        ...templateFields(t.behavior, t.client),
+      });
+      setState({ ok: [`Loaded ${mobLabel(t.base)} from your files. Sounds and the preview model aren't included with uploaded files.`, ...t.notes].join(" ") });
+      setChoosing(false);
+      setUploads([]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Those files couldn't be read.";
+      // One file in so far is normal: say what's still needed rather than an error.
+      setState(next.length < 2 && /missing/.test(msg) ? { ok: `${next[0]?.name} added. ${msg}` } : { error: msg });
     }
   };
 
@@ -452,26 +459,24 @@ function VanillaTemplatePanel({ el, patch }: { el: EntityElement; patch: Patch<E
         Your mob gets a copy of its behaviour and uses Minecraft's own model, textures and animations. The files come straight from{" "}
         <a href={SAMPLES_PAGE} target="_blank" rel="noreferrer">Mojang's bedrock-samples</a>, under the Minecraft EULA.
       </p>
-      {state.error && (
+      {state.error && <p className="warn-text" role="status">{state.error}</p>}
+      {state.ok && <p className="ok-text" role="status">{state.ok}</p>}
+      <details className="upload-files" open={!!state.error}>
+        <summary>Or upload the mob's two files yourself</summary>
         <div className="stack tight">
-          <p className="warn-text" role="status">{state.error}</p>
           {urls && (
             <div className="row wrap">
               <a className="btn small" href={urls.behavior} target="_blank" rel="noreferrer">Open {mob!.bp}</a>
               <a className="btn small" href={urls.client} target="_blank" rel="noreferrer">Open {mob!.rp}</a>
             </div>
           )}
-          <span className="field-help">Save each page as a .json file, then upload both:</span>
-          <div className="row wrap">
-            <label className={`btn small${uploads.behavior ? " on" : ""}`}>{uploads.behavior ? "Behaviour file ✓" : "Upload behaviour file…"}
-              <input type="file" accept=".json" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) upload("behavior", f); }} />
-            </label>
-            <label className={`btn small${uploads.client ? " on" : ""}`}>{uploads.client ? "Resource file ✓" : "Upload .entity.json…"}
-              <input type="file" accept=".json" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) upload("client", f); }} />
-            </label>
-          </div>
+          <span className="field-help">Save each page with your browser's Save as… (don't copy and paste: that can squash the file onto one line). Then upload both together:</span>
+          <label className="btn small">
+            {uploads.length ? `${uploads.length} file added. Add the other…` : "Upload the two files…"}
+            <input type="file" accept=".json" multiple hidden onChange={(e) => { const fs = Array.from(e.target.files ?? []); e.target.value = ""; if (fs.length) upload(fs); }} />
+          </label>
         </div>
-      )}
+      </details>
     </div>
   );
 }

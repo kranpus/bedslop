@@ -3,6 +3,7 @@ import { FORMATS, GenContext, geometryIdentifier } from "./context";
 import { clampInt, round } from "./content";
 import { boneRenames, buildAnimations, exportAnimationId, renameAnimationBones } from "./entityAnimations";
 import { parseLenientJson } from "../vanilla/json";
+import { retargetSelfReferences } from "../vanilla/templates";
 
 type Cube = { origin: number[]; size: number[]; uv: number[]; inflate?: number };
 const bone = (name: string, pivot: number[], cubes: Cube[], parent?: string) => ({ name, pivot, ...(parent ? { parent } : {}), cubes });
@@ -269,11 +270,24 @@ function genVanillaEntity(ctx: GenContext, e: EntityElement) {
   const id = ctx.id(e.name);
   const base = e.vanillaBase ?? "";
   let behavior: Record<string, any> | null = null, client: Record<string, any> | null = null;
-  try { behavior = parseLenientJson(e.vanillaBehavior ?? "") as Record<string, any>; } catch { /* reported below */ }
-  try { client = parseLenientJson(e.vanillaClient ?? "") as Record<string, any>; } catch { /* reported below */ }
+  if (!e.vanillaBehavior?.trim() || !e.vanillaClient?.trim()) {
+    return ctx.warn(e, `has no template files yet. Pick a Minecraft mob on its page (or upload its two files).`, "error");
+  }
+  try { behavior = parseLenientJson(e.vanillaBehavior) as Record<string, any>; } catch {
+    return ctx.warn(e, "the template's behaviour file can't be read (it may have been edited or squashed onto one line). Load the template again.", "error");
+  }
+  try { client = parseLenientJson(e.vanillaClient) as Record<string, any>; } catch {
+    return ctx.warn(e, "the template's resource file can't be read. Load the template again.", "error");
+  }
   const ent = behavior?.["minecraft:entity"], cl = client?.["minecraft:client_entity"];
   if (!ent?.description || !cl?.description) {
-    return ctx.warn(e, `the template${base ? ` (${base})` : ""} is missing its behaviour or resource file. Load the template again on the mob's page.`, "error");
+    return ctx.warn(e, "the template files don't look like a mob's behaviour and resource files. Load the template again.", "error");
+  }
+  // Breeding partners, offspring and spawned babies should be the copy, not the original.
+  if (base) {
+    for (const key of ["component_groups", "components", "events"]) {
+      if (ent[key]) ent[key] = retargetSelfReferences(ent[key], base, id);
+    }
   }
 
   // ----- Behavior: rename, link to the original for engine-level behaviour, apply our values -----
