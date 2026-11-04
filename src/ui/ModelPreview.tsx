@@ -5,7 +5,9 @@ import { geometryIdentifier } from "../export/context";
 import { buildModel, loadTexture } from "../preview/model";
 
 /** Static 3D view of a block model, with a 1×1×1 outline for scale and its hitbox. */
-export function ModelPreview({ geometry, texture, box }: {
+export function ModelPreview({ geometry, texture, box, hideBones }: {
+  /** Bones to hide, e.g. a door's "open" panel. */
+  hideBones?: string[];
   geometry: string;
   texture: string;
   /** Collision box in block pixels, drawn as a green outline. */
@@ -49,6 +51,7 @@ export function ModelPreview({ geometry, texture, box }: {
         if (disposed) return;
         try {
           const m = buildModel(JSON.parse(geometry), id, tex);
+          for (const name of hideBones ?? []) { const b = m.bones.get(name); if (b) b.group.visible = false; }
           model = m.root;
           scene.add(model);
           setError("");
@@ -91,7 +94,7 @@ export function ModelPreview({ geometry, texture, box }: {
       renderer.dispose();
       el.removeChild(renderer.domElement);
     };
-  }, [geometry, texture, box?.origin.join(), box?.size.join()]);
+  }, [geometry, texture, box?.origin.join(), box?.size.join(), hideBones?.join()]);
 
   return (
     <div className="model-preview checker-soft" ref={host} aria-label="3D model preview">

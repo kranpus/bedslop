@@ -88,6 +88,9 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [ ] Forms open from item use and commands; input form values land in variables; the busy-retry works when opened from chat
 - [ ] Command arguments (number and player) parse and appear in `{name}`
 - [ ] Variables persist across world reloads (dynamic properties)
+- [ ] Slabs stack into double slabs; doors place both halves, open together and drop once; fences/walls/panes connect on place and break
+- [ ] Projectiles: snowball-style sprite faces the camera; arrow sticks in blocks; bow draws, uses the ammo list in order and loses durability
+- [ ] Crops grow on random ticks, bone meal advances them, seeds plant only on the allowed blocks, grown crops drop produce
 - [ ] Manual animation slots: "When attacking" (`variable.attack_time`), "When hurt" and "When dying" fire at the right moment; one-shot controllers replay on each attack; "Match walking speed" stops foot sliding
 
 ## Phase 2: visual scripting and advanced content ⬜
@@ -99,11 +102,11 @@ Ordered by user value:
 3. ✅ **Command arguments**: whole number, decimal, text, true/false and player (becomes the target); required or optional; usable as `{name}` and with the "argument" block. ⬜ item/block/enum argument types.
    ✅ **Global variables** (world or per player, number/text/true-false) stored as dynamic properties; "Change a variable" step, "Variable compares to" condition, `{name}` in any text. ✅ "Run manually" trigger + "Run another procedure" step for reusable procedures.
 4. 🟡 **3D previews** (three.js): ✅ mobs with live animations, controllers and game-state toggles. ⬜ blocks with custom models, items in hand, armor on a player.
-5. ⬜ **Projectiles and ranged items**: throwables, bows/shooters, custom projectile entities with on-hit procedures.
+5. ✅ **Projectiles and ranged items**: projectile elements (flat sprite like a snowball, vanilla arrow shape, or a Blockbench model) with damage, knockback, fire, effects, speed/gravity presets, disappear or stick on hit, hit sound. Items can throw a projectile, be bow ammo, or be a bow (`minecraft:shooter` with ammo list, draw time, durability). "Projectile hits a mob / block" procedure triggers. ⬜ crossbows/charged shots, mob ranged attacks (see 10).
 5b. ✅ **Blocks, round 2**: custom Blockbench models (`.bbmodel` with texture, 3D preview, hitbox fit/full/none); crafting stations (`minecraft:crafting_table`, per-recipe "Craft in"); storage blocks (`minecraft:block_entity` container, 1-54 slots, 1.26.60+); redstone output (constant or lever-style toggle, optional light/texture when on, 1.21.120+ format) and input (`minecraft:redstone_consumer` + `onRedstoneUpdate`, lamp behaviour, "receives/loses redstone power" procedure triggers, 1.26.0+). Each block picks its minimum format version; export flags features newer than the project's target, with a one-click "Update project" in the editor.
 5c. ✅ **Vanilla mob templates**: 89 vanilla mobs. Picking one downloads its behaviour + client files (and sounds/model for the preview) from Mojang's `bedrock-samples` at a pinned release; nothing of Mojang's is bundled. The copy keeps the AI/events, links back with `runtime_identifier`, and uses the game's own model, textures and animations; health, speed, attack, hitbox, drops, egg and spawning are editable, with an optional reskin. Manual upload fallback where GitHub is blocked. Lenient JSON parser for Mojang-style files (comments, trailing commas); preview reads legacy 1.8 geometry with inheritance.
-6. ⬜ **Special block shapes**: slabs, stairs, fences, walls, doors, trapdoors, panes, carpets (geometry presets + block states + scripts).
-7. ⬜ **Crops**: growth stages, bonemeal, seeds, harvest drops.
+6. ✅ **Special block shapes**: a Shape picker on blocks: slab (stacks into a double slab that drops two), stairs, carpet, trapdoor (click to open), door (two tall, top/bottom textures, places its top half, open/close), fence, wall and pane (connect to neighbours and solid blocks via scripts). Generated geometry, hitboxes and 3D preview. ⬜ stair corners, upside-down stairs, fence gates, buttons/pressure plates.
+7. ✅ **Crops**: 2-8 growth stages (crop `#` or cross shape), growth chance per random tick, bone meal, plant on farmland (or anything), seeds item, harvest drops (one seed when young; produce + extra seeds when grown). ⬜ needs-water/light checks, berry-bush style partial harvest.
 8. ⬜ **Structures**: import `.mcstructure`, place via structure features / jigsaw, loot in chests.
 9. ⬜ **Particles**: visual designer for RP particle JSON, spawnable from procedures.
 10. ⬜ **Entity extras**: tame, breed, ride, fly, swim AI, ranged attacks, custom trades (trade tables), ambient/hurt/death sounds, multiple textures (variants).
@@ -156,6 +159,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.4.0** (Phase 2, items 5-7): Projectiles and ranged items (throwables, bows, ammo, on-hit damage/fire/effects, "projectile hits" triggers); block shapes (slab, stairs, carpet, trapdoor, door, fence, wall, pane) with 3D previews; crops with growth stages, bone meal and seeds. New texture templates: crop, seeds, orb, bow, arrow. The example project gains ruby brick slab/stairs/wall, a throwing shard and a ruby berry crop. 76 tests.
 
 - **0.3.2**: Vanilla templates work where GitHub is blocked (like the claude.ai preview): import Minecraft's vanilla behaviour/resource pack ZIPs (or the bedrock-samples ZIP, .mcpack or loose .json) once; the app keeps only what templates need (~3 MB) in the browser, picks the newest look per mob, and adds sounds, model and default texture for the preview. Mobs in newer packs appear automatically. Adds a GitHub Pages workflow for self-hosting. 65 tests.
 

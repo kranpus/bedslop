@@ -18,7 +18,12 @@ export const TEMPLATES: TemplateInfo[] = [
   { id: "bricks", label: "Bricks", size: [16, 16], kind: "block" },
   { id: "glass", label: "Glass", size: [16, 16], kind: "block" },
   { id: "flower", label: "Flower (plant)", size: [16, 16], kind: "block" },
+  { id: "crop", label: "Crop (growing)", size: [16, 16], kind: "block" },
   { id: "gem", label: "Gem", size: [16, 16], kind: "item" },
+  { id: "seeds", label: "Seeds", size: [16, 16], kind: "item" },
+  { id: "orb", label: "Throwable orb", size: [16, 16], kind: "item" },
+  { id: "bow", label: "Bow", size: [16, 16], kind: "item" },
+  { id: "arrow", label: "Arrow", size: [16, 16], kind: "item" },
   { id: "ingot", label: "Ingot", size: [16, 16], kind: "item" },
   { id: "dust", label: "Dust", size: [16, 16], kind: "item" },
   { id: "fruit", label: "Fruit / food", size: [16, 16], kind: "item" },
@@ -206,6 +211,43 @@ export function drawTemplate(id: string, hex: string, seed = 1): Grid {
       g.outline(0.5);
       break;
     }
+    case "crop": {
+      // Stalks with a tip in the chosen colour; the seed picks the height so stages differ.
+      const green: [number, number, number] = [80, 150, 50];
+      const top = 3 + (seed % 9);
+      for (const x of [2, 5, 8, 11, 14]) {
+        const t = top + Math.floor(r() * 3);
+        g.line(x, 15, x, t, () => shade(green, noise(0.2)));
+        g.set(x - 1, t + 3, shade(green, 0.15));
+        if (top < 9) { g.set(x, t, shade(base, 0.2)); g.set(x, t + 1, shade(base, -0.1)); }
+      }
+      break;
+    }
+    case "seeds":
+      for (const [x, y] of [[5, 6], [9, 5], [7, 9], [11, 9], [5, 11], [9, 12]]) {
+        g.rect(x, y, x + 1, y + 1, (px, py) => shade(base, px === x && py === y ? 0.35 : noise(0.15)));
+      }
+      g.outline(0.45);
+      break;
+    case "orb":
+      g.circle(8, 8, 4.6, (x, y) => shade(base, diag(x, y, 0.5) + noise(0.08)));
+      g.set(6, 6, [255, 255, 255, 255]);
+      g.set(7, 6, shade(base, 0.6));
+      g.outline();
+      break;
+    case "bow":
+      g.line(4, 2, 7, 3, handle); g.line(7, 3, 11, 7, handle); g.line(11, 7, 12, 11, handle); g.line(12, 11, 13, 13, handle);
+      g.line(5, 2, 8, 4, handle); g.line(11, 8, 12, 12, handle);
+      g.line(4, 3, 12, 13, () => [235, 235, 235, 255]);
+      g.set(8, 5, shade(base, 0.2)); g.set(9, 6, shade(base, 0)); g.set(10, 7, shade(base, -0.2));
+      g.outline(0.5);
+      break;
+    case "arrow":
+      g.line(3, 12, 11, 4, handle);
+      g.polygon([[10, 2], [14, 2], [14, 6]], (x, y) => shade(base, diag(x, y, 0.4)));
+      g.line(2, 11, 3, 13, () => [235, 235, 235, 255]); g.line(3, 14, 4, 12, () => [235, 235, 235, 255]);
+      g.outline(0.5);
+      break;
     case "gem":
       g.polygon([[8, 2], [14, 6], [8, 14], [2, 6]], (x, y) => shade(base, y < 6 ? 0.35 : diag(x, y, 0.3) - (x > 8 ? 0.15 : 0)));
       g.line(5, 5, 7, 4, () => [255, 255, 255, 255]);

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { generateAddon } from "../src/export/generate";
 import { createElement } from "../src/model/registry";
 import { createProject } from "../src/model/project";
@@ -153,5 +153,23 @@ describe("ranged item problems", () => {
     p.elements = p.elements.filter((e) => e.name !== "ruby_shard");
     const msgs = generateAddon(p).warnings.filter((w) => w.level === "error").map((w) => w.message);
     expect(msgs.some((m) => m.includes("Throwing Shard") && m.includes("projectile"))).toBe(true);
+  });
+});
+
+// The sample's textures are drawn on a canvas, which tests don't have.
+vi.mock("../src/textures/procedural", async (orig) => ({
+  ...(await orig<typeof import("../src/textures/procedural")>()),
+  generateTexture: () => ({ dataUrl: PNG, width: 16, height: 16 }),
+}));
+
+describe("example project", () => {
+  it("exports the Ruby Expansion sample without errors", async () => {
+    const { exampleProject } = await import("../src/model/packs");
+    const { files, warnings } = generateAddon(exampleProject(createProject("Example")));
+    expect(warnings.filter((w) => w.level === "error")).toEqual([]);
+    expect(files.has("BP/blocks/ruby_brick_slab.json")).toBe(true);
+    expect(files.has("BP/entities/ruby_shard.json")).toBe(true);
+    expect(files.has("BP/items/ruby_berry_crop_seeds.json")).toBe(true);
+    expect(typecheckScript(files.get("BP/scripts/main.js") as string)).toEqual([]);
   });
 });

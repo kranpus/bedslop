@@ -300,7 +300,38 @@ export function exampleProject(p: Project): Project {
   benchRecipe.grid = ["ruby:ruby", "ruby:ruby", "", "minecraft:oak_planks", "minecraft:oak_planks", "", "", "", ""];
   benchRecipe.result = "ruby:ruby_workbench";
 
-  p.elements = [...pack.elements, golem, boar, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd];
+  // Shapes, projectiles and crops.
+  const brick = tex("ruby_bricks", "bricks", "#a8303f", "block");
+  const slab = createElement("block", "ruby_brick_slab", "Ruby Brick Slab");
+  slab.shape = "slab";
+  slab.textures.all = brick;
+  const stairs = createElement("block", "ruby_brick_stairs", "Ruby Brick Stairs");
+  stairs.shape = "stairs";
+  stairs.textures.all = brick;
+  const wall = createElement("block", "ruby_brick_wall", "Ruby Brick Wall");
+  wall.shape = "wall";
+  wall.textures.all = brick;
+  const shardTex = tex("ruby_shard", "orb", "#e0475c", "item");
+  const shard = createElement("projectile", "ruby_shard", "Ruby Shard");
+  shard.texture = shardTex;
+  shard.damage = 3;
+  shard.effects = [{ effect: "slowness", seconds: 3, amplifier: 0, chance: 100 }];
+  const throwShard = createElement("item", "throwing_shard", "Throwing Shard");
+  throwShard.texture = shardTex;
+  throwShard.maxStack = 16;
+  throwShard.use = "throw";
+  throwShard.projectile = "ruby_shard";
+  const bush = createElement("crop", "ruby_berry_crop", "Ruby Berry Crop");
+  bush.stageTextures = [0, 1, 2, 3].map((i) => {
+    const g = generateTexture("crop", "#d43d51", [8, 5, 3, 0][i]);
+    const a: TextureAsset = { id: uid(), name: `ruby_berry_crop_stage_${i}`, kind: "block", width: g.width, height: g.height, dataUrl: g.dataUrl };
+    textures.push(a);
+    return a.id;
+  });
+  bush.seedsTexture = tex("ruby_berry_crop_seeds", "seeds", "#c9a25a", "item");
+  bush.produce = "ruby:ruby_berry";
+
+  p.elements = [...pack.elements, golem, boar, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush];
   p.textures = textures;
   p.packIcon = textures.find((t) => t.name === "ruby")?.id ?? "";
   return p;

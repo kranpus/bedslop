@@ -4,7 +4,9 @@ import { modelBounds } from "../../export/content";
 import { SCRIPT_API_VERSIONS } from "../../model/project";
 import { ModelPreview } from "../ModelPreview";
 import { convertBbmodel, isBbmodel } from "../../export/bbmodel";
+import { previewGeometry } from "../../export/shapes";
 import type {
+  BlockShape,
   ArmorElement, ArmorSlot, BlockElement, BlockFace, FoodElement, ItemElement, PlantElement, ToolElement, ToolType,
 } from "../../model/types";
 import { BLOCK_SOUNDS, EFFECTS, MENU_CATEGORIES } from "../../model/vanilla";
@@ -12,6 +14,7 @@ import { ChipList, Color, Field, Grid, IdField, Num, Section, Segmented, Select,
 import { TexturePicker } from "../TexturePicker";
 import { useStore } from "../../store/store";
 import type { Patch } from "./types";
+import { ItemUseSection } from "./RangedEditors";
 
 // ---------- Block ----------
 
@@ -37,6 +40,33 @@ function BlockPreview({ b }: { b: BlockElement }) {
   );
 }
 
+const DOOR_SLOTS: { face: BlockFace; label: string }[] = [{ face: "bottom", label: "Lower half" }, { face: "top", label: "Upper half" }];
+const shapeOf = (b: BlockElement): BlockShape | "custom" => (b.geometry === "custom" ? "custom" : b.shape ?? "cube");
+const SHAPE_HELP: Partial<Record<BlockShape, string>> = {
+  slab: "Place a slab on a slab to make a double slab.",
+  stairs: "Straight stairs; corners aren't joined automatically yet.",
+  trapdoor: "Right-click to open and close.",
+  door: "Places its top half automatically. Right-click to open and close.",
+  fence: "Joins up with neighbouring fences and solid blocks.",
+  wall: "Joins up with neighbouring walls and solid blocks.",
+  pane: "Joins up with neighbouring panes, bars and solid blocks.",
+};
+
+function ShapeView({ el }: { el: BlockElement }) {
+  const ns = useStore((s) => s.project!.namespace);
+  const textures = useStore((s) => s.project!.textures);
+  const shape = shapeOf(el) as BlockShape;
+  const pv = previewGeometry(shape, ns, el.name);
+  const tex = textures.find((t) => t.id === (shape === "door" ? el.textures.bottom ?? el.textures.all : el.textures.all ?? el.textures.side))?.dataUrl ?? "";
+  if (!pv) return <BlockPreview b={el} />;
+  return (
+    <div className="stack tight">
+      <ModelPreview geometry={pv.json} texture={tex} hideBones={pv.hidden} />
+      {SHAPE_HELP[shape] && <span className="field-help shape-help">{SHAPE_HELP[shape]}</span>}
+    </div>
+  );
+}
+
 const FACE_SLOTS: Record<BlockElement["textureMode"], { face: BlockFace; label: string }[]> = {
   all: [{ face: "all", label: "All faces" }],
   pillar: [{ face: "top", label: "Top" }, { face: "side", label: "Sides" }, { face: "bottom", label: "Bottom" }],
@@ -52,11 +82,20 @@ export function BlockEditor({ el, patch }: { el: BlockElement; patch: Patch<Bloc
       <Section title="Look">
         <div className="split">
           <div className="stack">
-            <Segmented value={el.textureMode} onChange={(textureMode) => patch({ textureMode })} options={[
-              { value: "all", label: "Same on all sides" }, { value: "pillar", label: "Top / sides / bottom" }, { value: "six", label: "Six faces" },
-            ]} />
+            <Select label="Shape" value={shapeOf(el)} onChange={(v) => patch(v === "custom" ? { geometry: "custom" } : { geometry: "full", shape: v as BlockShape, ...(v !== "cube" ? { rotation: "none" as const } : {}) })}
+              options={[
+                { value: "cube", label: "Full cube" }, { value: "slab", label: "Slab (stacks into a double slab)" }, { value: "stairs", label: "Stairs" },
+                { value: "carpet", label: "Carpet / thin layer" }, { value: "trapdoor", label: "Trapdoor (click to open)" }, { value: "door", label: "Door (two blocks tall)" },
+                { value: "fence", label: "Fence (connects)" }, { value: "wall", label: "Wall (connects)" }, { value: "pane", label: "Pane / bars (connects)" },
+                { value: "custom", label: "Custom Blockbench model" },
+              ]} />
+            {el.shape !== "door" && (
+              <Segmented value={el.textureMode} onChange={(textureMode) => patch({ textureMode })} options={[
+                { value: "all", label: "Same on all sides" }, { value: "pillar", label: "Top / sides / bottom" }, { value: "six", label: "Six faces" },
+              ]} />
+            )}
             <div className="tex-grid-slots">
-              {FACE_SLOTS[el.textureMode].map(({ face, label }) => (
+              {(el.shape === "door" && el.geometry !== "custom" ? DOOR_SLOTS : FACE_SLOTS[el.textureMode]).map(({ face, label }) => (
                 <TexturePicker key={face} label={label} kind="block" value={el.textures[face]}
                   suggestedName={face === "all" ? el.name : `${el.name}_${face}`}
                   onChange={(id) => patch({ textures: { ...el.textures, [face]: id || undefined } })} />
@@ -65,17 +104,17 @@ export function BlockEditor({ el, patch }: { el: BlockElement; patch: Patch<Bloc
             <Grid>
               <Select label="Transparency" value={el.renderMethod} onChange={(renderMethod) => patch({ renderMethod, lightDampening: renderMethod === "opaque" ? 15 : 0 })}
                 options={[{ value: "opaque", label: "Solid" }, { value: "alpha_test", label: "Cut-out (leaves, grates)" }, { value: "blend", label: "Translucent (glass, ice)" }]} />
-              <Select label="Rotation when placed" value={el.rotation} onChange={(rotation) => patch({ rotation })}
-                options={[{ value: "none", label: "None" }, { value: "facing", label: "Faces the player (furnace)" }, { value: "axis", label: "Follows the clicked face (log)" }]} />
-              <Select label="Model" value={el.geometry} onChange={(geometry) => patch({ geometry })}
-                options={[{ value: "full", label: "Full cube" }, { value: "custom", label: "Custom Blockbench model" }]} />
+              {(shapeOf(el) === "cube" || shapeOf(el) === "custom") && (
+                <Select label="Rotation when placed" value={el.rotation} onChange={(rotation) => patch({ rotation })}
+                  options={[{ value: "none", label: "None" }, { value: "facing", label: "Faces the player (furnace)" }, { value: "axis", label: "Follows the clicked face (log)" }]} />
+              )}
               <Color label="Map colour" value={el.mapColor} onChange={(mapColor) => patch({ mapColor }, "map")} />
             </Grid>
             {el.geometry === "custom" && <BlockModelImport el={el} patch={patch} />}
           </div>
           {el.geometry === "custom" && geometryIdentifier(el.customGeometry)
             ? <BlockModelView el={el} />
-            : <BlockPreview b={el} />}
+            : shapeOf(el) !== "cube" && shapeOf(el) !== "custom" ? <ShapeView el={el} /> : <BlockPreview b={el} />}
         </div>
       </Section>
       <Section title="Behaviour">
@@ -203,6 +242,7 @@ export function ItemEditor({ el, patch }: { el: ItemElement; patch: Patch<ItemEl
         </Grid>
         <ChipList label="Tags" values={el.tags} onChange={(tags) => patch({ tags })} suggestions={["minecraft:is_food", "minecraft:is_tool", "minecraft:transform_materials", "minecraft:trim_materials"]} help="Used by recipes and other add-ons to find similar items." />
       </Section>
+      <ItemUseSection el={el} patch={patch} />
       <CreativeSection el={el} patch={patch} />
     </>
   );
