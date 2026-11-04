@@ -96,6 +96,7 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [ ] Mob extras: taming chance and sitting; breeding makes babies that grow up; rider steers a walking mount; flyers hover and swimmers stay in water; ranged mobs fire own projectiles; trade screen opens and restocks; sounds play; variants differ between spawns
 - [ ] Tags: `#tag` shaped/shapeless recipes accept tagged items; tag conditions; custom block states persist, rules apply, set/cycle steps work on placed blocks
 - [ ] Music discs: jukebox plays the song, stops at the set length, hopper ejects; "Now playing" shows the disc name; comparator signal
+- [ ] Brewing: custom-ingredient mixes and bottle changes show up and work in the brewing stand
 - [ ] Manual animation slots: "When attacking" (`variable.attack_time`), "When hurt" and "When dying" fire at the right moment; one-shot controllers replay on each attack; "Match walking speed" stops foot sliding
 
 ## Phase 2: visual scripting and advanced content ⬜
@@ -118,7 +119,7 @@ Ordered by user value:
 11. ✅ **Tags editor** for items and blocks: Tags field on every item/tool/food/armor/block/plant/crop with vanilla suggestions, a Tags tab listing every tag with its members (add/remove) and the recipes using it, `#tag` recipe ingredients, and "Player is holding an item tagged" / "Block has tag" conditions. **Block states**: on/off, number range (up to 16) or list states; rules that change texture, light, break time, slipperiness, map colour or collision when states match (exported as permutations); "Set block state", "Cycle block state" steps and "Block state is" condition; one-click "Change on click" procedure. ⬜ tagging vanilla items (not possible in Bedrock), rules that swap models or bone visibility.
 12. ⏸ **Localization editor** for multiple languages (skipped for now, back after item 14).
 13. ✅ **Music discs**: upload an .ogg (checked, length read automatically), icon template, volume and comparator signal. Bedrock's stable `minecraft:record` only accepts the vanilla disc sound events, so each disc plays through one vanilla disc's slot (picked automatically or by hand, clashes reported) and the resource pack points that slot at the song; the editor and export explain that the vanilla disc plays the song too. ⬜ own sound events once Mojang's beta record format is stable, discs in loot tables (creeper drops).
-14. ⬜ Brewing recipes.
+14. ✅ **Brewing recipes**: a Brewing recipe type for the brewing stand. "Turn one potion into another" (`minecraft:recipe_brewing_mix`, all 46 vanilla potion types by readable name) and "Change the bottle" (`minecraft:recipe_brewing_container`: potion, splash, lingering), with any item (yours included) as the ingredient. Bedrock has no custom potion types, so the editor points to drinkable Food elements for your own effects. ⬜ custom potion items via scripts.
 
 ## Phase 3: closing Bedrock gaps with scripting 🔧
 
@@ -164,6 +165,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.10.0** (Phase 2, item 14): Brewing recipes. Turn one vanilla potion into another, or change the bottle (splash, lingering), with any item as the ingredient. Example: a ruby turns an awkward potion into Regeneration II. 124 tests.
 
 - **0.9.0** (Phase 2, item 13): Music discs with your own .ogg song, automatic length, volume, comparator signal and a disc icon template. Each disc plays through a vanilla disc's sound slot (Bedrock's stable record component only allows those). 120 tests.
 

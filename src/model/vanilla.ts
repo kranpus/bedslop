@@ -125,3 +125,26 @@ export const DISC_SLOTS = [
   "record.chirp", "record.blocks", "record.cat", "record.5", "record.relic", "record.otherside", "record.pigstep", "record.creator",
   "record.precipice", "record.creator_music_box", "record.tears", "record.lava_chicken", "record.bounce",
 ];
+
+/** Potion types brewing recipes can use (from Mojang's vanilla brewing recipes). Bedrock has no custom potion types. */
+export const POTION_TYPES = (
+  "water mundane long_mundane thick awkward nightvision long_nightvision invisibility long_invisibility leaping long_leaping strong_leaping " +
+  "fire_resistance long_fire_resistance swiftness long_swiftness strong_swiftness slowness long_slowness strong_slowness water_breathing " +
+  "long_water_breathing healing strong_healing harming strong_harming poison long_poison strong_poison regeneration long_regeneration " +
+  "strong_regeneration strength long_strength strong_strength weakness long_weakness turtle_master long_turtle_master strong_turtle_master " +
+  "slow_falling long_slow_falling wind_charged weaving oozing infested"
+).split(" ").map((t) => `minecraft:potion_type:${t}`);
+
+export const POTION_CONTAINERS = ["minecraft:potion", "minecraft:splash_potion", "minecraft:lingering_potion"];
+
+/** "minecraft:potion_type:long_nightvision" -> "Night vision (long)". */
+export function potionLabel(id: string): string {
+  if (POTION_CONTAINERS.includes(id)) return { "minecraft:potion": "Potion", "minecraft:splash_potion": "Splash potion", "minecraft:lingering_potion": "Lingering potion" }[id]!;
+  let t = id.replace("minecraft:potion_type:", "");
+  let suffix = "";
+  if (t.startsWith("long_")) { t = t.slice(5); suffix = " (long)"; }
+  if (t.startsWith("strong_")) { t = t.slice(7); suffix = " II"; }
+  const name = t === "nightvision" ? "night vision" : t.replace(/_/g, " ");
+  const base = name.charAt(0).toUpperCase() + name.slice(1);
+  return ["water", "mundane", "thick", "awkward"].includes(t) ? `${base} potion${suffix}` : `Potion of ${name}${suffix}`;
+}

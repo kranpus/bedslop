@@ -44,7 +44,7 @@ export function validateProject(project: Project): Warning[] {
 
 /** Elements that share the same identifier space. */
 function groupOf(el: ModElement) {
-  if (["block", "plant", "item", "tool", "armor", "food", "entity"].includes(el.kind)) return "content";
+  if (["block", "plant", "item", "tool", "armor", "food", "entity", "crop", "disc"].includes(el.kind)) return "content";
   return el.kind;
 }
 
@@ -61,6 +61,7 @@ function checkReferences(ctx: GenContext) {
       check(el, el.result, "Result");
       check(el, el.input, "Input");
       if (el.recipeType === "smithing") [el.smithingBase, el.smithingAddition, el.smithingTemplate].forEach((i) => check(el, i, "Item"));
+      if (el.recipeType === "brewing" && el.reagent) check(el, el.reagent, "Ingredient");
     }
     if (el.kind === "ore") check(el, el.block, "Block");
     if (el.kind === "loot") el.pools.forEach((p) => p.entries.forEach((e) => check(el, e.item, "Item")));

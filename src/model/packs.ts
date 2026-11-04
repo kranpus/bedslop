@@ -343,6 +343,10 @@ export function exampleProject(p: Project): Project {
   bush.seedsTexture = tex("ruby_berry_crop_seeds", "seeds", "#c9a25a", "item");
   bush.produce = "ruby:ruby_berry";
 
+  // Brewing: a ruby turns an awkward potion into Regeneration II.
+  const brew = createElement("recipe", "ruby_regeneration", "Ruby regeneration brew");
+  Object.assign(brew, { recipeType: "brewing", brewMode: "mix", input: "minecraft:potion_type:awkward", reagent: "ruby:ruby", result: "minecraft:potion_type:strong_regeneration" });
+
   // A lamp with a custom "lit" state that toggles on right-click.
   const lamp = createElement("block", "ruby_lamp", "Ruby Lamp");
   lamp.textures.all = tex("ruby_lamp_off", "glass", "#7a1f2b", "block");
@@ -389,7 +393,7 @@ export function exampleProject(p: Project): Project {
     { wants: "ruby:ruby", wantsCount: 8, wants2: "minecraft:stick", wants2Count: 1, gives: "ruby:ruby_wand", givesCount: 1, maxUses: 2 },
   ];
 
-  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle, lamp, lampClick];
+  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle, lamp, lampClick, brew];
   p.textures = textures;
   p.packIcon = textures.find((t) => t.name === "ruby")?.id ?? "";
   return p;

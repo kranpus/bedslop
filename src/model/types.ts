@@ -351,11 +351,14 @@ export interface EntityElement extends BaseElement {
   variants?: string[];
 }
 
-export type RecipeType = "shaped" | "shapeless" | "furnace" | "stonecutter" | "smithing";
+export type RecipeType = "shaped" | "shapeless" | "furnace" | "stonecutter" | "smithing" | "brewing";
 
 export interface RecipeElement extends BaseElement {
   kind: "recipe";
   recipeType: RecipeType;
+  /** Brewing: "mix" turns one potion type into another; "container" changes the bottle (e.g. splash). Uses input, reagent and result. */
+  brewMode?: "mix" | "container";
+  reagent?: string;
   grid: string[]; // 9 slots, item ids or ""
   input: string; // furnace / stonecutter input
   furnaceTags: string[];

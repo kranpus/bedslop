@@ -522,3 +522,5 @@ table.vars td:nth-child(5) { min-width: 0; }
 .tag-member .linklike { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0; cursor: pointer; color: var(--ink); font: inherit; }
 .tag-member .chip-x { border: 0; background: none; cursor: pointer; color: var(--muted); font-size: 15px; line-height: 1; padding: 0 2px; }
 .rule-when > button, .rule-then > button { align-self: flex-start; }
+.brew-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.brew-pill { padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--accent-soft); color: var(--ink); font-weight: 500; }

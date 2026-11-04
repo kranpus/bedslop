@@ -1,5 +1,6 @@
 import type { FunctionElement, LootElement, OreElement, RecipeElement, SoundElement } from "../model/types";
 import { FORMATS, GenContext, dataUrlToBytes } from "./context";
+import { POTION_CONTAINERS, POTION_TYPES } from "../model/vanilla";
 import { clampInt, round } from "./content";
 
 /** Shrinks a 3x3 grid to its bounding box and assigns a key letter per distinct item. */
@@ -36,6 +37,7 @@ const stations = (r: RecipeElement) => (r.stations?.length ? r.stations : ["craf
 export function genRecipe(ctx: GenContext, r: RecipeElement) {
   const identifier = ctx.id(r.name);
   const count = clampInt(r.count, 1, 64);
+  if (r.recipeType === "brewing") return genBrewing(ctx, r);
   if (!r.result && r.recipeType !== "furnace") return ctx.warn(r, "has no result item, so it was skipped.", "error");
   const result = { item: r.result, count };
   let body: Record<string, unknown> | null = null;
@@ -76,6 +78,24 @@ export function genRecipe(ctx: GenContext, r: RecipeElement) {
     }
   }
   ctx.bp(`recipes/${r.name}.json`, { format_version: FORMATS.recipe, ...body });
+}
+
+/** Brewing stand recipes: potion type to potion type (mix), or bottle to bottle (container). */
+function genBrewing(ctx: GenContext, r: RecipeElement) {
+  const mode = r.brewMode ?? "mix";
+  const allowed = mode === "mix" ? POTION_TYPES : POTION_CONTAINERS;
+  const what = mode === "mix" ? "potion type" : "bottle";
+  if (!r.reagent) return ctx.warn(r, "needs an ingredient to add to the brewing stand.", "error");
+  for (const [label, v] of [["starting", r.input], ["result", r.result]] as const) {
+    if (!allowed.includes(v)) return ctx.warn(r, `needs a ${label} ${what} from the list${v ? ` ("${v}" isn't one)` : ""}. Bedrock can only brew vanilla potions; for your own potions, make a Food element that you drink.`, "error");
+  }
+  if (r.input === r.result) ctx.warn(r, "turns a potion into the same potion, so it does nothing.");
+  ctx.bp(`recipes/${r.name}.json`, {
+    format_version: "1.20.10",
+    [mode === "mix" ? "minecraft:recipe_brewing_mix" : "minecraft:recipe_brewing_container"]: {
+      description: { identifier: ctx.id(r.name) }, tags: ["brewing_stand"], input: r.input, reagent: r.reagent, output: r.result,
+    },
+  });
 }
 
 export function lootPath(ctx: GenContext, l: LootElement) {

@@ -6,7 +6,7 @@ import { elementTexture } from "../Thumb";
 import { ChipList, Field, Grid, IdField, IdInput, Num, Section, Segmented, Select, Slider, Toggle } from "../fields";
 import type { Patch } from "./types";
 import { projectTags } from "../TagField";
-import { COMMON_ITEM_TAGS } from "../../model/vanilla";
+import { COMMON_ITEM_TAGS, POTION_CONTAINERS, POTION_TYPES, potionLabel } from "../../model/vanilla";
 
 /** Finds the texture for an id like "myaddon:ruby_helmet" so recipe slots can show icons. */
 function iconFor(project: Project, id: string): string | undefined {
@@ -50,9 +50,12 @@ export function RecipeEditor({ el, patch }: { el: RecipeElement; patch: Patch<Re
   return (
     <>
       <Section title="Recipe type">
-        <Segmented value={el.recipeType} onChange={(recipeType) => patch({ recipeType })} options={[
+        <Segmented value={el.recipeType} onChange={(recipeType) => patch(recipeType === "brewing" && el.recipeType !== "brewing"
+          ? { recipeType, brewMode: "mix", input: "minecraft:potion_type:awkward", reagent: el.reagent ?? "", result: "minecraft:potion_type:strength" }
+          : recipeType !== "brewing" && el.recipeType === "brewing" ? { recipeType, input: "", result: "" } : { recipeType })} options={[
           { value: "shaped", label: "Crafting (shaped)" }, { value: "shapeless", label: "Crafting (any order)" },
           { value: "furnace", label: "Smelting" }, { value: "stonecutter", label: "Stonecutter" }, { value: "smithing", label: "Smithing" },
+          { value: "brewing", label: "Brewing" },
         ]} />
       </Section>
 
@@ -108,13 +111,47 @@ export function RecipeEditor({ el, patch }: { el: RecipeElement; patch: Patch<Re
         </Section>
       )}
 
-      <Section title="Result">
+      {el.recipeType === "brewing" && <BrewingSection el={el} patch={patch} />}
+
+      {el.recipeType !== "brewing" && <Section title="Result">
         <Grid>
           <IdField label="Result item" value={el.result} onChange={(result) => patch({ result }, "result")} />
           {el.recipeType !== "furnace" && el.recipeType !== "smithing" && <Num label="Count" min={1} max={64} value={el.count} onChange={(count) => patch({ count }, "count")} />}
         </Grid>
-      </Section>
+      </Section>}
     </>
+  );
+}
+
+/** Brewing stand: potion + ingredient -> potion. */
+function BrewingSection({ el, patch }: { el: RecipeElement; patch: Patch<RecipeElement> }) {
+  const mode = el.brewMode ?? "mix";
+  const list = mode === "mix" ? POTION_TYPES : POTION_CONTAINERS;
+  const pick = (label: string, value: string, onChange: (v: string) => void) => (
+    <Select label={label} value={list.includes(value) ? value : ""} onChange={onChange}
+      options={[...(list.includes(value) ? [] : [{ value: "", label: "Choose…" }]), ...list.map((v) => ({ value: v, label: potionLabel(v) }))]} />
+  );
+  return (
+    <Section title="Brewing stand" hint="Bedrock can only brew Minecraft's own potions. Your items can be the ingredient. For a potion with your own effects, make a Food element with the “drink” animation.">
+      <Segmented value={mode} onChange={(brewMode) => patch(brewMode === "mix"
+        ? { brewMode, input: "minecraft:potion_type:awkward", result: "minecraft:potion_type:strength" }
+        : { brewMode, input: "minecraft:potion", result: "minecraft:splash_potion" })} options={[
+        { value: "mix", label: "Turn one potion into another" }, { value: "container", label: "Change the bottle (splash, lingering)" },
+      ]} />
+      <div className="brew-row">
+        <span className="brew-pill">{potionLabel(el.input || "minecraft:potion")}</span>
+        <span className="craft-arrow" aria-hidden>+</span>
+        <Slot id={el.reagent ?? ""} label="Ingredient" />
+        <span className="craft-arrow" aria-hidden>→</span>
+        <span className="brew-pill">{el.result ? potionLabel(el.result) : "?"}</span>
+      </div>
+      <Grid>
+        {pick(mode === "mix" ? "Starting potion" : "Starting bottle", el.input, (input) => patch({ input }))}
+        <IdField label="Ingredient" value={el.reagent ?? ""} onChange={(reagent) => patch({ reagent }, "reagent")} help="Any item, e.g. minecraft:glowstone_dust or one of yours." />
+        {pick(mode === "mix" ? "Result potion" : "Result bottle", el.result, (result) => patch({ result }))}
+      </Grid>
+      {mode === "container" && <p className="field-help">Works for every potion type, like gunpowder turning any potion into a splash potion.</p>}
+    </Section>
   );
 }
 
