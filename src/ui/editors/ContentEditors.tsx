@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { geometryIdentifier } from "../../export/context";
-import { modelBounds } from "../../export/content";
+import { modelBounds, modelFit } from "../../export/content";
 import { SCRIPT_API_VERSIONS } from "../../model/project";
 import { ModelPreview } from "../ModelPreview";
 import { convertBbmodel, isBbmodel } from "../../export/bbmodel";
@@ -77,10 +77,20 @@ const FACE_SLOTS: Record<BlockElement["textureMode"], { face: BlockFace; label: 
 };
 
 export function BlockEditor({ el, patch }: { el: BlockElement; patch: Patch<BlockElement> }) {
+  const { load, msg } = useBlockModelLoader(el, patch);
+  const [dragging, setDragging] = useState(false);
+  const drop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f && !/\.png$/i.test(f.name)) load(f);
+  };
   return (
     <>
       <Section title="Look">
-        <div className="split">
+        <div className={`split${dragging ? " drop-target" : ""}`}
+          onDragOver={(e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setDragging(true); } }}
+          onDragLeave={() => setDragging(false)} onDrop={drop}>
           <div className="stack">
             <Select label="Shape" value={shapeOf(el)} onChange={(v) => patch(v === "custom" ? { geometry: "custom" } : { geometry: "full", shape: v as BlockShape, ...(v !== "cube" ? { rotation: "none" as const } : {}) })}
               options={[
@@ -89,7 +99,16 @@ export function BlockEditor({ el, patch }: { el: BlockElement; patch: Patch<Bloc
                 { value: "fence", label: "Fence (connects)" }, { value: "wall", label: "Wall (connects)" }, { value: "pane", label: "Pane / bars (connects)" },
                 { value: "custom", label: "Custom Blockbench model" },
               ]} />
-            {el.shape !== "door" && (
+            {el.geometry === "custom"
+              ? <BlockModelImport el={el} patch={patch} load={load} msg={msg} />
+              : (
+                <div className="row wrap model-hint">
+                  <span className="field-help">Made a model in Blockbench?</span>
+                  <ModelFileButton onFile={load} label="Import .bbmodel…" />
+                  <ImportStatus msg={msg} />
+                </div>
+              )}
+            {(el.shape !== "door" || el.geometry === "custom") && (
               <Segmented value={el.textureMode} onChange={(textureMode) => patch({ textureMode })} options={[
                 { value: "all", label: "Same on all sides" }, { value: "pillar", label: "Top / sides / bottom" }, { value: "six", label: "Six faces" },
               ]} />
@@ -110,7 +129,6 @@ export function BlockEditor({ el, patch }: { el: BlockElement; patch: Patch<Bloc
               )}
               <Color label="Map colour" value={el.mapColor} onChange={(mapColor) => patch({ mapColor }, "map")} />
             </Grid>
-            {el.geometry === "custom" && <BlockModelImport el={el} patch={patch} />}
           </div>
           {el.geometry === "custom" && geometryIdentifier(el.customGeometry)
             ? <BlockModelView el={el} />
@@ -187,7 +205,7 @@ export function GeometryUpload({ value, onChange, label = "Blockbench model (.bb
       <div className="row">
         <label className="btn small">
           Choose file…
-          <input type="file" accept=".bbmodel,.json" hidden onChange={async (e) => {
+          <input type="file" hidden onChange={async (e) => {
             const f = e.target.files?.[0];
             if (!f) return;
             const text = await f.text();
@@ -374,44 +392,71 @@ function BlockModelView({ el }: { el: BlockElement }) {
   return <ModelPreview geometry={el.customGeometry} texture={tex} box={mode === "none" ? null : box} />;
 }
 
-function BlockModelImport({ el, patch }: { el: BlockElement; patch: Patch<BlockElement> }) {
+type ImportMsg = { ok: boolean; text: string } | null;
+
+/** Reads a .bbmodel or .geo.json into a block (switching it to a custom model). Shared by the button and drag-and-drop. */
+function useBlockModelLoader(el: BlockElement, patch: Patch<BlockElement>) {
   const addTexture = useStore((s) => s.addTexture);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const id = geometryIdentifier(el.customGeometry);
+  const [msg, setMsg] = useState<ImportMsg>(null);
   const load = async (f: File) => {
     try {
       const text = await f.text();
       if (isBbmodel(text)) {
         const c = convertBbmodel(text, el.name);
-        const p: Partial<BlockElement> = { customGeometry: c.geometry, textureMode: "all", renderMethod: "alpha_test", lightDampening: 0 };
+        const p: Partial<BlockElement> = { geometry: "custom", customGeometry: c.geometry, textureMode: "all", renderMethod: "alpha_test", lightDampening: 0 };
         if (c.texture) p.textures = { ...el.textures, all: addTexture({ ...c.texture, kind: "block" }).id };
         patch(p);
-        setMsg({ ok: true, text: `Imported ${f.name}${c.texture ? " with its texture" : ". Now add its texture above"}.` });
+        setMsg({ ok: true, text: `Imported ${f.name}${c.texture ? " with its texture" : ". Now add its texture under “All faces”"}.` });
       } else {
-        if (!geometryIdentifier(text)) throw new Error(`${f.name} isn't a Blockbench model.`);
-        patch({ customGeometry: text, renderMethod: el.renderMethod === "opaque" ? "alpha_test" : el.renderMethod });
-        setMsg({ ok: true, text: `Imported ${f.name}. Add the texture you painted for it above.` });
+        let json = false;
+        try { JSON.parse(text); json = true; } catch { /* not JSON */ }
+        if (!json) throw new Error(`${f.name} isn't a Blockbench model. Choose the .bbmodel you saved in Blockbench (File → Save Model), or a .geo.json from File → Export → Bedrock Geometry.`);
+        if (!geometryIdentifier(text)) throw new Error(`${f.name} is JSON but not a model (no "minecraft:geometry" inside). In Blockbench use File → Export → Bedrock Geometry, or import the .bbmodel itself.`);
+        patch({ geometry: "custom", customGeometry: text, renderMethod: el.renderMethod === "opaque" ? "alpha_test" : el.renderMethod, lightDampening: 0 });
+        setMsg({ ok: true, text: `Imported ${f.name}. Add the texture you painted for it under “All faces”.` });
       }
     } catch (e) {
-      setMsg({ ok: false, text: e instanceof Error ? e.message : "That file couldn't be read." });
+      setMsg({ ok: false, text: e instanceof Error ? e.message : `${f.name} couldn't be read.` });
     }
   };
+  return { load, msg };
+}
+
+/** File input for models. No `accept` filter: phones and tablets grey out .bbmodel files they don't recognise. */
+function ModelFileButton({ onFile, label, primary }: { onFile: (f: File) => void; label: string; primary?: boolean }) {
+  return (
+    <label className={`btn small${primary ? " primary" : ""}`}>
+      {label}
+      <input type="file" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onFile(f); }} />
+    </label>
+  );
+}
+
+function ImportStatus({ msg }: { msg: ImportMsg }) {
+  return msg ? <p className={msg.ok ? "ok-text" : "warn-text"} role="status">{msg.text}</p> : null;
+}
+
+function BlockModelImport({ el, patch, load, msg }: { el: BlockElement; patch: Patch<BlockElement>; load: (f: File) => void; msg: ImportMsg }) {
+  const id = geometryIdentifier(el.customGeometry);
+  const fit = id ? modelFit(el.customGeometry) : null;
   return (
     <div className="bb-import on">
       <div className="row between">
         <div className="stack tight">
           <strong>Blockbench model</strong>
-          <span className="field-help">{id ? <>Using <span className="mono">{id}</span>. Make it in Blockbench as a “Bedrock Block”, 16×16×16 pixels.</> : "Import a .bbmodel (model + texture) or an exported .geo.json."}</span>
+          <span className="field-help">{id
+            ? <>Using <span className="mono">{id}</span>.</>
+            : "Import the .bbmodel you saved in Blockbench (model + texture), or an exported .geo.json. You can also drop the file here."}</span>
         </div>
-        <label className={`btn small${id ? "" : " primary"}`}>
-          Import model…
-          <input type="file" accept=".bbmodel,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) load(f); }} />
-        </label>
+        <ModelFileButton onFile={load} label={id ? "Replace model…" : "Import model…"} primary={!id} />
       </div>
-      <Select label="Hitbox" value={el.collision ?? "model"} onChange={(collision) => patch({ collision })} options={[
-        { value: "model", label: "Fit to the model" }, { value: "full", label: "Full block" }, { value: "none", label: "None: walk through it" },
-      ]} />
-      {msg && <p className={msg.ok ? "ok-text" : "warn-text"} role="status">{msg.text}</p>}
+      <ImportStatus msg={msg} />
+      {fit && <p className="warn-text">{fit}</p>}
+      {id && (
+        <Select label="Hitbox" value={el.collision ?? "model"} onChange={(collision) => patch({ collision })} options={[
+          { value: "model", label: "Fit to the model" }, { value: "full", label: "Full block" }, { value: "none", label: "None: walk through it" },
+        ]} />
+      )}
     </div>
   );
 }

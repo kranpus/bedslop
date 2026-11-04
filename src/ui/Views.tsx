@@ -57,7 +57,7 @@ export function Home() {
           <div className="row between">
             <h2>Your add-ons</h2>
             <button className="btn small" onClick={() => file.current?.click()}>Import project…</button>
-            <input ref={file} type="file" accept=".json,.bcproject" hidden onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])} />
+            <input ref={file} type="file" hidden onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])} />
           </div>
           {error && <p className="warn-text">{error}</p>}
           {index.length ? (

@@ -143,7 +143,7 @@ export function StructureEditor({ el, patch }: { el: StructureElement; patch: Pa
         <div className="row wrap">
           <label className={`btn${el.file ? "" : " primary"}`}>
             {el.file ? "Replace .mcstructure…" : "Choose .mcstructure…"}
-            <input type="file" accept=".mcstructure" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) load(f); }} />
+            <input type="file" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) load(f); }} />
           </label>
           {el.file && <span className="mono">{el.fileName}</span>}
         </div>

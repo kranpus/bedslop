@@ -494,3 +494,5 @@ table.vars td:nth-child(5) { min-width: 0; }
 .container-row { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(200px, 1.4fr) auto; gap: 12px; align-items: end; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .container-row:hover { border-color: var(--accent, #3f7d2f); }
 @media (max-width: 640px) { .container-row { grid-template-columns: 1fr; } .structure-preview { width: 100%; } }
+.drop-target { outline: 2px dashed var(--accent, #3f7d2f); outline-offset: 6px; border-radius: 8px; }
+.model-hint { align-items: center; gap: 10px; }

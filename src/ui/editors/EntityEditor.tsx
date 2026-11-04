@@ -142,7 +142,7 @@ function BlockbenchImport({ el, patch }: { el: EntityElement; patch: Patch<Entit
   const bbInput = (
     <label className={`btn small${el.model === "custom" && !geoId ? " primary" : ""}`}>
       Import .bbmodel…
-      <input type="file" accept=".bbmodel,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) importBbmodel(f); }} />
+      <input type="file" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) importBbmodel(f); }} />
     </label>
   );
 

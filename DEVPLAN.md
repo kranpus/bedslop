@@ -161,6 +161,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 
 ## Changelog
 
+- **0.5.1**: Fix custom block model import: file pickers no longer filter by file type (phones and tablets greyed out `.bbmodel` and `.mcstructure` files); "Import .bbmodel…" button right under Shape on every block (switches it to the custom model); drag-and-drop a model onto the block's Look section; the model panel now sits under Shape instead of below the textures; clearer messages for wrong files; models too big or too far outside the block for Minecraft to draw are flagged in the editor and at export. 88 tests.
+
 - **0.5.0** (Phase 2, item 8): Structures. Import `.mcstructure` files, preview them in 3D, put loot tables in their chests, generate them in the world with placement rules, and place them from procedures with the new "Place structure" step. Example project gains a Ruby Shrine. 84 tests.
 
 - **0.4.0** (Phase 2, items 5-7): Projectiles and ranged items (throwables, bows, ammo, on-hit damage/fire/effects, "projectile hits" triggers); block shapes (slab, stairs, carpet, trapdoor, door, fence, wall, pane) with 3D previews; crops with growth stages, bone meal and seeds. New texture templates: crop, seeds, orb, bow, arrow. The example project gains ruby brick slab/stairs/wall, a throwing shard and a ruby berry crop. 76 tests.

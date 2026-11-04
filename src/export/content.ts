@@ -54,6 +54,8 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
       geometry = geoId;
       ctx.rp(`models/blocks/${ctx.ns}_${b.name}.geo.json`, b.customGeometry);
       modelBox = modelBounds(b.customGeometry);
+      const fit = modelFit(b.customGeometry);
+      if (fit) ctx.warn(b, fit.replace(/^This model/, "custom model").replace(/^Parts of this model/, "custom model: parts of it"));
     } else {
       ctx.warn(b, "custom model could not be read, using a full block instead.", "error");
     }
@@ -205,6 +207,28 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
   ctx.bp(`blocks/${b.name}.json`, { format_version: format, "minecraft:block": block });
   ctx.blockSounds[id] = { sound: b.sound };
   ctx.lang.push(`tile.${id}.name=${b.displayName}`);
+}
+
+/** Bedrock only draws block models that fit in 30×30×30 pixels around the block. Returns a warning, or null. */
+export function modelFit(geometryJson: string): string | null {
+  try {
+    const bones = JSON.parse(geometryJson)["minecraft:geometry"]?.[0]?.bones ?? [];
+    const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+    for (const bone of bones) for (const c of bone.cubes ?? []) {
+      for (let i = 0; i < 3; i++) {
+        lo[i] = Math.min(lo[i], Number(c.origin[i]));
+        hi[i] = Math.max(hi[i], Number(c.origin[i]) + Number(c.size[i]));
+      }
+    }
+    if (!Number.isFinite(lo[0])) return "This model has no cubes, so the block would be invisible.";
+    const size = [0, 1, 2].map((i) => Math.round((hi[i] - lo[i]) * 100) / 100);
+    if (size.some((v) => v > 30)) return `This model is ${size.join(" × ")} pixels. Minecraft only draws block models up to 30 × 30 × 30 (a block is 16), so it won't appear in game. Scale it down in Blockbench.`;
+    const out = lo[0] < -15 || hi[0] > 15 || lo[2] < -15 || hi[2] > 15 || lo[1] < -7 || hi[1] > 23;
+    if (out) return "Parts of this model reach more than 7 pixels outside the block. Minecraft won't draw it in game. In Blockbench, keep it centred on the block (x and z from -8 to 8, standing on y = 0).";
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /** The space a custom block model fills, as a collision/selection box (block pixels, x/z -8..8, y 0..16). */

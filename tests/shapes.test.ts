@@ -177,3 +177,28 @@ describe("example project", () => {
     expect(typecheckScript(files.get("BP/scripts/main.js") as string)).toEqual([]);
   });
 });
+
+describe("custom block model checks", () => {
+  const geo = (cubes: { origin: number[]; size: number[] }[]) => JSON.stringify({
+    format_version: "1.12.0",
+    "minecraft:geometry": [{ description: { identifier: "geometry.test", texture_width: 16, texture_height: 16 }, bones: [{ name: "b", pivot: [0, 0, 0], cubes }] }],
+  });
+  it("accepts models that fit around the block", async () => {
+    const { modelFit } = await import("../src/export/content");
+    expect(modelFit(geo([{ origin: [-5, 0, -5], size: [10, 17.25, 10] }]))).toBeNull();
+  });
+  it("flags models too big or too far out for the game to draw", async () => {
+    const { modelFit } = await import("../src/export/content");
+    expect(modelFit(geo([{ origin: [-20, 0, -8], size: [40, 16, 16] }]))).toMatch(/30 × 30 × 30/);
+    expect(modelFit(geo([{ origin: [0, 0, 0], size: [16, 16, 16] }]))).toMatch(/7 pixels/);
+    expect(modelFit(geo([]))).toMatch(/no cubes/);
+  });
+  it("warns at export", () => {
+    const p = createProject("Fit");
+    const b = createElement("block", "huge", "Huge");
+    b.geometry = "custom";
+    b.customGeometry = geo([{ origin: [-24, 0, -24], size: [48, 48, 48] }]);
+    p.elements.push(b);
+    expect(generateAddon(p).warnings.some((w) => w.message.includes("30 × 30 × 30"))).toBe(true);
+  });
+});
