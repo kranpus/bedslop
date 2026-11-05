@@ -60,7 +60,9 @@ describe("form layouts, container screens and the effect list", () => {
     expect(ui["layout_0@common_dialogs.main_panel_no_buttons"]).toMatchObject({ size: [225, 200], $child_control: "bc_scr_screens.scroller_0" });
     const grid = ui.content_0.controls.at(-1).grid_holder.controls[0].grid;
     expect(grid).toMatchObject({ type: "grid", size: [200, "default"], collection_name: "form_buttons", grid_item_template: "bc_scr_screens.tile_0" });
-    expect(grid.bindings[0]).toEqual({ binding_name: "#form_button_contents", binding_name_override: "#maximum_grid_items" });
+    expect(grid.maximum_grid_items).toBe(1);
+    expect(grid.bindings).toBeUndefined();
+    expect(ui.content_0.controls[0].body.controls[0].text.color).toBe("$main_header_text_color");
     expect(ui.content_0.controls[0].body).toBeTruthy();
     const button = ui.tile_0.controls[0]["button@common_buttons.light_content_button"];
     expect(button).toMatchObject({ $pressed_button_name: "button.form_button_click", $button_content: "bc_scr_screens.tile_content_0" });

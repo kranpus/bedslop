@@ -11,7 +11,7 @@ import type { Patch } from "./types";
 const noSlots = { target: false, block: false };
 
 export const DEFAULT_LAYOUT: FormLayout = {
-  style: "grid", columns: 3, tileWidth: 64, tileHeight: 56, iconSize: 24, width: 225, height: 200, showBody: true, textColor: "#303030", titleColor: "#ffffff",
+  style: "grid", columns: 3, tileWidth: 64, tileHeight: 56, iconSize: 24, width: 225, height: 200, showBody: true, textColor: "#4c4c4c", titleColor: "#ffffff",
 };
 
 /** The grid layout at Minecraft's GUI scale (about 1.2× so it's readable). */
@@ -26,13 +26,13 @@ function GridPreview({ el, l }: { el: FormElement; l: FormLayout }) {
       style={{ width: px(l.width), height: px(l.height), backgroundImage: bg ? `url(${bg})` : undefined }}>
       <div className="form-grid-title" style={{ color: bg ? l.titleColor || "#fff" : undefined, height: px(bg ? 22 : 18) }}>{el.title || "Untitled"}<span className="form-grid-x">✕</span></div>
       <div className="form-grid-scroll">
-        {l.showBody && el.body && <p className="form-grid-body" style={{ color: l.textColor || "#303030" }}>{el.body}</p>}
+        {l.showBody && el.body && <p className="form-grid-body" style={{ color: bg ? l.titleColor || "#fff" : "#fff" }}>{el.body}</p>}
         <div className="form-grid-tiles" style={{ width: px(l.columns * l.tileWidth), gridTemplateColumns: `repeat(${l.columns}, ${px(l.tileWidth)})` }}>
           {el.buttons.map((b) => (
             <div key={b.id} className="form-grid-tile" style={{ height: px(l.tileHeight) }}>
               <span className="form-grid-btn">
                 {url(b.icon) ? <img className="pixel" src={url(b.icon)} alt="" style={{ width: px(l.iconSize), height: px(l.iconSize) }} /> : <span style={{ height: px(l.iconSize) }} />}
-                <span className="form-grid-label" style={{ color: l.textColor || "#303030" }}>{b.text || " "}</span>
+                <span className="form-grid-label" style={{ color: l.textColor || "#4c4c4c" }}>{b.text || " "}</span>
               </span>
             </div>
           ))}
@@ -233,8 +233,8 @@ function LayoutSection({ el, patch }: { el: FormElement; patch: Patch<FormElemen
           {tooWide && <p className="warn-text">{l.columns} tiles of {l.tileWidth}px are wider than the form. Make the form wider or the tiles smaller.</p>}
           <Toggle label="Show the text above the tiles" value={l.showBody} onChange={(showBody) => set({ showBody })} />
           <Grid>
-            <Color label="Text colour" value={l.textColor || "#303030"} onChange={(textColor) => set({ textColor }, "tc")} />
-            {l.background && <Color label="Title colour" value={l.titleColor || "#ffffff"} onChange={(titleColor) => set({ titleColor }, "tic")} />}
+            <Color label="Button text colour" value={l.textColor || "#4c4c4c"} onChange={(textColor) => set({ textColor }, "tc")} />
+            {l.background && <Color label="Title and text colour" value={l.titleColor || "#ffffff"} onChange={(titleColor) => set({ titleColor }, "tic")} />}
           </Grid>
           <TexturePicker label="Background (optional)" kind="other" value={l.background || undefined} suggestedName={`${el.name}_background`} onChange={(background) => set({ background })}
             help="Empty = Minecraft's grey dialog. Your image is stretched to the form's size, with the title and a close button on top." />

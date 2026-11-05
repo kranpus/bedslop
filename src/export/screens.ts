@@ -80,7 +80,8 @@ function layoutDefs(ctx: GenContext, space: string, f: FormElement, l: FormLayou
   const cols = clampInt(l.columns, 1, 8), tw = clampInt(l.tileWidth, 24, 400), th = clampInt(l.tileHeight, 24, 400);
   const icon = clampInt(l.iconSize, 8, Math.min(tw, th));
   const w = clampInt(l.width, 120, 600), h = clampInt(l.height, 100, 400);
-  const textColor = rgb(l.textColor, "#303030");
+  // Tiles are light grey buttons: dark text. Vanilla's dialog is dark inside: its own (white) body text.
+  const textColor = rgb(l.textColor, "#4c4c4c");
   const bg = l.background ? ctx.writeTexture(l.background, "ui") : "";
   if (l.background && !bg) ctx.warn(f, "has a layout background that no longer exists.");
   if (cols * tw > w - 12) ctx.warn(f, `layout is ${cols} tiles × ${tw}px wide, which is wider than the form (${w}px). Some tiles will wrap or be cut off.`);
@@ -88,11 +89,13 @@ function layoutDefs(ctx: GenContext, space: string, f: FormElement, l: FormLayou
   const content = {
     type: "stack_panel", size: ["100% - 4px", "100%c"], orientation: "vertical", anchor_from: "top_left", anchor_to: "top_left",
     controls: [
-      ...(l.showBody ? [{ body: { type: "panel", size: ["100%", "100%c"], controls: [{ text: { type: "label", offset: [2, 2], color: textColor, size: ["100%", "default"], anchor_from: "top_left", anchor_to: "top_left", text: "#form_text" } }] } }, { pad: { type: "panel", size: ["100%", 4] } }] : []),
+      ...(l.showBody ? [{ body: { type: "panel", size: ["100%", "100%c"], controls: [{ text: { type: "label", offset: [2, 2], color: l.background ? rgb(l.titleColor, "#ffffff") : "$main_header_text_color", size: ["100%", "default"], anchor_from: "top_left", anchor_to: "top_left", text: "#form_text" } }] } }, { pad: { type: "panel", size: ["100%", 4] } }] : []),
       { grid_holder: { type: "panel", size: ["100%", "100%c"], controls: [{ grid: {
         type: "grid", size: [cols * tw, "default"], anchor_from: "top_middle", anchor_to: "top_middle",
+        // A fixed count, like Minecraft's inventory grids: "#form_button_contents" is a list of entry types
+        // (button, label, header, divider), not a number, so a grid can't count from it.
         grid_item_template: `${space}.tile_${i}`, grid_rescaling_type: "horizontal", collection_name: "form_buttons",
-        bindings: [{ binding_name: "#form_button_contents", binding_name_override: "#maximum_grid_items" }],
+        maximum_grid_items: Math.max(1, f.buttons.length),
       } }] } },
     ],
   };
