@@ -162,7 +162,7 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - ⬜ Marketplace readiness checks (naming, sizes, performance budget)
 - ⬜ Plugin system for new element types and generators
 - ⬜ Installable PWA with offline support
-- ⬜ Import existing add-ons (reverse-generate a project from a `.mcaddon`)
+- ✅ **Import existing add-ons**: "Import an existing add-on…" on the home screen opens a `.mcaddon` (also with nested `.mcpack`s), `.mcpack` or `.zip`, finds packs by manifest and makes a new project: blocks (names from en_US.lang, menu category, states, facing, hardness, blast resistance, light, friction, map colour, tags, Blockbench model from RP models, textures from terrain_texture.json or the old RP blocks.json, render method, sound, loot table link, storage/crafting), items (icon, stack, glint, hand-equipped, fuel, durability, tags), tools (type, tier, damage, durability, mining speed, repair item), food, recipes (shaped, shapeless, furnace, stonecutter, smithing, brewing), loot tables, functions (incl. tick.json), sounds (sound_definitions + .ogg) and structures. Comments and trailing commas in JSON are accepted; the most common namespace is used. A report lists what was imported partly (one line per element) and what wasn't (mobs, scripts, spawn/feature rules, UI, particles, animations...). ⬜ mobs, armour sets, block permutations as state rules.
 
 ---
 
@@ -182,6 +182,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.23.0** (Phase 4): Import existing add-ons. Open a .mcaddon, .mcpack or .zip to get an editable project with its blocks, items, tools, food, recipes, loot tables, functions, sounds, structures, textures and models, plus a report of anything that couldn't be converted. Tested by exporting the example and importing it back. 228 tests.
 
 - **0.22.0** (Phase 3 done): Damage types. Pick which Minecraft cause it works like, write death messages with {victim} and {attacker}, optionally scale with difficulty, and deal it with the new "Deal custom damage" step. Example: the Ruby Wand adds "Ruby zap" damage on hit. 223 tests.
 

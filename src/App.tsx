@@ -4,6 +4,7 @@ import { Sidebar } from "./ui/Sidebar";
 import { ElementEditor } from "./ui/ElementEditor";
 import { TagsView } from "./ui/TagsView";
 import { LanguagesView } from "./ui/LanguagesView";
+import { ImportReportModal } from "./ui/ImportReport";
 import { ExportView, Home, RoadmapView, SettingsView, TexturesView, TopBar, VariablesView } from "./ui/Views";
 
 export default function App() {
@@ -28,7 +29,7 @@ export default function App() {
   }, []);
 
   if (!loaded) return <div className="loading">Loading…</div>;
-  if (!project) return <Home />;
+  if (!project) return <><Home /><ImportReportModal /></>;
 
   return (
     <div className="app">
@@ -46,6 +47,7 @@ export default function App() {
           {view === "roadmap" && <RoadmapView />}
         </main>
       </div>
+      <ImportReportModal />
     </div>
   );
 }

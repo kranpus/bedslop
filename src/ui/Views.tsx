@@ -1,3 +1,4 @@
+import { useImportReport } from "./ImportReport";
 import { CreativeGroupsSection } from "./CreativeGroups";
 import { useMemo, useRef, useState } from "react";
 import { useStore } from "../store/store";
@@ -24,6 +25,22 @@ export function Home() {
   const [confirm, setConfirm] = useState<string | null>(null);
   const file = useRef<HTMLInputElement>(null);
 
+  const addon = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const onImportAddon = async (f: File) => {
+    setError("");
+    setBusy(true);
+    try {
+      const { importAddon, applyImport } = await import("../import/addon");
+      const r = await importAddon(new Uint8Array(await f.arrayBuffer()));
+      await newProject(r.name, author.trim(), (p) => applyImport(p, r));
+      useImportReport.getState().show(r.report);
+    } catch (e) {
+      setError(e instanceof Error && /pack/.test(e.message) ? e.message : "That file couldn't be read as an add-on. Pick a .mcaddon, .mcpack or .zip.");
+    } finally {
+      setBusy(false);
+    }
+  };
   const onImport = async (f: File) => {
     try {
       await importProject(JSON.parse(await f.text()));
@@ -51,6 +68,11 @@ export function Home() {
               <button className="btn" type="button" onClick={() => newProject("Ruby Expansion", author.trim(), exampleProject)}>Open the example</button>
             </div>
           </form>
+          <div className="import-addon">
+            <button className="btn" type="button" disabled={busy} onClick={() => addon.current?.click()}>{busy ? "Importing…" : "Import an existing add-on…"}</button>
+            <span className="muted small">Open a <span className="mono">.mcaddon</span>, <span className="mono">.mcpack</span> or <span className="mono">.zip</span>: blocks, items, food, recipes, loot, functions, sounds and structures become editable.</span>
+            <input ref={addon} type="file" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onImportAddon(f); }} />
+          </div>
           <p className="muted small">The example is a complete add-on: a ruby material set, two mobs, a plant, food, a scripted wand and a custom command.</p>
         </section>
 
