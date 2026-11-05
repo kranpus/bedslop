@@ -1,3 +1,4 @@
+import { applyImport, importAddon } from "../import/addon";
 import { useImportReport } from "./ImportReport";
 import { CreativeGroupsSection } from "./CreativeGroups";
 import { useMemo, useRef, useState } from "react";
@@ -31,7 +32,6 @@ export function Home() {
     setError("");
     setBusy(true);
     try {
-      const { importAddon, applyImport } = await import("../import/addon");
       const r = await importAddon(new Uint8Array(await f.arrayBuffer()));
       await newProject(r.name, author.trim(), (p) => applyImport(p, r));
       useImportReport.getState().show(r.report);

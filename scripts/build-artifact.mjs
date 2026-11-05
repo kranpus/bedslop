@@ -2,6 +2,8 @@
 import { readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 
 const assets = readdirSync("dist/assets");
+// The page must be one file: a second script chunk would be missing once hosted.
+if (assets.filter((f) => f.endsWith(".js")).length !== 1) throw new Error(`Expected one JS bundle in dist/assets, found: ${assets.join(", ")}. Avoid dynamic import().`);
 const css = readFileSync(`dist/assets/${assets.find((f) => f.endsWith(".css"))}`, "utf8");
 const js = readFileSync(`dist/assets/${assets.find((f) => f.endsWith(".js"))}`, "utf8").replace(/<\/script/gi, "<\\/script");
 
