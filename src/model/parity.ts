@@ -58,7 +58,7 @@ export const PARITY: ParityRow[] = [
   { mcreator: "Overlay", bedrock: "JSON UI (hud_screen) + script titles", status: "done", phase: 3, notes: "Visual editor: images, text, live values and bars on the HUD, or overlays shown and hidden by procedures." },
   { mcreator: "Key binding", bedrock: "Script input events (combos)", status: "done", phase: 3, notes: "No new keys on Bedrock, so bindings are combos: double-tap jump/sneak, hold sneak, sneak + jump/use/hotbar number, left-click (2.11+). Optional held item and cooldown." },
   { mcreator: "Scoreboard procedures", bedrock: "world.scoreboard", status: "done", phase: 3, notes: "Objectives on the Variables tab; change/reset/show/hide steps, score checks and blocks, {score:name} text." },
-  { mcreator: "Game rule", bedrock: "Vanilla game rules only", status: "workaround", phase: 3, notes: "Can set vanilla rules from scripts; custom rules as world dynamic properties." },
+  { mcreator: "Game rule", bedrock: "World dynamic properties + world.gameRules", status: "done", phase: 3, notes: "Your own on/off and number rules (Variables tab) with a /<namespace>:gamerule command; set/check steps also cover Minecraft's rules. Not shown in vanilla /gamerule or world settings." },
   { mcreator: "Biome", bedrock: "Data-driven biomes (limited)", status: "workaround", phase: 3, notes: "Custom biome support on Bedrock is limited/experimental." },
   { mcreator: "Damage type", bedrock: "Vanilla damage causes", status: "workaround", phase: 3, notes: "applyDamage with a vanilla cause." },
   // Not possible

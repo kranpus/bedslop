@@ -1,3 +1,4 @@
+import { VANILLA_GAMERULES } from "../model/vanilla";
 import { actionSpec, conditionSpec, fnName, literalGen } from "../model/logic";
 import type { Action, CommandElement, Condition, ProcedureElement } from "../model/types";
 import type { GenContext } from "./context";
@@ -24,7 +25,7 @@ export const RUNTIME = `const BC = {
   },
   fmt(ctx, t) {
     return String(t ?? "").replace(/\\{(\\w+)(?::([\\w.-]+))?\\}/g, (m, k, sub) => {
-      if (sub) return k === "score" ? String(BC.getScore(ctx, sub, "player")) : m;
+      if (sub) return k === "score" ? String(BC.getScore(ctx, sub, "player")) : k === "rule" ? String(BC.rule(sub) ?? m) : m;
       if (k === "player") return BC.name(ctx.player);
       if (k === "target") return BC.name(ctx.target);
       if (ctx.args && k in ctx.args) return String(ctx.args[k]);
@@ -56,6 +57,24 @@ export const RUNTIME = `const BC = {
       next = op === "add" ? String(cur) + String(value) : String(value ?? "");
     }
     h.setDynamicProperty(BC.key(name), next);
+  },
+  /** A custom game rule (saved on the world) or one of Minecraft's (world.gameRules). */
+  rule(name) {
+    const d = BC_RULES[name];
+    if (d) { let v; try { v = world.getDynamicProperty("bc:rule:" + name); } catch {} return v === undefined ? d[1] : v; }
+    try { return /** @type {any} */ (world.gameRules)[name]; } catch { return undefined; }
+  },
+  /** Sets a game rule from text or a value: "true"/"on"/"1" for on/off rules, a number otherwise. Returns false if it can't. */
+  setRule(name, value) {
+    const d = BC_RULES[name];
+    const cur = d ? d[1] : BC.rule(name);
+    if (cur === undefined) return false;
+    const t = String(value).trim().toLowerCase();
+    const v = typeof cur === "boolean" ? ["true", "on", "1", "yes"].includes(t) : Number(t);
+    if (typeof v === "number" && (t === "" || !Number.isFinite(v))) return false;
+    if (d) world.setDynamicProperty("bc:rule:" + name, v);
+    else /** @type {any} */ (world.gameRules)[name] = v;
+    return true;
   },
   compare(a, op, b) {
     const na = Number(a), nb = Number(b);
@@ -723,6 +742,11 @@ export function buildScript(ctx: GenContext): string | null {
   if (!fxNames.size && /bcFx(Give|Remove|Level)\(/.test(sections)) {
     sections += "\n// Missing references\nfunction bcFxGive(e, name, seconds, level) {}\nfunction bcFxRemove(e, name) {}\nfunction bcFxLevel(e, name) { return 0; }\n";
   }
+  // Game rule steps: your own rules or Minecraft's.
+  const ruleNames = new Set([...(ctx.project.gameRules ?? []).map((r) => r.name), ...VANILLA_GAMERULES.map(([n]) => n)]);
+  for (const m of new Set([...sections.matchAll(/BC\.(?:setRule|rule)\("([^"]*)"/g)].map((m) => m[1]))) {
+    if (!ruleNames.has(m)) ctx.warn(undefined, `A step uses the game rule "${m}", which doesn't exist (renamed or deleted?).`, "error");
+  }
   // Achievement steps need the achievements script, which only exists when the project has achievements.
   const advNames = new Set(ctx.project.elements.filter((e) => e.kind === "achievement").map((e) => e.name));
   for (const m of new Set([...sections.matchAll(/bcAdv(?:Grant|Revoke|Has)\(ctx\.player, "([^"]*)"/g)].map((m) => m[1]))) {
@@ -749,6 +773,7 @@ export function buildScript(ctx: GenContext): string | null {
   const vars = Object.fromEntries((ctx.project.variables ?? []).filter((v) => v.name).map((v) => [
     v.name, [v.scope, v.type, v.type === "number" ? Number(v.initial) || 0 : v.type === "boolean" ? v.initial === "true" : v.initial],
   ]));
+  const rules = Object.fromEntries(gameRules(ctx, false).map((r) => [r.name, [r.type, r.type === "bool" ? r.initial === "true" : Number(r.initial) || 0, r.description]]));
   const scores = Object.fromEntries((ctx.project.scoreboards ?? []).filter((b) => /^[A-Za-z0-9_.-]+$/.test(b.name)).map((b) => [b.name, [b.title || b.name, b.show, b.ascending]]));
   for (const b of ctx.project.scoreboards ?? []) if (!/^[A-Za-z0-9_.-]+$/.test(b.name)) ctx.warn(undefined, `The scoreboard "${b.name}" needs a name of letters, digits, _ . or - only.`, "error");
   const imports = Array.from(ctx.script.imports).sort().join(", ");
@@ -759,6 +784,8 @@ ${ui.length ? `import { ${ui.join(", ")} } from "@minecraft/server-ui";\n` : ""}
 const NAMESPACE = ${S(ctx.ns)};
 /** Global variables: name -> [scope, type, starting value]. Saved as dynamic properties. */
 const BC_VARS = ${S(vars)};
+/** Custom game rules: name -> [type, starting value, description]. Saved on the world. */
+const BC_RULES = ${S(rules)};
 /** Scoreboards: objective -> [title, where it shows, lowest first]. */
 const BC_SCORES = ${S(scores)};${Object.keys(scores).length ? `
 // Create the scoreboards and put them on screen when the world loads.
@@ -768,4 +795,54 @@ world.afterEvents.worldLoad.subscribe(() => {
 ${RUNTIME}
 ${extra}
 ${sections}`;
+}
+
+/** Custom game rules with usable names (others are reported). */
+export function gameRules(ctx: GenContext, report = true) {
+  const seen = new Set<string>();
+  return (ctx.project.gameRules ?? []).filter((r) => {
+    if (!/^[a-z][a-z0-9_]*$/.test(r.name)) { if (report) ctx.warn(undefined, `The game rule "${r.name}" needs a name of lower-case letters, digits and _ (starting with a letter).`, "error"); return false; }
+    if (seen.has(r.name)) { if (report) ctx.warn(undefined, `There are two game rules called "${r.name}".`, "error"); return false; }
+    seen.add(r.name);
+    return true;
+  });
+}
+
+/** /<ns>:gamerule [rule] [value]: lists, reads or changes the custom game rules (operators only). */
+export function genGameRuleCommand(ctx: GenContext) {
+  const rules = gameRules(ctx);
+  if (!rules.length) return;
+  if (ctx.project.elements.some((e) => e.kind === "command" && e.name === "gamerule")) {
+    ctx.warn(undefined, `Your command /${ctx.ns}:gamerule has the same name as the one made for custom game rules. Rename your command.`, "error");
+    return;
+  }
+  ctx.script.imports.add("CommandPermissionLevel").add("CustomCommandStatus").add("CustomCommandParamType");
+  ctx.script.sections.push(`// ----- Custom game rules: /${ctx.ns}:gamerule [rule] [value] -----
+system.beforeEvents.startup.subscribe((ev) => {
+  const registry = ev.customCommandRegistry;
+  registry.registerEnum(${S(`${ctx.ns}:rule`)}, Object.keys(BC_RULES));
+  registry.registerCommand(
+    {
+      name: ${S(`${ctx.ns}:gamerule`)},
+      description: "Lists, shows or changes this add-on's game rules",
+      permissionLevel: CommandPermissionLevel.GameDirectors,
+      cheatsRequired: false,
+      optionalParameters: [{ name: ${S(`${ctx.ns}:rule`)}, type: CustomCommandParamType.Enum }, { name: "value", type: CustomCommandParamType.String }],
+    },
+    (origin, rule, value) => {
+      if (!rule) {
+        const list = Object.entries(BC_RULES).map(([n, d]) => "§e" + n + "§r = " + BC.rule(n) + (d[2] ? " §7(" + d[2] + ")" : "")).join("\\n");
+        return { status: CustomCommandStatus.Success, message: "Game rules:\\n" + list };
+      }
+      if (value === undefined) return { status: CustomCommandStatus.Success, message: rule + " = " + BC.rule(rule) };
+      const t = String(value).trim().toLowerCase();
+      const ok = BC_RULES[rule][0] === "bool" ? ["true", "false", "on", "off", "1", "0", "yes", "no"].includes(t) : t !== "" && Number.isFinite(Number(t));
+      if (!ok) return { status: CustomCommandStatus.Failure, message: rule + (BC_RULES[rule][0] === "bool" ? " is true or false" : " needs a number") };
+      // Commands can't change the world directly, so it's saved on the next tick.
+      system.run(() => BC.setRule(rule, t));
+      return { status: CustomCommandStatus.Success, message: rule + " is now " + t };
+    },
+  );
+});
+`);
 }

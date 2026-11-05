@@ -768,6 +768,17 @@ export interface ScoreboardDef {
   ascending: boolean;
 }
 
+/** A custom game rule, saved with the world and changed with /<namespace>:gamerule or procedures. */
+export interface GameRuleDef {
+  id: string;
+  /** Lower-case id used in commands, e.g. "mob_loot_bonus". */
+  name: string;
+  type: "bool" | "number";
+  /** Starting value: "true"/"false" or a number. */
+  initial: string;
+  description: string;
+}
+
 export interface CreativeGroup {
   id: string;
   /** Shown in the creative inventory. */
@@ -950,6 +961,8 @@ export interface Project {
   variables?: GlobalVariable[];
   /** In-game scoreboard objectives, created when the world loads. */
   scoreboards?: ScoreboardDef[];
+  /** Custom game rules (world settings). */
+  gameRules?: GameRuleDef[];
   /** Extra languages (besides en_US), e.g. "es_ES". */
   languages?: string[];
   /** language -> lang key -> translated text. Missing keys fall back to English. */

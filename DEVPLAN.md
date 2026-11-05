@@ -104,6 +104,7 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [ ] Custom effects: timer counts down; Minecraft effects stay on and are removed at the end; damage/heal ticks; potion gives it; milk cures; mobs keep effects after a reload
 - [ ] HUD/overlays: layout matches the editor at different GUI scales; live text and bars update; invisible data titles never flash; overlays show/hide and time out; works alongside other HUD packs
 - [ ] Form layouts: grid forms show tiles with icons and text, buttons click the right option, scrolling works with many buttons, close button works; forms without a layout still look vanilla; own-background layout draws title and close button; check on touch and with a controller
+- [ ] Game rules: /<ns>:gamerule lists/shows/changes (bad values refused); values survive reloads; Set game rule changes vanilla rules too; non-operators can't use the command
 - [ ] Key bindings: double taps feel right at the default gap on keyboard, touch and controller; hold sneak fires once per hold; sneak + number keeps the hotbar slot (also with scrolling); held-item filter and cooldown; left-click fires on air and on blocks/mobs
 - [ ] Achievements: each trigger earns once (item held, blocks, kills, uses, variable/score, dimension), progress survives rejoining, toast shows with the right icon and queues several, chat announcement, rewards given once, list menu shows ticks/progress/secret ???
 - [ ] Chest lids: lid opens on the first viewer and closes after the last; sounds play once; facing kept; breaking an open chest doesn't leave a stuck count
@@ -144,7 +145,7 @@ Bedrock has no data-driven version of these, so they're simulated with generated
 - ✅ **HUDs and screen overlays (JSON UI editor)**: a visual screen canvas with images, text (with § formatting), live text ({variable}, {score:name}, {player}) and segmented bars from a variable or scoreboard, each pinned to one of nine anchors and dragged into place. HUD mode is always on screen; overlay mode is shown and hidden by procedure steps (optionally for N seconds, with a dimmed background). Generates RP/ui/_ui_defs.json, a hud_screen.json modification and the panels; live values travel from the script as invisible titles caught by "preserved title" data controls, one per tick per player.
 - ✅ **Custom form layouts and themed container screens (JSON UI)**: menu forms can switch from Minecraft's button list to a grid of tiles (columns, tile size, icon size, form size, text colour, optional body text) inside Minecraft's dialog frame or on your own background image with a title and close button. The script puts an invisible marker (formatting codes only) at the start of the title; `server_form.json` points vanilla's form factory at a switch that shows the vanilla form for unmarked titles and the matching layout for marked ones, so every other form (including other add-ons' forms) still looks normal. Storage blocks can have a screen background, drawn behind the title and slots of the data-driven container screen when its title matches. Custom potion effects now list on the left of the screen by default (like vanilla's effect list; up to 6), or above the hotbar per effect.
 - ✅ **Key bindings (input combos)**: a Key binding element that runs its own steps when the player double-taps jump or sneak (adjustable gap), holds sneak (seconds), jumps while sneaking, uses an item while sneaking, sneaks + presses a hotbar number 1-9 (the hotbar is put back, so it acts like a key), left-clicks or left-clicks while sneaking (2.11+, playerSwingStart). Optional held item and cooldown. Built on playerButtonInput, playerHotbarSelectedSlotChange, itemUse and playerSwingStart; only the needed events are subscribed. ⛔ new keys in the controls menu (not moddable).
-- 🔧 Custom game rules as world dynamic properties + vanilla `gamerule` control
+- ✅ **Custom game rules**: on the Variables tab (name, on/off or number, starting value, description), saved on the world as dynamic properties. A generated `/<namespace>:gamerule [rule] [value]` (operators) lists, shows and changes them. "Set game rule" step and "Game rule is" check work with your rules and Minecraft's own (world.gameRules: keepInventory, pvp, randomTickSpeed…); `{rule:name}` in text. ⛔ adding rules to vanilla `/gamerule` or the world settings screen.
 - 🔧 Biomes where Bedrock supports data-driven biomes
 - 🔧 Damage types using vanilla damage causes
 
@@ -179,6 +180,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.20.0** (Phase 3): Custom game rules. Define on/off or number rules on the Variables tab; operators change them with `/<namespace>:gamerule`; procedures use "Set game rule" and "Game rule is" (also for Minecraft's rules) and `{rule:name}`. Example: `ruby_shop` turns the shop command on and off. 212 tests.
 
 - **0.19.1**: HUD bars can be "full at" a variable or scoreboard instead of a fixed number (e.g. mana out of max mana), read for each player; 0 or less shows an empty bar. 206 tests.
 

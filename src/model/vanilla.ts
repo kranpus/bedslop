@@ -166,3 +166,14 @@ export const GAME_LANGUAGES: Record<string, string> = {
   fi_FI: "Suomi", hu_HU: "Magyar", id_ID: "Bahasa Indonesia", nb_NO: "Norsk bokmål", pl_PL: "Polski", sk_SK: "Slovenčina",
   sv_SE: "Svenska", tr_TR: "Türkçe", uk_UA: "Українська",
 };
+
+/** Minecraft's game rules a script can read and change (world.gameRules), with their type. */
+export const VANILLA_GAMERULES: [string, "bool" | "number"][] = ([
+  "commandBlockOutput", "commandBlocksEnabled", "doDayLightCycle", "doEntityDrops", "doFireTick", "doImmediateRespawn", "doInsomnia",
+  "doLimitedCrafting", "doMobLoot", "doMobSpawning", "doTileDrops", "doWeatherCycle", "drowningDamage", "fallDamage", "fireDamage",
+  "freezeDamage", "keepInventory", "mobGriefing", "naturalRegeneration", "projectilesCanBreakBlocks", "pvp", "recipesUnlock",
+  "respawnBlocksExplode", "sendCommandFeedback", "showBorderEffect", "showCoordinates", "showDaysPlayed", "showDeathMessages",
+  "showRecipeMessages",
+] as string[]).map((n): [string, "bool" | "number"] => [n, "bool"]).concat([
+  ["functionCommandLimit", "number"], ["maxCommandChainLength", "number"], ["playersSleepingPercentage", "number"], ["randomTickSpeed", "number"],
+]);

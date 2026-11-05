@@ -5,7 +5,7 @@ import type { TriggerType } from "./types";
 
 export type ParamKind =
   | "text" | "longtext" | "number" | "bool" | "item" | "block" | "entity" | "effect" | "sound"
-  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle" | "enchantment" | "objective" | "custom_effect" | "hud" | "achievement";
+  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle" | "enchantment" | "objective" | "custom_effect" | "hud" | "achievement" | "gamerule";
 
 export interface ParamSpec {
   key: string;
@@ -236,6 +236,15 @@ export const ACTIONS: ActionSpec[] = [
     params: [who(), { key: "effect", label: "Effect", kind: "custom_effect", default: "" }],
     summary: (p) => `Remove ${p.effect || "(effect)"} from ${p.who}`,
     code: (g) => (g.f("effect") ? `bcFxRemove(BC.who(ctx, ${S(g.f("who"))}), ${S(g.f("effect"))});` : "// No effect selected"),
+  },
+  {
+    type: "set_gamerule", label: "Set game rule", group: "World",
+    params: [
+      { key: "rule", label: "Game rule", kind: "gamerule", default: "" },
+      { key: "value", label: "Value (true/false or a number)", kind: "text", default: "true" },
+    ],
+    summary: (p) => `Set game rule ${p.rule || "(rule)"} to ${p.value}`,
+    code: (g) => (g.f("rule") ? `BC.setRule(${S(g.f("rule"))}, BC.fmt(ctx, ${g.e("value")}));` : "// No game rule selected"),
   },
   {
     type: "grant_achievement", label: "Give achievement", group: "Chat & screen",
@@ -497,6 +506,16 @@ export const CONDITIONS: ConditionSpec[] = [
   {
     type: "y_above", label: "Height is above", params: [who(), { key: "y", label: "Y level", kind: "number", default: 64 }],
     summary: (p) => `${p.who} is above y=${p.y}`, code: (g) => `(BC.at(ctx, ${S(g.f("who"))})?.y ?? 0) > (${g.e("y")})`,
+  },
+  {
+    type: "gamerule_is", label: "Game rule is",
+    params: [
+      { key: "rule", label: "Game rule", kind: "gamerule", default: "" },
+      { key: "op", label: "Is", kind: "select", options: ["=", "≠", "<", "≤", ">", "≥"], default: "=" },
+      { key: "value", label: "Value (true/false or a number)", kind: "text", default: "true" },
+    ],
+    summary: (p) => `game rule ${p.rule || "(rule)"} ${p.op} ${p.value}`,
+    code: (g) => `BC.compare(BC.rule(${S(g.f("rule"))}), ${S(g.f("op"))}, BC.fmt(ctx, ${g.e("value")}))`,
   },
   {
     type: "var_compare", label: "Variable compares to",

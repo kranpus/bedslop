@@ -14,7 +14,7 @@ import { genArmor, genBlock, genFood, genItem, genPlant, genTool } from "./conte
 import { GenContext, type FileMap, type Warning, compareVersion, dataUrlToBytes, vec } from "./context";
 import { genFunction, genLoot, genOre, genRecipe, genSound } from "./data";
 import { genEntity } from "./entity";
-import { buildScript, genBlockScripts, genCommands, genProcedure } from "./scripts";
+import { buildScript, genBlockScripts, genCommands, genGameRuleCommand, genProcedure } from "./scripts";
 import { genForm } from "./forms";
 import { genCrop, genProjectile } from "./ranged";
 import { uiVersionFor } from "../model/project";
@@ -178,6 +178,7 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
   genCustomEffects(ctx);
   genAchievements(ctx);
   genKeyBinds(ctx);
+  genGameRuleCommand(ctx);
   genHuds(ctx);
   genCreativeGroups(ctx);
 

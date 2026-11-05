@@ -10,7 +10,7 @@ import { packIconFrom } from "../textures/procedural";
 import { Field, Grid, Section, Select, Text } from "./fields";
 import { TexturePicker, readImageFile } from "./TexturePicker";
 import { TextureEditor } from "./TextureEditor";
-import type { ScoreboardDef, GlobalVariable, TextureAsset } from "../model/types";
+import type { GameRuleDef, ScoreboardDef, GlobalVariable, TextureAsset } from "../model/types";
 import { uid } from "../model/registry";
 import { elementTexture } from "./Thumb";
 
@@ -446,7 +446,56 @@ export function VariablesView() {
         <li>Show them in any text as <span className="mono">{"{name}"}</span>, e.g. “You have {"{coins}"} coins”.</li>
       </ul>
       <ScoreboardsSection />
+      <GameRulesSection />
     </div>
+  );
+}
+
+/** Custom game rules: world settings operators change with /<namespace>:gamerule. */
+function GameRulesSection() {
+  const project = useStore((s) => s.project!);
+  const update = useStore((s) => s.update);
+  const rules = project.gameRules ?? [];
+  const setRules = (gameRules: GameRuleDef[], key?: string) => update((p) => ({ ...p, gameRules }), key);
+  const set = (i: number, r: Partial<GameRuleDef>, key?: string) => setRules(rules.map((x, k) => (k === i ? { ...x, ...r } : x)), key);
+  const ns = project.namespace;
+  return (
+    <section className="stack">
+      <header className="page-head">
+        <div>
+          <h2>Game rules</h2>
+          <p className="muted">Your own world settings, like Minecraft's <span className="mono">/gamerule</span>: saved with the world and changed by operators with <span className="mono">/{ns}:gamerule</span>.</p>
+        </div>
+        <button className="btn" onClick={() => setRules([...rules, { id: uid(), name: `rule${rules.length + 1}`, type: "bool", initial: "true", description: "" }])}>Add game rule</button>
+      </header>
+      {rules.length > 0 && (
+        <div className="table-wrap">
+          <table className="var-table">
+            <thead><tr><th>Name</th><th>Type</th><th>Starts as</th><th>What it does</th><th /></tr></thead>
+            <tbody>
+              {rules.map((r, i) => (
+                <tr key={r.id}>
+                  <td><input className="mono" value={r.name} aria-label="Game rule name" onChange={(e) => set(i, { name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") }, `gr-name-${r.id}`)} /></td>
+                  <td><select value={r.type} aria-label="Type" onChange={(e) => set(i, { type: e.target.value as GameRuleDef["type"], initial: e.target.value === "bool" ? "true" : "0" })}>
+                    <option value="bool">On / off</option><option value="number">Number</option>
+                  </select></td>
+                  <td>{r.type === "bool"
+                    ? <select value={r.initial === "true" ? "true" : "false"} aria-label="Starts as" onChange={(e) => set(i, { initial: e.target.value })}><option value="true">On</option><option value="false">Off</option></select>
+                    : <input type="number" value={r.initial} aria-label="Starts as" onChange={(e) => set(i, { initial: e.target.value }, `gr-init-${r.id}`)} />}</td>
+                  <td><input value={r.description} aria-label="What it does" placeholder="e.g. Mobs drop extra rubies" onChange={(e) => set(i, { description: e.target.value }, `gr-desc-${r.id}`)} /></td>
+                  <td><button className="btn ghost small" onClick={() => setRules(rules.filter((_, k) => k !== i))}>Remove</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <ul className="hint-list">
+        <li>In game: <span className="mono">/{ns}:gamerule</span> lists them, <span className="mono">/{ns}:gamerule {rules[0]?.name ?? "name"}</span> shows one, <span className="mono">/{ns}:gamerule {rules[0]?.name ?? "name"} {rules[0]?.type === "number" ? "5" : "false"}</span> changes it.</li>
+        <li>Procedures can check them with <strong>Game rule is</strong> and change them with <strong>Set game rule</strong>. Both also work with Minecraft's own rules, like keepInventory or pvp.</li>
+        <li>Show one in any text as <span className="mono">{"{rule:name}"}</span>.</li>
+      </ul>
+    </section>
   );
 }
 

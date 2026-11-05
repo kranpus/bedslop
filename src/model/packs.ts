@@ -312,6 +312,9 @@ export function exampleProject(p: Project): Project {
   shopCmd.description = "Opens the ruby shop";
   shopCmd.args = [{ id: uid(), name: "bonus", type: "integer", optional: true }];
   shopCmd.actions = [{ id: uid(), type: "show_form", params: { form: "ruby_shop" }, chance: 100 }];
+  // A custom game rule: operators can close the shop with /ruby:gamerule ruby_shop false.
+  p.gameRules = [{ id: uid(), name: "ruby_shop", type: "bool", initial: "true", description: "Players can open the ruby shop" }];
+  shopCmd.conditions = [{ id: uid(), type: "gamerule_is", params: { rule: "ruby_shop", op: "=", value: "true" }, negate: false }];
 
   const benchRecipe = createElement("recipe", "ruby_workbench_recipe", "Ruby Workbench recipe");
   benchRecipe.grid = ["ruby:ruby", "ruby:ruby", "", "minecraft:oak_planks", "minecraft:oak_planks", "", "", "", ""];
