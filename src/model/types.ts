@@ -2,6 +2,7 @@
 // Everything here is plain JSON so a project can be saved, exported and re-imported as-is.
 
 export type ElementKind =
+  | "damage"
   | "biome"
   | "keybind"
   | "achievement"
@@ -822,6 +823,19 @@ export interface CustomEffectElement extends BaseElement {
   potionLevel: number;
 }
 
+/** A damage type: deals damage through one of Minecraft's causes, with its own death messages. */
+export interface DamageTypeElement extends BaseElement {
+  kind: "damage";
+  /** Minecraft damage cause it uses (decides armour, enchantment and knockback behaviour). */
+  cause: string;
+  /** Death message: {victim}. */
+  deathMessage: string;
+  /** Death message when someone caused it: {victim}, {attacker}. Empty = use the first one. */
+  deathMessageBy: string;
+  /** Easy: about half, Hard: 1.5×, Peaceful: none (players only), like Java's difficulty scaling. */
+  scaleWithDifficulty: boolean;
+}
+
 /** A custom biome that takes over part of some Minecraft biomes (minecraft:replace_biomes). */
 export interface BiomeElement extends BaseElement {
   kind: "biome";
@@ -940,6 +954,7 @@ export interface HudElement extends BaseElement {
 }
 
 export type ModElement =
+  | DamageTypeElement
   | BiomeElement
   | KeyBindElement
   | AchievementElement

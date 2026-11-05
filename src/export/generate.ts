@@ -7,6 +7,7 @@ import { genHuds } from "./hud";
 import { genAchievements } from "./achievements";
 import { genKeyBinds } from "./keybinds";
 import { genBiome } from "./biome";
+import { genDamageTypes } from "./damage";
 import { genScreens } from "./screens";
 import { genChestLids } from "./chest";
 import { genCreativeGroups } from "./creative";
@@ -155,6 +156,7 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
       case "ore": genOre(ctx, el); break;
       case "structure": genStructure(ctx, el); break;
       case "biome": genBiome(ctx, el); break;
+      case "damage": break; // all damage types share one script section
       case "particle": genParticle(ctx, el); break;
       case "disc": genDisc(ctx, el); break;
       case "enchantment": break; // all enchantments share one script section, made below
@@ -180,6 +182,7 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
   genCustomEffects(ctx);
   genAchievements(ctx);
   genKeyBinds(ctx);
+  genDamageTypes(ctx);
   genGameRuleCommand(ctx);
   genHuds(ctx);
   genCreativeGroups(ctx);

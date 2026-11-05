@@ -577,3 +577,7 @@ table.vars td:nth-child(5) { min-width: 0; }
 .biome-preview .biome-top::after { content: ""; position: absolute; left: 0; right: 0; top: 14px; height: 60px; background: #866043; }
 .biome-preview .biome-water { position: absolute; left: 60%; right: 0; top: 58%; bottom: 0; opacity: 0.85; }
 .biome-preview span { position: absolute; left: 8px; top: 6px; color: #fff; font-size: 12px; font-weight: 600; text-shadow: 1px 1px 0 rgba(0,0,0,0.5); }
+
+/* Death message preview (chat) */
+.death-preview { display: flex; flex-direction: column; gap: 2px; align-self: flex-start; padding: 6px 10px; background: rgba(0, 0, 0, 0.72); color: #fff; font-family: var(--font-mono); font-size: 13px; }
+.death-preview:empty { display: none; }

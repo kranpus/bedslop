@@ -1,3 +1,4 @@
+import { DamageEditor } from "./editors/DamageEditor";
 import { BiomeEditor } from "./editors/BiomeEditor";
 import { KeyBindEditor } from "./editors/KeyBindEditor";
 import { AchievementEditor } from "./editors/AchievementEditor";
@@ -57,6 +58,7 @@ function Body({ el }: { el: ModElement }) {
     case "achievement": return <AchievementEditor el={el} patch={patch} />;
     case "keybind": return <KeyBindEditor el={el} patch={patch} />;
     case "biome": return <BiomeEditor el={el} patch={patch} />;
+    case "damage": return <DamageEditor el={el} patch={patch} />;
   }
 }
 

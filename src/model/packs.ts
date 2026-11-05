@@ -459,7 +459,15 @@ export function exampleProject(p: Project): Project {
   const advKey = createElement("keybind", "achievements_key", "Achievements key");
   Object.assign(advKey, { input: "sneak_slot", slot: 9, cooldown: 0, actions: [{ id: uid(), type: "show_achievements", params: {}, chance: 100 }] });
 
-  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle, lamp, lampClick, brew, vampire, sight, rush, stats, bought, firstRuby, deepMiner, golemSlayer, advCmd, dash, advKey];
+  // A damage type: hitting with the wand adds ruby zap damage, with its own death message.
+  const rubyZap = createElement("damage", "ruby_zap", "Ruby zap");
+  Object.assign(rubyZap, { cause: "magic", deathMessage: "{victim} was zapped by a ruby", deathMessageBy: "{victim} was zapped by {attacker}'s ruby wand" });
+  const wandStrike = createElement("procedure", "wand_strike", "Wand strike");
+  wandStrike.trigger = "entity_hit";
+  wandStrike.conditions = [{ id: uid(), type: "holding", params: { item: "ruby:ruby_wand" }, negate: false }];
+  wandStrike.actions = [{ id: uid(), type: "custom_damage", params: { who: "target", damage: "ruby_zap", amount: 4, from: "player" }, chance: 100 }];
+
+  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle, lamp, lampClick, brew, vampire, sight, rush, stats, bought, firstRuby, deepMiner, golemSlayer, advCmd, dash, advKey, rubyZap, wandStrike];
   p.textures = textures;
   p.packIcon = textures.find((t) => t.name === "ruby")?.id ?? "";
   return p;

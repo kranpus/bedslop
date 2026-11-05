@@ -28,6 +28,7 @@ export const KINDS: KindInfo[] = [
   { kind: "effect", label: "Potion effect", blurb: "Your own status effect with a timer: Minecraft effects, damage or healing over time, particles and procedures. Optional potion to drink.", group: "Content", glyph: "⚗", color: "#2f6f8f" },
   { kind: "keybind", label: "Key binding", blurb: "Run steps from a control combo: double-tap jump or sneak, hold sneak, sneak + a hotbar number, sneak + use, left-click. Bedrock has no custom keys.", group: "Logic", glyph: "⌨", color: "#3d6b5a" },
   { kind: "achievement", label: "Achievement", blurb: "An advancement with a toast and rewards: get an item, break or place blocks, defeat mobs, reach a score, or earn it from a procedure.", group: "Logic", glyph: "★", color: "#a07a1c" },
+  { kind: "damage", label: "Damage type", blurb: "Your own kind of damage with its own death messages, like “Steve was zapped by Alex”. Deal it with a procedure step.", group: "Content", glyph: "✶", color: "#8f3a3a" },
   { kind: "recipe", label: "Recipe", blurb: "Crafting table (shaped or shapeless), furnace, stonecutter or smithing.", group: "Content", glyph: "R", color: "#8c7a2c" },
   { kind: "loot", label: "Loot table", blurb: "Weighted drops for blocks, mobs and chests.", group: "Content", glyph: "L", color: "#9a6b1f" },
   { kind: "ore", label: "Ore generation", blurb: "Place veins of any block underground in the Overworld, Nether or End.", group: "World", glyph: "O", color: "#5c6470" },
@@ -122,6 +123,9 @@ export function createElement<K extends ElementKind>(kind: K, name: string, disp
     hud: () => ({
       ...base, kind: "hud", mode: "hud", dim: false,
       widgets: [{ id: uid(), type: "live", anchor: "top_right", x: -6, y: 6, w: 0, h: 0, text: "Coins: {coins}", color: "#ffd84a", scale: 1, shadow: true }],
+    }),
+    damage: () => ({
+      ...base, kind: "damage", cause: "magic", deathMessage: `{victim} was hit by ${displayName.toLowerCase()}`, deathMessageBy: `{victim} was hit by ${displayName.toLowerCase()} from {attacker}`, scaleWithDifficulty: false,
     }),
     biome: () => ({
       ...base, kind: "biome", dimension: "overworld", replaces: ["plains"], amount: 0.3, patchSize: 5, temperature: 0.8, downfall: 0.4,

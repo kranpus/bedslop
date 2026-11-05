@@ -104,6 +104,7 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [ ] Custom effects: timer counts down; Minecraft effects stay on and are removed at the end; damage/heal ticks; potion gives it; milk cures; mobs keep effects after a reload
 - [ ] HUD/overlays: layout matches the editor at different GUI scales; live text and bars update; invisible data titles never flash; overlays show/hide and time out; works alongside other HUD packs
 - [ ] Form layouts: grid forms show tiles with icons and text, buttons click the right option, scrolling works with many buttons, close button works; forms without a layout still look vanilla; own-background layout draws title and close button; check on touch and with a controller
+- [ ] Damage types: damage and knockback match the chosen cause; a lethal hit shows only the custom message (with and without an attacker); the death-message rule comes back on; Easy/Hard scaling; message stays off when the world has death messages off
 - [ ] Biomes: appears in new chunks of the chosen biomes at about the set share and size; ground blocks, colours, sky, fog and rain/snow match; vanilla plants for the chosen style; /locate biome finds it; mobs with its tag spawn there; Nether version works
 - [ ] Game rules: /<ns>:gamerule lists/shows/changes (bad values refused); values survive reloads; Set game rule changes vanilla rules too; non-operators can't use the command
 - [ ] Key bindings: double taps feel right at the default gap on keyboard, touch and controller; hold sneak fires once per hold; sneak + number keeps the hotbar slot (also with scrolling); held-item filter and cooldown; left-click fires on air and on blocks/mobs
@@ -136,7 +137,7 @@ Ordered by user value:
 13. ✅ **Music discs**: upload an .ogg (checked, length read automatically), icon template, volume and comparator signal. Bedrock's stable `minecraft:record` only accepts the vanilla disc sound events, so each disc plays through one vanilla disc's slot (picked automatically or by hand, clashes reported) and the resource pack points that slot at the song; the editor and export explain that the vanilla disc plays the song too. Discs work in your own loot tables. ⛔ own disc sound events until Mojang's beta record format is stable; ⛔ creeper drops (would mean replacing Minecraft's creeper loot table).
 14. ✅ **Brewing recipes**: a Brewing recipe type for the brewing stand. "Turn one potion into another" (`minecraft:recipe_brewing_mix`, all 46 vanilla potion types by readable name) and "Change the bottle" (`minecraft:recipe_brewing_container`: potion, splash, lingering), with any item (yours included) as the ingredient. Bedrock has no custom potion types, so the editor points to drinkable Food elements for your own effects. Custom potions come with Phase 3's custom potion effects.
 
-## Phase 3: closing Bedrock gaps with scripting 🔧
+## Phase 3: closing Bedrock gaps with scripting ✅
 
 Bedrock has no data-driven version of these, so they're simulated with generated scripts:
 
@@ -148,7 +149,7 @@ Bedrock has no data-driven version of these, so they're simulated with generated
 - ✅ **Key bindings (input combos)**: a Key binding element that runs its own steps when the player double-taps jump or sneak (adjustable gap), holds sneak (seconds), jumps while sneaking, uses an item while sneaking, sneaks + presses a hotbar number 1-9 (the hotbar is put back, so it acts like a key), left-clicks or left-clicks while sneaking (2.11+, playerSwingStart). Optional held item and cooldown. Built on playerButtonInput, playerHotbarSelectedSlotChange, itemUse and playerSwingStart; only the needed events are subscribed. ⛔ new keys in the controls menu (not moddable).
 - ✅ **Custom game rules**: on the Variables tab (name, on/off or number, starting value, description), saved on the world as dynamic properties. A generated `/<namespace>:gamerule [rule] [value]` (operators) lists, shows and changes them. "Set game rule" step and "Game rule is" check work with your rules and Minecraft's own (world.gameRules: keepInventory, pvp, randomTickSpeed…); `{rule:name}` in text. ⛔ adding rules to vanilla `/gamerule` or the world settings screen.
 - ✅ **Biomes**: a Biome element for the Overworld or Nether that takes over a share of chosen Minecraft biomes (`minecraft:replace_biomes`, area size → noise frequency). Ground blocks (surface, below, deep, sea floor, water/lava), temperature and rain, plants and trees borrowed from a vanilla biome style (by tag), animal/monster spawning, extra tags, and an automatic `<ns>_<name>` tag that mobs and structures can target. Resource pack client_biome with grass, leaf, water and sky colours and a vanilla fog preset; map tints. "Is in biome" check (Script API 2.11+, getBiome). Needs Minecraft 1.21.110+. ⛔ new dimensions; ⛔ placing custom biomes by climate (only by replacing vanilla biomes); ⛔ custom fog files (presets only, for now).
-- 🔧 Damage types using vanilla damage causes
+- ✅ **Damage types**: a Damage type element that "works like" one of Minecraft's causes (magic, attack, fire, freezing, lightning, explosion, fall, drowning, prickly, true damage), with its own death messages ({victim}, {attacker}) and optional difficulty scaling. "Deal custom damage" step (who, how much, caused by). For a lethal hit on a player, showDeathMessages is switched off for that moment so only the custom message shows (nothing if the world has death messages off). ⛔ new damage causes, ⛔ damage types inside armour/enchantment resistances.
 
 Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner patterns, ⛔ attributes, ⛔ Java code/mixins.
 
@@ -181,6 +182,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.22.0** (Phase 3 done): Damage types. Pick which Minecraft cause it works like, write death messages with {victim} and {attacker}, optionally scale with difficulty, and deal it with the new "Deal custom damage" step. Example: the Ruby Wand adds "Ruby zap" damage on hit. 223 tests.
 
 - **0.21.0** (Phase 3): Custom biomes. Overworld or Nether biomes that take over part of chosen Minecraft biomes, with their own ground, weather, colours, sky, fog, plants style, spawning and tags, plus an "Is in biome" check. Mob and structure biome pickers suggest your biomes' tags. Warnings on element pages now start with a capital letter. 218 tests.
 

@@ -60,7 +60,7 @@ export const PARITY: ParityRow[] = [
   { mcreator: "Scoreboard procedures", bedrock: "world.scoreboard", status: "done", phase: 3, notes: "Objectives on the Variables tab; change/reset/show/hide steps, score checks and blocks, {score:name} text." },
   { mcreator: "Game rule", bedrock: "World dynamic properties + world.gameRules", status: "done", phase: 3, notes: "Your own on/off and number rules (Variables tab) with a /<namespace>:gamerule command; set/check steps also cover Minecraft's rules. Not shown in vanilla /gamerule or world settings." },
   { mcreator: "Biome", bedrock: "BP biome (replace_biomes) + RP client_biome", status: "done", phase: 3, notes: "Takes over part of chosen Minecraft biomes: own ground blocks, weather, colours, sky, fog, plant style, spawning and tags. Can't be placed by climate. Needs 1.21.110+." },
-  { mcreator: "Damage type", bedrock: "Vanilla damage causes", status: "workaround", phase: 3, notes: "applyDamage with a vanilla cause." },
+  { mcreator: "Damage type", bedrock: "Script: vanilla cause + own death messages", status: "done", phase: 3, notes: "Works like a chosen Minecraft cause (armour, knockback), with its own death messages and difficulty scaling; dealt by the “Deal custom damage” step." },
   // Not possible
   { mcreator: "Dimension", bedrock: "Not supported", status: "impossible", phase: 0, notes: "Bedrock add-ons cannot add dimensions." },
   { mcreator: "Fluid", bedrock: "Not supported", status: "impossible", phase: 0, notes: "No custom fluids on Bedrock." },

@@ -5,7 +5,7 @@ import type { TriggerType } from "./types";
 
 export type ParamKind =
   | "text" | "longtext" | "number" | "bool" | "item" | "block" | "entity" | "effect" | "sound"
-  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle" | "enchantment" | "objective" | "custom_effect" | "hud" | "achievement" | "gamerule" | "biome";
+  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle" | "enchantment" | "objective" | "custom_effect" | "hud" | "achievement" | "gamerule" | "biome" | "damage_type";
 
 export interface ParamSpec {
   key: string;
@@ -125,6 +125,19 @@ export const ACTIONS: ActionSpec[] = [
     params: [who("target"), { key: "amount", label: "Damage", kind: "number", default: 4 }],
     summary: (p) => `Deal ${p.amount} damage to ${p.who}`,
     code: (g) => `BC.who(ctx, ${S(g.f("who"))})?.applyDamage(${g.e("amount")});`,
+  },
+  {
+    type: "custom_damage", label: "Deal custom damage", group: "Entities",
+    params: [
+      who("target"),
+      { key: "damage", label: "Damage type", kind: "damage_type", default: "" },
+      { key: "amount", label: "Damage", kind: "number", default: 4 },
+      { key: "from", label: "Caused by", kind: "select", options: ["player", "target", "nobody"], default: "player" },
+    ],
+    summary: (p) => `Deal ${p.amount} ${p.damage || "(damage type)"} damage to ${p.who}`,
+    code: (g) => (g.f("damage")
+      ? `bcDamage(BC.who(ctx, ${S(g.f("who"))}), ${S(g.f("damage"))}, ${g.e("amount")}, ${g.f("from") === "nobody" ? "undefined" : `BC.who(ctx, ${S(g.f("from"))})`});`
+      : "// No damage type selected"),
   },
   {
     type: "fire", label: "Set on fire", group: "Entities",

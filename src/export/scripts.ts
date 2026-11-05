@@ -748,6 +748,12 @@ export function buildScript(ctx: GenContext): string | null {
   if (!fxNames.size && /bcFx(Give|Remove|Level)\(/.test(sections)) {
     sections += "\n// Missing references\nfunction bcFxGive(e, name, seconds, level) {}\nfunction bcFxRemove(e, name) {}\nfunction bcFxLevel(e, name) { return 0; }\n";
   }
+  // Custom damage steps need the damage types script, which only exists when the project has damage types.
+  const dmgNames = new Set(ctx.project.elements.filter((e) => e.kind === "damage").map((e) => e.name));
+  for (const m of new Set([...sections.matchAll(/bcDamage\(BC\.who\(ctx, "[^"]*"\), "([^"]*)"/g)].map((m) => m[1]))) {
+    if (!dmgNames.has(m)) ctx.warn(undefined, `A step uses the damage type "${m}", which doesn't exist (renamed or deleted?).`, "error");
+  }
+  if (!dmgNames.size && /bcDamage\(/.test(sections)) sections += "\n// Missing references\nfunction bcDamage(e, type, amount, attacker) {}\n";
   // Biome checks: getBiome is only in Script API 2.11+.
   if (/BC\.inBiome\(/.test(sections) && /^2\.[0-9]\./.test(ctx.project.scriptApi ?? "2.1.0")) {
     ctx.warn(undefined, "The “Is in biome” check needs Script API 2.11.0 or newer (Minecraft 1.26.60). Until then it's always false. Change it in Settings.", "error");

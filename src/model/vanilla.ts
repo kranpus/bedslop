@@ -193,3 +193,17 @@ export const FEATURE_STYLES = ["plains", "forest", "birch", "roofed", "taiga", "
 /** Fog presets from Minecraft's biomes. */
 export const VANILLA_FOGS = ["default", ...OVERWORLD_BIOMES.filter((b) => !/mutated|hills|_edge|deep_|plus_trees|bryce|_stone|shore|legacy/.test(b) || b === "deep_ocean"), "hell", "crimson_forest", "warped_forest", "soulsand_valley", "basalt_deltas", "humid", "dry", "semi_humid"]
   .filter((v, i, a) => a.indexOf(v) === i);
+
+/** Damage causes a damage type can use, with what they mean. */
+export const DAMAGE_CAUSES: { value: string; label: string; help: string }[] = [
+  { value: "magic", label: "Magic", help: "Ignores armour. Like potions of harming." },
+  { value: "entityAttack", label: "Attack", help: "Armour and Protection reduce it; knocks back when someone caused it." },
+  { value: "fire", label: "Fire", help: "Fire Protection reduces it; fire-resistant mobs ignore it." },
+  { value: "freezing", label: "Freezing", help: "Mobs that don't freeze ignore it." },
+  { value: "lightning", label: "Lightning", help: "Armour reduces it." },
+  { value: "entityExplosion", label: "Explosion", help: "Blast Protection reduces it." },
+  { value: "fall", label: "Fall", help: "Feather Falling reduces it." },
+  { value: "drowning", label: "Drowning", help: "Mobs that breathe water ignore it." },
+  { value: "contact", label: "Prickly (like cactus)", help: "Armour reduces it." },
+  { value: "override", label: "True damage", help: "Ignores armour, enchantments and Resistance." },
+];
