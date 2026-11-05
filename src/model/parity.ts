@@ -59,7 +59,7 @@ export const PARITY: ParityRow[] = [
   { mcreator: "Key binding", bedrock: "Script input events (combos)", status: "done", phase: 3, notes: "No new keys on Bedrock, so bindings are combos: double-tap jump/sneak, hold sneak, sneak + jump/use/hotbar number, left-click (2.11+). Optional held item and cooldown." },
   { mcreator: "Scoreboard procedures", bedrock: "world.scoreboard", status: "done", phase: 3, notes: "Objectives on the Variables tab; change/reset/show/hide steps, score checks and blocks, {score:name} text." },
   { mcreator: "Game rule", bedrock: "World dynamic properties + world.gameRules", status: "done", phase: 3, notes: "Your own on/off and number rules (Variables tab) with a /<namespace>:gamerule command; set/check steps also cover Minecraft's rules. Not shown in vanilla /gamerule or world settings." },
-  { mcreator: "Biome", bedrock: "Data-driven biomes (limited)", status: "workaround", phase: 3, notes: "Custom biome support on Bedrock is limited/experimental." },
+  { mcreator: "Biome", bedrock: "BP biome (replace_biomes) + RP client_biome", status: "done", phase: 3, notes: "Takes over part of chosen Minecraft biomes: own ground blocks, weather, colours, sky, fog, plant style, spawning and tags. Can't be placed by climate. Needs 1.21.110+." },
   { mcreator: "Damage type", bedrock: "Vanilla damage causes", status: "workaround", phase: 3, notes: "applyDamage with a vanilla cause." },
   // Not possible
   { mcreator: "Dimension", bedrock: "Not supported", status: "impossible", phase: 0, notes: "Bedrock add-ons cannot add dimensions." },

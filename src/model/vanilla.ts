@@ -177,3 +177,19 @@ export const VANILLA_GAMERULES: [string, "bool" | "number"][] = ([
 ] as string[]).map((n): [string, "bool" | "number"] => [n, "bool"]).concat([
   ["functionCommandLimit", "number"], ["maxCommandChainLength", "number"], ["playersSleepingPercentage", "number"], ["randomTickSpeed", "number"],
 ]);
+
+/** Minecraft's Overworld biomes (names as used by minecraft:replace_biomes targets). */
+export const OVERWORLD_BIOMES = ("bamboo_jungle bamboo_jungle_hills beach birch_forest birch_forest_hills birch_forest_hills_mutated birch_forest_mutated cherry_grove cold_beach " +
+  "cold_ocean cold_taiga cold_taiga_hills cold_taiga_mutated deep_cold_ocean deep_dark deep_frozen_ocean deep_lukewarm_ocean deep_ocean deep_warm_ocean desert " +
+  "desert_hills desert_mutated dripstone_caves extreme_hills extreme_hills_edge extreme_hills_mutated extreme_hills_plus_trees extreme_hills_plus_trees_mutated " +
+  "flower_forest forest forest_hills frozen_ocean frozen_peaks frozen_river grove ice_mountains ice_plains ice_plains_spikes jagged_peaks jungle jungle_edge " +
+  "jungle_edge_mutated jungle_hills jungle_mutated lukewarm_ocean lush_caves mangrove_swamp meadow mega_taiga mega_taiga_hills mesa mesa_bryce mesa_plateau " +
+  "mesa_plateau_mutated mesa_plateau_stone mesa_plateau_stone_mutated mushroom_island mushroom_island_shore ocean pale_garden plains redwood_taiga_hills_mutated " +
+  "redwood_taiga_mutated river roofed_forest roofed_forest_mutated savanna savanna_mutated savanna_plateau savanna_plateau_mutated snowy_slopes stone_beach " +
+  "stony_peaks sunflower_plains swampland swampland_mutated taiga taiga_hills taiga_mutated warm_ocean").split(" ");
+export const NETHER_BIOMES = ["hell", "crimson_forest", "warped_forest", "soulsand_valley", "basalt_deltas"];
+/** Biome tags that bring Minecraft's plants, trees and decorations of that kind. */
+export const FEATURE_STYLES = ["plains", "forest", "birch", "roofed", "taiga", "jungle", "desert", "savanna", "swamp", "mesa", "extreme_hills", "flower_forest", "cherry_grove"];
+/** Fog presets from Minecraft's biomes. */
+export const VANILLA_FOGS = ["default", ...OVERWORLD_BIOMES.filter((b) => !/mutated|hills|_edge|deep_|plus_trees|bryce|_stone|shore|legacy/.test(b) || b === "deep_ocean"), "hell", "crimson_forest", "warped_forest", "soulsand_valley", "basalt_deltas", "humid", "dry", "semi_humid"]
+  .filter((v, i, a) => a.indexOf(v) === i);

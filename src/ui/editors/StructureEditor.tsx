@@ -1,3 +1,4 @@
+import { customBiomeTags } from "./BiomeEditor";
 import { useEffect, useMemo, useState } from "react";
 import type { LootElement, StructureElement } from "../../model/types";
 import { createElement } from "../../model/registry";
@@ -224,7 +225,7 @@ export function StructureEditor({ el, patch }: { el: StructureElement; patch: Pa
               <Slider label="Can shift to fit" min={0} max={16} value={el.adjustmentRadius} onChange={(adjustmentRadius) => patch({ adjustmentRadius }, "adj")} format={(v) => `${v} blocks`}
                 help="How far it may move to find a spot that meets the rules below." />
             </Grid>
-            <ChipList label="Only in biomes tagged" values={el.biomeTags} onChange={(biomeTags) => patch({ biomeTags })} suggestions={BIOME_TAGS} placeholder="any biome"
+            <ChipList label="Only in biomes tagged" values={el.biomeTags} onChange={(biomeTags) => patch({ biomeTags })} suggestions={[...BIOME_TAGS, ...customBiomeTags()]} placeholder="any biome"
               help="Empty = anywhere in the dimension. Any one matching tag is enough." />
             <Toggle label="Must sit on the ground" value={el.grounded} onChange={(grounded) => patch({ grounded })} help="No floating over cliffs or water." />
             <Toggle label="Must have open sky above" value={el.unburied} onChange={(unburied) => patch({ unburied })} />

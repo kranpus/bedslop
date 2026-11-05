@@ -570,3 +570,10 @@ table.vars td:nth-child(5) { min-width: 0; }
 .adv-toast { flex: none; align-self: flex-start; margin: 0 auto; width: 200px; display: flex; align-items: center; gap: 10px; padding: 8px 10px;
   background: rgba(0, 0, 0, 0.78); color: #fff; font-family: var(--font-mono); font-size: 12px; line-height: 1.4; text-shadow: 1px 1px 0 #3f3f3f; }
 .adv-toast img { width: 24px; height: 24px; }
+
+/* Biome preview */
+.biome-preview { position: relative; flex: none; width: 220px; height: 130px; margin: 0 auto; border: 2px solid var(--line, #ccc); border-radius: 6px; overflow: hidden; }
+.biome-preview .biome-top { position: absolute; left: 0; right: 40%; top: 55%; height: 14px; }
+.biome-preview .biome-top::after { content: ""; position: absolute; left: 0; right: 0; top: 14px; height: 60px; background: #866043; }
+.biome-preview .biome-water { position: absolute; left: 60%; right: 0; top: 58%; bottom: 0; opacity: 0.85; }
+.biome-preview span { position: absolute; left: 8px; top: 6px; color: #fff; font-size: 12px; font-weight: 600; text-shadow: 1px 1px 0 rgba(0,0,0,0.5); }

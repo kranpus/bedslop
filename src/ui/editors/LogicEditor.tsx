@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { ACTIONS, CONDITIONS, TRIGGERS, actionSpec, conditionSpec, defaultParams, triggerSpec, type ParamSpec } from "../../model/logic";
 import { uid } from "../../model/registry";
 import type { Action, CommandArg, CommandArgType, CommandElement, Condition, ProcedureElement } from "../../model/types";
-import { EFFECTS, VANILLA_GAMERULES, VANILLA_PARTICLES, VANILLA_SOUNDS } from "../../model/vanilla";
+import { EFFECTS, NETHER_BIOMES, OVERWORLD_BIOMES, VANILLA_GAMERULES, VANILLA_PARTICLES, VANILLA_SOUNDS } from "../../model/vanilla";
 import { GenContext } from "../../export/context";
 import { genCommands, genProcedure } from "../../export/scripts";
 import { useStore } from "../../store/store";
@@ -86,6 +86,21 @@ function ParamInput({ spec, value, onChange, slots }: { spec: ParamSpec; value: 
             <option value="">{own.length ? "Choose…" : "No overlays yet (make a HUD / screen set to Overlay)"}</option>
             {own.map((e) => <option key={e.id} value={e.name}>{e.displayName}</option>)}
             {v && !own.some((e) => e.name === v) && <option value={String(v)}>{String(v)} (missing)</option>}
+          </select>
+        </Field>
+      );
+    }
+    case "biome": {
+      const own = project.elements.filter((e) => e.kind === "biome");
+      const vanilla = [...OVERWORLD_BIOMES, ...NETHER_BIOMES, "the_end"];
+      const known = !v || own.some((e) => e.name === v) || vanilla.some((b) => `minecraft:${b}` === v);
+      return (
+        <Field label={spec.label}>
+          <select value={String(v)} onChange={(e) => onChange(e.target.value)}>
+            <option value="">Choose…</option>
+            {own.length > 0 && <optgroup label="Your biomes">{own.map((e) => <option key={e.id} value={e.name}>{e.displayName}</option>)}</optgroup>}
+            <optgroup label="Minecraft's">{vanilla.map((b) => <option key={b} value={`minecraft:${b}`}>{b.replace(/_/g, " ")}</option>)}</optgroup>
+            {!known && <option value={String(v)}>{String(v)} (missing)</option>}
           </select>
         </Field>
       );
@@ -294,6 +309,7 @@ function BlocksSection({ el, patch, isCommand }: { el: ProcedureElement | Comman
         overlays={project.elements.filter((e) => e.kind === "hud" && e.mode === "overlay").map((e) => e.name)}
         achievements={project.elements.filter((e) => e.kind === "achievement").map((e) => e.name)}
         rules={(project.gameRules ?? []).map((r) => r.name)}
+        biomes={project.elements.filter((e) => e.kind === "biome").map((e) => e.name)}
         args={isCommand ? ((el as CommandElement).args ?? []).map((a) => a.name) : []}
         isCommand={isCommand}
       />

@@ -5,7 +5,7 @@ import type { TriggerType } from "./types";
 
 export type ParamKind =
   | "text" | "longtext" | "number" | "bool" | "item" | "block" | "entity" | "effect" | "sound"
-  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle" | "enchantment" | "objective" | "custom_effect" | "hud" | "achievement" | "gamerule";
+  | "who" | "at" | "select" | "variable" | "procedure" | "form" | "structure" | "particle" | "enchantment" | "objective" | "custom_effect" | "hud" | "achievement" | "gamerule" | "biome";
 
 export interface ParamSpec {
   key: string;
@@ -506,6 +506,12 @@ export const CONDITIONS: ConditionSpec[] = [
   {
     type: "y_above", label: "Height is above", params: [who(), { key: "y", label: "Y level", kind: "number", default: 64 }],
     summary: (p) => `${p.who} is above y=${p.y}`, code: (g) => `(BC.at(ctx, ${S(g.f("who"))})?.y ?? 0) > (${g.e("y")})`,
+  },
+  {
+    type: "in_biome", label: "Is in biome",
+    params: [who(), { key: "biome", label: "Biome", kind: "biome", default: "" }],
+    summary: (p) => `${p.who} is in ${p.biome || "(biome)"}`,
+    code: (g) => `BC.inBiome(ctx, ${S(g.f("who"))}, ${S(g.f("biome"))})`,
   },
   {
     type: "gamerule_is", label: "Game rule is",

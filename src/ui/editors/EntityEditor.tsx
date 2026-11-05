@@ -1,3 +1,4 @@
+import { customBiomeTags } from "./BiomeEditor";
 import type { AnimationSlot, AnimWhen, AutoRig, EntityElement, RigRole } from "../../model/types";
 import { BIOME_TAGS } from "../../model/vanilla";
 import { ChipList, Color, Field, Grid, IdInput, Num, Section, Segmented, Select, Slider, Toggle } from "../fields";
@@ -100,7 +101,7 @@ export function EntityEditor({ el, patch }: { el: EntityElement; patch: Patch<En
         <Toggle label="Spawns naturally" value={el.spawnEnabled} onChange={(spawnEnabled) => patch({ spawnEnabled })} />
         {el.spawnEnabled && (
           <>
-            <ChipList label="Biomes (by tag)" values={el.spawnBiomeTags} onChange={(spawnBiomeTags) => patch({ spawnBiomeTags })} suggestions={BIOME_TAGS}
+            <ChipList label="Biomes (by tag)" values={el.spawnBiomeTags} onChange={(spawnBiomeTags) => patch({ spawnBiomeTags })} suggestions={[...BIOME_TAGS, ...customBiomeTags()]}
               help='"animal" = everywhere animals spawn, "monster" = everywhere monsters spawn.' />
             <Grid>
               <Select label="Counts toward" value={el.populationControl} onChange={(populationControl) => patch({ populationControl })} options={["animal", "monster", "water_animal", "ambient"]} />

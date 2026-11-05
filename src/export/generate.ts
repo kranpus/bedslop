@@ -6,6 +6,7 @@ import { genCustomEffects } from "./effects";
 import { genHuds } from "./hud";
 import { genAchievements } from "./achievements";
 import { genKeyBinds } from "./keybinds";
+import { genBiome } from "./biome";
 import { genScreens } from "./screens";
 import { genChestLids } from "./chest";
 import { genCreativeGroups } from "./creative";
@@ -153,6 +154,7 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
       case "loot": genLoot(ctx, el); break;
       case "ore": genOre(ctx, el); break;
       case "structure": genStructure(ctx, el); break;
+      case "biome": genBiome(ctx, el); break;
       case "particle": genParticle(ctx, el); break;
       case "disc": genDisc(ctx, el); break;
       case "enchantment": break; // all enchantments share one script section, made below
@@ -185,7 +187,7 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
   // Features in use that need a newer game or Script API than the project targets.
   for (const r of ctx.requires) {
     if (r.engine && compareVersion(project.minEngine, r.engine) < 0) {
-      ctx.warnings.push({ elementId: r.elementId, level: "error", message: `${r.reason} need Minecraft ${r.engine} or newer, but the project targets ${project.minEngine.join(".")}. Change the Script API in Settings (or use “Update project version” on the block).` });
+      ctx.warnings.push({ elementId: r.elementId, level: "error", message: `${r.reason} need Minecraft ${r.engine} or newer, but the project targets ${project.minEngine.join(".")}. Change the Script API in Settings (or use the “Update project” button on its page).` });
     } else if (r.api && compareVersion(project.scriptApi, r.api) < 0) {
       ctx.warnings.push({ elementId: r.elementId, level: "error", message: `${r.reason} need Script API ${r.api} or newer (project uses ${project.scriptApi}). Change it in Settings.` });
     }

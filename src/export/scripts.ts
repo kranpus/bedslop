@@ -58,6 +58,12 @@ export const RUNTIME = `const BC = {
     }
     h.setDynamicProperty(BC.key(name), next);
   },
+  /** Whether someone is in a biome (own biome name or "minecraft:..."). Needs Script API 2.11 (getBiome). */
+  inBiome(ctx, who, id) {
+    const e = BC.who(ctx, who);
+    const full = String(id).includes(":") ? id : NAMESPACE + ":" + id;
+    try { return /** @type {any} */ (e?.dimension ?? ctx.dimension)?.getBiome?.(e?.location ?? ctx.location)?.id === full; } catch { return false; }
+  },
   /** A custom game rule (saved on the world) or one of Minecraft's (world.gameRules). */
   rule(name) {
     const d = BC_RULES[name];
@@ -741,6 +747,15 @@ export function buildScript(ctx: GenContext): string | null {
   }
   if (!fxNames.size && /bcFx(Give|Remove|Level)\(/.test(sections)) {
     sections += "\n// Missing references\nfunction bcFxGive(e, name, seconds, level) {}\nfunction bcFxRemove(e, name) {}\nfunction bcFxLevel(e, name) { return 0; }\n";
+  }
+  // Biome checks: getBiome is only in Script API 2.11+.
+  if (/BC\.inBiome\(/.test(sections) && /^2\.[0-9]\./.test(ctx.project.scriptApi ?? "2.1.0")) {
+    ctx.warn(undefined, "The “Is in biome” check needs Script API 2.11.0 or newer (Minecraft 1.26.60). Until then it's always false. Change it in Settings.", "error");
+  }
+  const biomeNames = new Set(ctx.project.elements.filter((e) => e.kind === "biome").map((e) => e.name));
+  for (const m of new Set([...sections.matchAll(/BC\.inBiome\(ctx, "[^"]*", "([^"]*)"\)/g)].map((m) => m[1]))) {
+    if (!m) ctx.warn(undefined, "An “Is in biome” check has no biome chosen.", "error");
+    else if (!m.includes(":") && !biomeNames.has(m)) ctx.warn(undefined, `A check uses the biome "${m}", which doesn't exist (renamed or deleted?).`, "error");
   }
   // Game rule steps: your own rules or Minecraft's.
   const ruleNames = new Set([...(ctx.project.gameRules ?? []).map((r) => r.name), ...VANILLA_GAMERULES.map(([n]) => n)]);

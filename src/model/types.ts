@@ -2,6 +2,7 @@
 // Everything here is plain JSON so a project can be saved, exported and re-imported as-is.
 
 export type ElementKind =
+  | "biome"
   | "keybind"
   | "achievement"
   | "hud"
@@ -821,6 +822,38 @@ export interface CustomEffectElement extends BaseElement {
   potionLevel: number;
 }
 
+/** A custom biome that takes over part of some Minecraft biomes (minecraft:replace_biomes). */
+export interface BiomeElement extends BaseElement {
+  kind: "biome";
+  dimension: "overworld" | "nether";
+  /** Minecraft biomes it replaces part of (names without "minecraft:"). */
+  replaces: string[];
+  /** Share of those biomes it takes, 0-1. */
+  amount: number;
+  /** Area size: 1 (small, frequent patches) to 10 (huge, rare areas). */
+  patchSize: number;
+  temperature: number;
+  /** Rain amount 0-1 (0 = never rains). */
+  downfall: number;
+  topBlock: string;
+  midBlock: string;
+  foundationBlock: string;
+  seaFloorBlock: string;
+  seaBlock: string;
+  /** Plants, trees and other features like this Minecraft biome (adds its tag), or "" for bare ground. */
+  featuresLike: string;
+  animals: boolean;
+  monsters: boolean;
+  /** Extra biome tags. */
+  tags: string[];
+  grassColor: string;
+  foliageColor: string;
+  waterColor: string;
+  skyColor: string;
+  /** Fog from a Minecraft biome ("" = default). */
+  fog: string;
+}
+
 /** Input combos a script can see (Bedrock has no custom keys). */
 export type KeyInput = "double_jump" | "double_sneak" | "hold_sneak" | "sneak_jump" | "sneak_use" | "sneak_slot" | "swing" | "sneak_swing";
 
@@ -907,6 +940,7 @@ export interface HudElement extends BaseElement {
 }
 
 export type ModElement =
+  | BiomeElement
   | KeyBindElement
   | AchievementElement
   | BlockElement

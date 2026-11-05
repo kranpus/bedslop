@@ -31,6 +31,7 @@ export const KINDS: KindInfo[] = [
   { kind: "recipe", label: "Recipe", blurb: "Crafting table (shaped or shapeless), furnace, stonecutter or smithing.", group: "Content", glyph: "R", color: "#8c7a2c" },
   { kind: "loot", label: "Loot table", blurb: "Weighted drops for blocks, mobs and chests.", group: "Content", glyph: "L", color: "#9a6b1f" },
   { kind: "ore", label: "Ore generation", blurb: "Place veins of any block underground in the Overworld, Nether or End.", group: "World", glyph: "O", color: "#5c6470" },
+  { kind: "biome", label: "Biome", blurb: "Your own biome with its own ground blocks, colours, sky, fog and weather. It takes over part of the Minecraft biomes you pick.", group: "World", glyph: "◒", color: "#4f7a3a" },
   { kind: "structure", label: "Structure", blurb: "Import a .mcstructure built in game: generate it in the world, fill its chests with loot, or place it from a procedure.", group: "World", glyph: "⌂", color: "#6b5a44" },
   { kind: "particle", label: "Particle effect", blurb: "Design sparkles, smoke, bursts and trails with a live preview, then spawn them from procedures or /particle.", group: "World", glyph: "✦", color: "#8a5aa8" },
   { kind: "procedure", label: "Procedure", blurb: "When something happens, do something: no coding needed.", group: "Logic", glyph: "▶", color: "#2f7d6d" },
@@ -121,6 +122,11 @@ export function createElement<K extends ElementKind>(kind: K, name: string, disp
     hud: () => ({
       ...base, kind: "hud", mode: "hud", dim: false,
       widgets: [{ id: uid(), type: "live", anchor: "top_right", x: -6, y: 6, w: 0, h: 0, text: "Coins: {coins}", color: "#ffd84a", scale: 1, shadow: true }],
+    }),
+    biome: () => ({
+      ...base, kind: "biome", dimension: "overworld", replaces: ["plains"], amount: 0.3, patchSize: 5, temperature: 0.8, downfall: 0.4,
+      topBlock: "minecraft:grass_block", midBlock: "minecraft:dirt", foundationBlock: "minecraft:stone", seaFloorBlock: "minecraft:gravel", seaBlock: "minecraft:water",
+      featuresLike: "plains", animals: true, monsters: true, tags: [], grassColor: "", foliageColor: "", waterColor: "", skyColor: "", fog: "",
     }),
     keybind: () => ({
       ...base, kind: "keybind", input: "double_jump", item: "", slot: 1, seconds: 0.4, cooldown: 1,

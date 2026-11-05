@@ -1,3 +1,4 @@
+import { BiomeEditor } from "./editors/BiomeEditor";
 import { KeyBindEditor } from "./editors/KeyBindEditor";
 import { AchievementEditor } from "./editors/AchievementEditor";
 import { useDeferredValue, useMemo, useState } from "react";
@@ -55,6 +56,7 @@ function Body({ el }: { el: ModElement }) {
     case "hud": return <HudEditor el={el} patch={patch} />;
     case "achievement": return <AchievementEditor el={el} patch={patch} />;
     case "keybind": return <KeyBindEditor el={el} patch={patch} />;
+    case "biome": return <BiomeEditor el={el} patch={patch} />;
   }
 }
 
@@ -103,7 +105,7 @@ export function ElementEditor() {
       </header>
       {mine.length > 0 && (
         <ul className="problems" aria-label="Problems with this element">
-          {mine.map((w, i) => <li key={i} className={w.level}>{w.message.replace(`${el.displayName}: `, "")}</li>)}
+          {mine.map((w, i) => <li key={i} className={w.level}>{((m) => m.charAt(0).toUpperCase() + m.slice(1))(w.message.replace(`${el.displayName}: `, ""))}</li>)}
         </ul>
       )}
       <Body el={el} />
