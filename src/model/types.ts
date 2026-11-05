@@ -2,6 +2,7 @@
 // Everything here is plain JSON so a project can be saved, exported and re-imported as-is.
 
 export type ElementKind =
+  | "keybind"
   | "achievement"
   | "hud"
   | "effect"
@@ -809,6 +810,24 @@ export interface CustomEffectElement extends BaseElement {
   potionLevel: number;
 }
 
+/** Input combos a script can see (Bedrock has no custom keys). */
+export type KeyInput = "double_jump" | "double_sneak" | "hold_sneak" | "sneak_jump" | "sneak_use" | "sneak_slot" | "swing" | "sneak_swing";
+
+/** A "key binding": a combo of jump, sneak, hotbar, use and swing that runs steps. */
+export interface KeyBindElement extends BaseElement {
+  kind: "keybind";
+  input: KeyInput;
+  /** Only while holding this item ("" = anything). */
+  item: string;
+  /** sneak_slot: hotbar number 1-9. */
+  slot: number;
+  /** hold_sneak: seconds to hold; double taps: seconds between taps. */
+  seconds: number;
+  /** Seconds before it can fire again. */
+  cooldown: number;
+  actions: Action[];
+}
+
 export type AchievementTrigger = "manual" | "obtain_item" | "break_block" | "place_block" | "kill_mob" | "use_item" | "variable" | "score" | "dimension";
 
 /** An advancement players earn, with a toast, a chat message and rewards. Stored on the player by script. */
@@ -874,6 +893,7 @@ export interface HudElement extends BaseElement {
 }
 
 export type ModElement =
+  | KeyBindElement
   | AchievementElement
   | BlockElement
   | PlantElement

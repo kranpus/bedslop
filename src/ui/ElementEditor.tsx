@@ -1,3 +1,4 @@
+import { KeyBindEditor } from "./editors/KeyBindEditor";
 import { AchievementEditor } from "./editors/AchievementEditor";
 import { useDeferredValue, useMemo, useState } from "react";
 import type { ModElement } from "../model/types";
@@ -53,6 +54,7 @@ function Body({ el }: { el: ModElement }) {
     case "effect": return <EffectEditor el={el} patch={patch} />;
     case "hud": return <HudEditor el={el} patch={patch} />;
     case "achievement": return <AchievementEditor el={el} patch={patch} />;
+    case "keybind": return <KeyBindEditor el={el} patch={patch} />;
   }
 }
 

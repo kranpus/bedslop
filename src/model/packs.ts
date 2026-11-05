@@ -447,7 +447,16 @@ export function exampleProject(p: Project): Project {
   advCmd.description = "Shows your ruby achievements";
   advCmd.actions = [{ id: uid(), type: "show_achievements", params: {}, chance: 100 }];
 
-  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle, lamp, lampClick, brew, vampire, sight, rush, stats, bought, firstRuby, deepMiner, golemSlayer, advCmd];
+  // Key bindings: double-tap jump with the wand to dash, sneak + 9 for the achievements list.
+  const dash = createElement("keybind", "wand_dash", "Wand dash");
+  Object.assign(dash, { input: "double_jump", item: "ruby:ruby_wand", seconds: 0.35, cooldown: 3, actions: [
+    { id: uid(), type: "effect", params: { who: "player", effect: "speed", seconds: 3, amplifier: 2, particles: false }, chance: 100 },
+    { id: uid(), type: "sound", params: { sound: "mob.blaze.shoot", at: "player", volume: 1, pitch: 1.4 }, chance: 100 },
+  ] });
+  const advKey = createElement("keybind", "achievements_key", "Achievements key");
+  Object.assign(advKey, { input: "sneak_slot", slot: 9, cooldown: 0, actions: [{ id: uid(), type: "show_achievements", params: {}, chance: 100 }] });
+
+  p.elements = [...pack.elements, golem, boar, merchant, berry, rose, bench, benchRecipe, wand, wandRecipe, zap, welcome, bonus, heal, counter, shop, buyWand, shopCmd, slab, stairs, wall, shard, throwShard, bush, shrine, shrineLoot, sparkle, lamp, lampClick, brew, vampire, sight, rush, stats, bought, firstRuby, deepMiner, golemSlayer, advCmd, dash, advKey];
   p.textures = textures;
   p.packIcon = textures.find((t) => t.name === "ruby")?.id ?? "";
   return p;

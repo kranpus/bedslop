@@ -5,6 +5,7 @@ import { genEnchantments } from "./enchant";
 import { genCustomEffects } from "./effects";
 import { genHuds } from "./hud";
 import { genAchievements } from "./achievements";
+import { genKeyBinds } from "./keybinds";
 import { genScreens } from "./screens";
 import { genChestLids } from "./chest";
 import { genCreativeGroups } from "./creative";
@@ -158,6 +159,7 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
       case "effect": break; // same for custom effects
       case "hud": break; // all HUDs share one UI file and script section
       case "achievement": break; // all achievements share one script section
+      case "keybind": break; // same for key bindings
       case "function": genFunction(ctx, el); break;
       case "sound": genSound(ctx, el); break;
       case "projectile": genProjectile(ctx, el); break;
@@ -175,6 +177,7 @@ export function generateAddon(project: Project, packIconPng?: Uint8Array): Gener
   genEnchantments(ctx);
   genCustomEffects(ctx);
   genAchievements(ctx);
+  genKeyBinds(ctx);
   genHuds(ctx);
   genCreativeGroups(ctx);
 

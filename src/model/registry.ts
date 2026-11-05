@@ -26,6 +26,7 @@ export const KINDS: KindInfo[] = [
   { kind: "disc", label: "Music disc", blurb: "Your own song on a disc that plays in jukeboxes.", group: "Content", glyph: "♫", color: "#3d3d5c" },
   { kind: "enchantment", label: "Enchantment", blurb: "Your own enchantment: extra damage, life steal, fire, effects while worn, and more. Comes with an enchanted book.", group: "Content", glyph: "✧", color: "#5b3f9c" },
   { kind: "effect", label: "Potion effect", blurb: "Your own status effect with a timer: Minecraft effects, damage or healing over time, particles and procedures. Optional potion to drink.", group: "Content", glyph: "⚗", color: "#2f6f8f" },
+  { kind: "keybind", label: "Key binding", blurb: "Run steps from a control combo: double-tap jump or sneak, hold sneak, sneak + a hotbar number, sneak + use, left-click. Bedrock has no custom keys.", group: "Logic", glyph: "⌨", color: "#3d6b5a" },
   { kind: "achievement", label: "Achievement", blurb: "An advancement with a toast and rewards: get an item, break or place blocks, defeat mobs, reach a score, or earn it from a procedure.", group: "Logic", glyph: "★", color: "#a07a1c" },
   { kind: "recipe", label: "Recipe", blurb: "Crafting table (shaped or shapeless), furnace, stonecutter or smithing.", group: "Content", glyph: "R", color: "#8c7a2c" },
   { kind: "loot", label: "Loot table", blurb: "Weighted drops for blocks, mobs and chests.", group: "Content", glyph: "L", color: "#9a6b1f" },
@@ -120,6 +121,10 @@ export function createElement<K extends ElementKind>(kind: K, name: string, disp
     hud: () => ({
       ...base, kind: "hud", mode: "hud", dim: false,
       widgets: [{ id: uid(), type: "live", anchor: "top_right", x: -6, y: 6, w: 0, h: 0, text: "Coins: {coins}", color: "#ffd84a", scale: 1, shadow: true }],
+    }),
+    keybind: () => ({
+      ...base, kind: "keybind", input: "double_jump", item: "", slot: 1, seconds: 0.4, cooldown: 1,
+      actions: [{ id: uid(), type: "actionbar", params: { text: "Key pressed!" }, chance: 100 }],
     }),
     achievement: () => ({
       ...base, kind: "achievement", description: "Do something great", icon: "", frame: "task", parent: "", secret: false,
