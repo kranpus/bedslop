@@ -7,6 +7,7 @@ A web app for making Minecraft Bedrock add-ons without writing code. Think MCrea
 - **Logic:** procedures as simple "When → Only if → Do" steps or as Blockly blocks (loops, variables, math, waits), custom slash commands with arguments, global variables, forms (button menus, grids of tiles with your own look, input forms, yes/no dialogs), HUD screens made with JSON UI, and achievements with toasts and rewards, all compiled to the official Script API
 - **Art:** built-in pixel editor with 24 procedural templates, plus a Material Pack wizard that builds a full ore/tool/armor set from one name and colour
 - **Export:** a ready-to-import `.mcaddon` (or separate `.mcpack` files) with validation before you download
+- **Templates:** start from a starter add-on (RPG, minigame, survival extras or the full example) or add ready-made combos like a lucky block, mana bar or double jump
 - **Import:** open an existing `.mcaddon`, `.mcpack` or `.zip` to edit its blocks, items, tools, food, recipes, loot, functions, sounds and structures, with a report of anything that couldn't be converted
 
 Projects save automatically in your browser. Nothing is uploaded.

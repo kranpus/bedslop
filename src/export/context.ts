@@ -1,3 +1,4 @@
+import { identifiersOf } from "../model/registry";
 import type { ModElement, Project, TextureAsset } from "../model/types";
 
 export type FileContent = string | Uint8Array;
@@ -119,18 +120,9 @@ export class GenContext {
   }
 
   /** Every identifier the project defines, for reference checks. */
+  /** Every item and block identifier the project makes (including potions, books, seeds and armour pieces). */
   knownIds(): Set<string> {
-    const ids = new Set<string>();
-    for (const el of this.project.elements) {
-      if (el.kind === "armor") {
-        for (const [slot, piece] of Object.entries(el.pieces)) if (piece.enabled) ids.add(this.id(`${el.name}_${slot}`));
-      } else if (["block", "plant", "item", "tool", "food", "entity", "projectile"].includes(el.kind)) {
-        ids.add(this.id(el.name));
-      } else if (el.kind === "crop") {
-        ids.add(this.id(el.name)).add(this.id(`${el.name}_seeds`));
-      }
-    }
-    return ids;
+    return new Set(this.project.elements.flatMap((el) => identifiersOf(el, this.ns)));
   }
 }
 

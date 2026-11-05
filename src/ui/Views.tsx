@@ -1,9 +1,9 @@
+import { StarterGallery } from "./TemplatesGallery";
 import { applyImport, importAddon } from "../import/addon";
 import { useImportReport } from "./ImportReport";
 import { CreativeGroupsSection } from "./CreativeGroups";
 import { useMemo, useRef, useState } from "react";
 import { useStore } from "../store/store";
-import { exampleProject } from "../model/packs";
 import { PARITY, type ParityStatus } from "../model/parity";
 import { SCRIPT_API_VERSIONS } from "../model/project";
 import { generateAddon } from "../export/generate";
@@ -65,7 +65,7 @@ export function Home() {
             <Text label="Your name (optional)" value={author} onChange={setAuthor} placeholder="Shown as the author" />
             <div className="row">
               <button className="btn primary" type="submit">Create add-on</button>
-              <button className="btn" type="button" onClick={() => newProject("Ruby Expansion", author.trim(), exampleProject)}>Open the example</button>
+
             </div>
           </form>
           <div className="import-addon">
@@ -73,7 +73,13 @@ export function Home() {
             <span className="muted small">Open a <span className="mono">.mcaddon</span>, <span className="mono">.mcpack</span> or <span className="mono">.zip</span>: blocks, items, food, recipes, loot, functions, sounds and structures become editable.</span>
             <input ref={addon} type="file" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onImportAddon(f); }} />
           </div>
-          <p className="muted small">The example is a complete add-on: a ruby material set, two mobs, a plant, food, a scripted wand and a custom command.</p>
+
+        </section>
+
+        <section className="card span-2">
+          <h2>Or start from a template</h2>
+          <StarterGallery name={name} author={author} />
+          <p className="muted small">Inside any project, the <strong>Templates</strong> button adds ready-made combos like a lucky block, a mana bar or double jump.</p>
         </section>
 
         <section className="card">

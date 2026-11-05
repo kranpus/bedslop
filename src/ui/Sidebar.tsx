@@ -5,6 +5,7 @@ import { materialPack, type MaterialPackOptions } from "../model/packs";
 import { generateTexture, hashSeed } from "../textures/procedural";
 import { useStore } from "../store/store";
 import { Modal } from "./Modal";
+import { TemplatesDialog } from "./TemplatesGallery";
 import { Thumb } from "./Thumb";
 import { useWarnings } from "./ElementEditor";
 
@@ -15,7 +16,7 @@ export function Sidebar() {
   const select = useStore((s) => s.select);
   const warnings = useWarnings();
   const [query, setQuery] = useState("");
-  const [dialog, setDialog] = useState<null | "new" | "pack">(null);
+  const [dialog, setDialog] = useState<null | "new" | "pack" | "templates">(null);
 
   useEffect(() => {
     const n = () => setDialog("new");
@@ -36,6 +37,7 @@ export function Sidebar() {
       <div className="sidebar-actions">
         <button className="btn primary grow" onClick={() => setDialog("new")}>New element</button>
         <button className="btn" onClick={() => setDialog("pack")} title="Create a full material set">Material pack</button>
+        <button className="btn" onClick={() => setDialog("templates")} title="Add ready-made combos of elements">Templates</button>
       </div>
       <input className="search" type="search" placeholder={`Search ${project.elements.length} elements`} value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search elements" />
       <nav className="element-list" aria-label="Elements">
@@ -55,6 +57,7 @@ export function Sidebar() {
       </nav>
       {dialog === "new" && <NewElementDialog onClose={() => setDialog(null)} />}
       {dialog === "pack" && <MaterialPackDialog onClose={() => setDialog(null)} />}
+      {dialog === "templates" && <TemplatesDialog onClose={() => setDialog(null)} />}
     </aside>
   );
 }

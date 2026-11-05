@@ -156,7 +156,7 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 ## Phase 4: platform ⬜
 
 - ⬜ Cloud sync and sharing (accounts, share links, collaboration)
-- ⬜ Templates gallery (starter add-ons, community packs)
+- ✅ **Templates gallery**: starter add-ons on the home screen (Blank, Ruby Expansion example, RPG starter, Minigame starter, Survival Plus) and a Templates button in the sidebar that adds ready-made combos to any project: lucky block, leap wand, mana system (variables + HUD bar + regen + staff), healing potion, double jump, starter kit, kill counter (scoreboard + achievement), storage crate, achievements set. Templates bring their textures, variables, scoreboards and game rules; clashing names get a number (references inside the template follow); variables and scoreboards with the same name are shared; a template that needs a newer game version updates the project and says so. ⬜ community packs (needs accounts and hosting).
 - ⬜ AI assistant: describe an element or texture in words, get a draft
 - ⬜ JSON-schema linting of output against Mojang's schemas; content-log style error explanations
 - ⬜ Marketplace readiness checks (naming, sizes, performance budget)
@@ -182,6 +182,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.24.0** (Phase 4): Templates gallery. Five starter add-ons on the home screen and nine element templates (lucky block, leap wand, mana system, healing potion, double jump, starter kit, kill counter, storage crate, achievements set) to add to any project. Fixed: recipes that make your own potions or enchanted books were reported as missing. 245 tests.
 
 - **0.23.0** (Phase 4): Import existing add-ons. Open a .mcaddon, .mcpack or .zip to get an editable project with its blocks, items, tools, food, recipes, loot tables, functions, sounds, structures, textures and models, plus a report of anything that couldn't be converted. Tested by exporting the example and importing it back. 228 tests.
 
