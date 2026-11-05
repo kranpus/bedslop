@@ -41,7 +41,7 @@ function dataControl(prefix: string) {
 
 const place = (a: HudAnchor, x: number, y: number) => ({ anchor_from: a, anchor_to: a, offset: [round(x), round(y)] });
 
-export interface HudChannel { prefix: string; kind: "live" | "bar" | "show"; hud: string; text?: string; source?: "variable" | "score"; name?: string; max?: number; segments?: number }
+export interface HudChannel { prefix: string; kind: "live" | "bar" | "show"; hud: string; text?: string; source?: "variable" | "score"; name?: string; max?: number; segments?: number; maxSource?: "variable" | "score"; maxName?: string }
 
 /** Rows in the custom effects list on the left of the screen. */
 export const FX_ROWS = 6;
@@ -87,7 +87,12 @@ export function genHuds(ctx: GenContext) {
         const empty = ctx.writeTexture(w.emptyTexture, "ui");
         const segs = clampInt(w.segments ?? 10, 2, 20);
         const prefix = `bc:${ctx.ns}:${name}:`;
-        channels.push({ prefix, kind: "bar", hud: h.name, source: w.source ?? "variable", name: w.sourceName, max: Math.max(1, Number(w.max) || 10), segments: segs });
+        const maxFrom = w.maxSource === "variable" || w.maxSource === "score" ? w.maxSource : undefined;
+        if (maxFrom && !w.maxName) ctx.warn(h, `has a bar whose “full at” ${maxFrom === "score" ? "scoreboard" : "variable"} isn't chosen yet. It uses ${Math.max(1, Number(w.max) || 10)} for now.`);
+        if (maxFrom === "variable" && w.maxName && !(ctx.project.variables ?? []).some((v) => v.name === w.maxName)) ctx.warn(h, `has a bar that fills up to the variable "${w.maxName}", which doesn't exist.`, "error");
+        if (maxFrom === "score" && w.maxName && !(ctx.project.scoreboards ?? []).some((o) => o.name === w.maxName)) ctx.warn(h, `has a bar that fills up to the scoreboard "${w.maxName}", which doesn't exist.`, "error");
+        channels.push({ prefix, kind: "bar", hud: h.name, source: w.source ?? "variable", name: w.sourceName, max: Math.max(1, Number(w.max) || 10), segments: segs,
+          ...(maxFrom && w.maxName ? { maxSource: maxFrom, maxName: w.maxName } : {}) });
         data.push({ [`${name}_data`]: dataControl(prefix) });
         // One image per segment, left to right; segment k shows when the value is k or more.
         const segW = Math.max(1, Math.floor(clampInt(w.w, segs, 2000) / segs)), segH = clampInt(w.h, 1, 2000);
@@ -178,8 +183,8 @@ export function genHuds(ctx: GenContext) {
 
   // ----- Script: work out each player's values and send the ones that changed, one title per tick. -----
   ctx.script.sections.push(`// ----- HUDs and screen overlays -----
-/** [prefix, kind, hud, text or source, name, max, segments] */
-const BC_HUD = /** @type {any[][]} */ (${S(channels.map((c) => [c.prefix, c.kind, c.hud, c.kind === "live" ? c.text : c.source ?? "", c.name ?? "", c.max ?? 0, c.segments ?? 0]))});
+/** [prefix, kind, hud, text or source, name, max, segments, max source ("" = fixed), max name] */
+const BC_HUD = /** @type {any[][]} */ (${S(channels.map((c) => [c.prefix, c.kind, c.hud, c.kind === "live" ? c.text : c.source ?? "", c.name ?? "", c.max ?? 0, c.segments ?? 0, c.maxSource ?? "", c.maxName ?? ""]))});
 /** Per player: last value sent per channel, values waiting to go out, overlays shown (hud -> hide at tick or 0). */
 const BC_HUD_STATE = new Map();
 function bcHudState(p) {
@@ -208,12 +213,14 @@ system.runInterval(() => {
     const st = bcHudState(p);
     if (tick % 10 === 0) {
       const ctx = BC.ctxP(p);
-      for (const [prefix, kind, hud, a, name, max, segs] of BC_HUD) {
+      for (const [prefix, kind, hud, a, name, fixedMax, segs, maxFrom, maxName] of BC_HUD) {
         let v;
         if (kind === "live") v = BC.fmt(ctx, a);
         else if (kind === "bar") {
           const raw = Number(a === "score" ? BC.getScore(ctx, name, "player") : BC.getVar(ctx, name, "player")) || 0;
-          v = String(Math.max(0, Math.min(segs, Math.round((raw / max) * segs))));
+          // "Full at" can come from a variable or score (e.g. max mana), read for this player.
+          const max = maxFrom ? Number(maxFrom === "score" ? BC.getScore(ctx, maxName, "player") : BC.getVar(ctx, maxName, "player")) || 0 : fixedMax;
+          v = max > 0 ? String(Math.max(0, Math.min(segs, Math.round((raw / max) * segs)))) : "0";
         } else {
           const until = st.shown[hud] ?? 0;
           if (until > 0 && tick >= until) st.shown[hud] = 0;

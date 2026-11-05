@@ -180,6 +180,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 
 ## Changelog
 
+- **0.19.1**: HUD bars can be "full at" a variable or scoreboard instead of a fixed number (e.g. mana out of max mana), read for each player; 0 or less shows an empty bar. 206 tests.
+
 - **0.19.0** (Phase 3): Key bindings. A new element that runs steps from control combos every device has: double-tap jump or sneak, hold sneak, jump or use while sneaking, sneak + hotbar number (works like a hotkey), left-click and sneak + left-click (2.11+). Optional held item and cooldown. Example: double-jump with the Ruby Wand to dash; sneak + 9 opens the achievements list. 205 tests.
 
 - **0.18.1**: Fix grid form layouts showing no tiles in game: Minecraft now sends a form's entries as a list of types (button, label, header, divider), so the grid's item count is written in from the form's buttons instead, like vanilla's inventory grids. Body text above the tiles is white on Minecraft's dark dialog panel (it was dark grey), and the editor preview matches the game's dark panel.

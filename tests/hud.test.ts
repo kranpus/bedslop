@@ -8,7 +8,8 @@ import { typecheckScript } from "./typecheck";
 describe("HUDs and overlays", () => {
   const p = createProject("Hud");
   p.namespace = "hd";
-  p.variables = [{ id: "v", name: "mana", scope: "player", type: "number", initial: "0" }];
+  p.variables = [{ id: "v", name: "mana", scope: "player", type: "number", initial: "0" }, { id: "m", name: "max_mana", scope: "player", type: "number", initial: "20" }];
+  p.scoreboards = [{ id: "s", name: "hp", title: "HP", show: "none", ascending: false }, { id: "t", name: "max_hp", title: "Max HP", show: "none", ascending: false }];
   p.textures.push({ id: "gem", name: "gem", kind: "item", width: 16, height: 16, dataUrl: PNG }, { id: "slot", name: "slot", kind: "item", width: 16, height: 16, dataUrl: PNG });
   const hud = createElement("hud", "stats", "Stats");
   hud.widgets = [
@@ -16,6 +17,8 @@ describe("HUDs and overlays", () => {
     { id: "2", type: "live", anchor: "top_left", x: 24, y: 8, w: 0, h: 0, text: "Mana: {mana}", color: "#55ffff", scale: 1, shadow: true },
     { id: "3", type: "bar", anchor: "bottom_middle", x: 0, y: -40, w: 100, h: 6, texture: "gem", emptyTexture: "slot", source: "variable", sourceName: "mana", max: 50, segments: 5 },
     { id: "4", type: "text", anchor: "center", x: 0, y: 0, w: 0, h: 0, text: "Hello", color: "#ffffff" },
+    { id: "6", type: "bar", anchor: "bottom_middle", x: 0, y: -50, w: 100, h: 6, texture: "gem", source: "variable", sourceName: "mana", max: 10, maxSource: "variable", maxName: "max_mana", segments: 10 },
+    { id: "7", type: "bar", anchor: "bottom_middle", x: 0, y: -60, w: 100, h: 6, texture: "gem", source: "score", sourceName: "hp", maxSource: "score", maxName: "max_hp", segments: 10 },
   ];
   const banner = createElement("hud", "boss_banner", "Boss banner");
   banner.mode = "overlay";
@@ -78,13 +81,22 @@ describe("HUDs and overlays", () => {
   });
 
   it("sends values as invisible titles from a script that type-checks", () => {
-    expect(js).toContain(`["bc:hd:w2:","live","stats","Mana: {mana}","",0,0]`);
+    expect(js).toContain(`["bc:hd:w2:","live","stats","Mana: {mana}","",0,0,"",""]`);
     expect(js).toContain("const BC_HUD = /** @type {any[][]} */ (");
-    expect(js).toContain(`["bc:hd:w3:","bar","stats","variable","mana",50,5]`);
+    expect(js).toContain(`["bc:hd:w3:","bar","stats","variable","mana",50,5,"",""]`);
+    expect(js).toContain(`["bc:hd:w5:","bar","stats","variable","mana",10,10,"variable","max_mana"]`);
+    expect(js).toContain(`["bc:hd:w6:","bar","stats","score","hp",10,10,"score","max_hp"]`);
+    expect(js).toContain(`maxFrom === "score" ? BC.getScore(ctx, maxName, "player")`);
     expect(js).toContain(`bcHudShow(ctx.player, "boss_banner", true, 5);`);
     expect(js).toContain("fadeInDuration: 0, stayDuration: 0, fadeOutDuration: 0");
     expect(typecheckScript(js)).toEqual([]);
     expect(typecheckScript(js, "node_modules/mcserver211/index.d.ts")).toEqual([]);
+  });
+
+  it("reports a bar maximum that doesn't exist", () => {
+    const q = structuredClone(p);
+    (q.elements[0] as typeof hud).widgets[4].maxName = "gone";
+    expect(generateAddon(q).warnings.some((w) => w.level === "error" && w.message.includes(`variable "gone"`))).toBe(true);
   });
 
   it("reports overlay steps for missing overlays", () => {

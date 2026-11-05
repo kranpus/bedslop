@@ -181,7 +181,14 @@ export function HudEditor({ el, patch }: { el: HudElement; patch: Patch<HudEleme
                 <Select label="Shows" value={widget.source ?? "variable"} onChange={(source) => set(widget.id, { source, sourceName: "" })} options={[{ value: "variable", label: "A variable" }, { value: "score", label: "A scoreboard" }]} />
                 <Select label={widget.source === "score" ? "Scoreboard" : "Variable"} value={widget.sourceName ?? ""} onChange={(sourceName) => set(widget.id, { sourceName })}
                   options={[{ value: "", label: "Choose…" }, ...(widget.source === "score" ? (project.scoreboards ?? []).map((b) => b.name) : (project.variables ?? []).map((v) => v.name)).map((n) => ({ value: n, label: n }))]} />
-                <Num label="Full at" min={1} value={widget.max ?? 20} onChange={(max) => set(widget.id, { max }, "max")} help="The value that fills the bar." />
+                <Select label="Full at" value={widget.maxSource ?? "number"} onChange={(maxSource) => set(widget.id, { maxSource, maxName: "" })} options={[
+                  { value: "number", label: "A fixed number" }, { value: "variable", label: "A variable's value" }, { value: "score", label: "A scoreboard's value" },
+                ]} help="The value that fills the bar. Use a variable or score for things like a max mana stat that can grow." />
+                {(widget.maxSource ?? "number") === "number"
+                  ? <Num label="Number" min={1} value={widget.max ?? 20} onChange={(max) => set(widget.id, { max }, "max")} />
+                  : <Select label={widget.maxSource === "score" ? "Max scoreboard" : "Max variable"} value={widget.maxName ?? ""} onChange={(maxName) => set(widget.id, { maxName })}
+                      options={[{ value: "", label: "Choose…" }, ...(widget.maxSource === "score" ? (project.scoreboards ?? []).map((b) => b.name) : (project.variables ?? []).map((v) => v.name)).map((n) => ({ value: n, label: n }))]}
+                      help="Read for each player. If it's 0 or less, the bar shows empty." />}
                 <Slider label="Segments" min={2} max={20} value={widget.segments ?? 10} onChange={(segments) => set(widget.id, { segments }, "segs")} />
               </Grid>
               <Grid>

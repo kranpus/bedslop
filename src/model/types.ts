@@ -878,8 +878,11 @@ export interface HudWidget {
   /** Bar: what it shows. */
   source?: "variable" | "score";
   sourceName?: string;
-  /** Bar: the value that fills it completely. */
+  /** Bar: the value that fills it completely (a fixed number, or read from maxSource/maxName). */
   max?: number;
+  /** Bar: where "full" comes from: a fixed number (default), a variable or a scoreboard, e.g. a max mana stat. */
+  maxSource?: "number" | "variable" | "score";
+  maxName?: string;
   segments?: number;
 }
 
