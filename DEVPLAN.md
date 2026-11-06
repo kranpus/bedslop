@@ -184,6 +184,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 
 ## Changelog
 
+- **0.25.1**: Fixes from the game's content log. Blocks in format 1.26.20+ (storage blocks) wrote tags as "tag:" components, which Minecraft rejects there, so the whole block (and its recipes and textures) failed to load; tags now go in a "minecraft:tags" list for that format. Crafting and stonecutter recipes now include unlock data (unlocked by getting any ingredient, like vanilla), required for 1.20+ recipes. New test reproduces the reported log. 250 tests.
+
 - **0.25.0**: Custom container screens. Storage blocks can have their own slot layout: drag each slot on a screen canvas (presets: chest rows, 3/5 per row, one row, ring), move, recolour or hide the title, and keep the optional background. A block with a background or layout now gets a whole screen of its own, switched in by the container's title (the method custom chest UI packs use), so it works in the pocket UI on phones too; before, backgrounds only showed in the classic UI. 247 tests.
 
 - **0.24.0** (Phase 4): Templates gallery. Five starter add-ons on the home screen and nine element templates (lucky block, leap wand, mana system, healing potion, double jump, starter kit, kill counter, storage crate, achievements set) to add to any project. Fixed: recipes that make your own potions or enchanted books were reported as missing. 245 tests.

@@ -31,6 +31,15 @@ export function shapedPattern(grid: string[]) {
   return { pattern, key };
 }
 
+/**
+ * Recipes in format 1.20+ need unlock data: like Minecraft's own, the recipe unlocks when the player
+ * gets any of its item ingredients (always unlocked if it only uses tags).
+ */
+function unlockFor(items: string[]) {
+  const ids = Array.from(new Set(items.filter((i) => i && !i.startsWith("#")))).slice(0, 4);
+  return ids.length ? ids.map((item) => ({ item })) : [{ context: "AlwaysUnlocked" }];
+}
+
 /** Where a crafting recipe can be made: the vanilla table and/or custom crafting stations (their tags). */
 const stations = (r: RecipeElement) => (r.stations?.length ? r.stations : ["crafting_table"]);
 
@@ -46,13 +55,13 @@ export function genRecipe(ctx: GenContext, r: RecipeElement) {
     case "shaped": {
       const p = shapedPattern(r.grid);
       if (!p) return ctx.warn(r, "has an empty crafting grid, so it was skipped.", "error");
-      body = { "minecraft:recipe_shaped": { description: { identifier }, tags: stations(r), ...p, result } };
+      body = { "minecraft:recipe_shaped": { description: { identifier }, tags: stations(r), ...p, unlock: unlockFor(r.grid), result } };
       break;
     }
     case "shapeless": {
       const ingredients = r.grid.filter(Boolean).map(ingredient);
       if (!ingredients.length) return ctx.warn(r, "has no ingredients, so it was skipped.", "error");
-      body = { "minecraft:recipe_shapeless": { description: { identifier }, tags: stations(r), ingredients, result } };
+      body = { "minecraft:recipe_shapeless": { description: { identifier }, tags: stations(r), ingredients, unlock: unlockFor(r.grid), result } };
       break;
     }
     case "furnace": {
@@ -63,7 +72,7 @@ export function genRecipe(ctx: GenContext, r: RecipeElement) {
     }
     case "stonecutter": {
       if (!r.input) return ctx.warn(r, "needs an input item.", "error");
-      body = { "minecraft:recipe_shapeless": { description: { identifier }, tags: ["stonecutter"], priority: 0, ingredients: [{ item: r.input }], result } };
+      body = { "minecraft:recipe_shapeless": { description: { identifier }, tags: ["stonecutter"], priority: 0, ingredients: [{ item: r.input }], unlock: unlockFor([r.input]), result } };
       break;
     }
     case "smithing": {

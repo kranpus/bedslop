@@ -3,7 +3,7 @@ import type {
   CustomBlockState,
   ArmorElement, ArmorSlot, BlockElement, FoodElement, ItemElement, PlantElement, ToolElement,
 } from "../model/types";
-import { FORMATS, GenContext, blockTagComponents, cleanTags, geometryIdentifier, maxVersion } from "./context";
+import { FORMATS, GenContext, blockTagComponents, cleanTags, geometryIdentifier, maxVersion, normalizeBlockTags } from "./context";
 import { shapeParts } from "./shapes";
 import { rangedItemComponents } from "./ranged";
 
@@ -254,7 +254,7 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
     block.permutations = [...((block.permutations as unknown[]) ?? []), { condition: `q.block_state('${onState}')`, components: onComponents }];
   }
   if (custom.permutations.length) block.permutations = [...((block.permutations as unknown[]) ?? []), ...custom.permutations];
-  ctx.bp(`blocks/${b.name}.json`, { format_version: format, "minecraft:block": block });
+  ctx.bp(`blocks/${b.name}.json`, { format_version: format, "minecraft:block": normalizeBlockTags(format, block) });
   ctx.blockSounds[id] = { sound: b.sound };
   ctx.lang.push(`tile.${id}.name=${b.displayName}`);
 }

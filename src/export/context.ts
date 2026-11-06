@@ -170,6 +170,25 @@ export function cleanTags(tags: string[] | undefined): string[] {
   return Array.from(new Set((tags ?? []).map((t) => t.trim().replace(/^#/, "")).filter(Boolean)));
 }
 
+/**
+ * From block format 1.26.20 Minecraft only accepts tags in a "minecraft:tags" list; the older
+ * "tag:<name>" components make the whole block fail to load. Moves them over (permutations too).
+ */
+export function normalizeBlockTags(format: string, block: Record<string, any>) {
+  if (compareVersion(format, "1.26.20") < 0) return block;
+  const move = (components: Record<string, unknown> | undefined) => {
+    if (!components) return;
+    const tags = Object.keys(components).filter((k) => k.startsWith("tag:"));
+    if (!tags.length) return;
+    for (const k of tags) delete components[k];
+    const list = Array.isArray(components["minecraft:tags"]) ? (components["minecraft:tags"] as string[]) : [];
+    components["minecraft:tags"] = Array.from(new Set([...list, ...tags.map((k) => k.slice(4))]));
+  };
+  move(block.components);
+  for (const p of Array.isArray(block.permutations) ? block.permutations : []) move(p.components);
+  return block;
+}
+
 /** Block tag components ("tag:<name>": {}) for a tag list. */
 export function blockTagComponents(tags: string[] | undefined): Record<string, unknown> {
   return Object.fromEntries(cleanTags(tags).map((t) => [`tag:${t}`, {}]));
