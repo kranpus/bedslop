@@ -110,6 +110,7 @@ Generated JSON follows current Microsoft docs and the Bedrock wiki, and the scri
 - [ ] Key bindings: double taps feel right at the default gap on keyboard, touch and controller; hold sneak fires once per hold; sneak + number keeps the hotbar slot (also with scrolling); held-item filter and cooldown; left-click fires on air and on blocks/mobs
 - [ ] Achievements: each trigger earns once (item held, blocks, kills, uses, variable/score, dimension), progress survives rejoining, toast shows with the right icon and queues several, chat announcement, rewards given once, list menu shows ticks/progress/secret ???
 - [ ] Chest lids: lid opens on the first viewer and closes after the last; sounds play once; facing kept; breaking an open chest doesn't leave a stuck count
+- [ ] Container layouts: each slot sits where placed and holds the right slot (hoppers agree), shift-click and drag between slots work, the title moves/recolours/hides, the inventory and hotbar fit under it, works in both classic and pocket UI and with a controller
 - [ ] Container themes: a storage block's background shows only on its own screen (not on chests), lines up with the slots for 9/27/54 slots, and the title with a curly apostrophe still matches
 - [ ] Custom effect list: effects show on the left with colours, levels and timers, the list clears when they end, and "above the hotbar" effects still use the action bar
 - [ ] Manual animation slots: "When attacking" (`variable.attack_time`), "When hurt" and "When dying" fire at the right moment; one-shot controllers replay on each attack; "Match walking speed" stops foot sliding
@@ -182,6 +183,8 @@ Not possible on Bedrock: ⛔ dimensions, ⛔ fluids, ⛔ paintings, ⛔ banner p
 - Before release: run the in-game checklist above.
 
 ## Changelog
+
+- **0.25.0**: Custom container screens. Storage blocks can have their own slot layout: drag each slot on a screen canvas (presets: chest rows, 3/5 per row, one row, ring), move, recolour or hide the title, and keep the optional background. A block with a background or layout now gets a whole screen of its own, switched in by the container's title (the method custom chest UI packs use), so it works in the pocket UI on phones too; before, backgrounds only showed in the classic UI. 247 tests.
 
 - **0.24.0** (Phase 4): Templates gallery. Five starter add-ons on the home screen and nine element templates (lucky block, leap wand, mana system, healing potion, double jump, starter kit, kill counter, storage crate, achievements set) to add to any project. Fixed: recipes that make your own potions or enchanted books were reported as missing. 245 tests.
 

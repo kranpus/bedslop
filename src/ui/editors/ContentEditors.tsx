@@ -17,6 +17,7 @@ import { useStore } from "../../store/store";
 import type { Patch } from "./types";
 import { ItemUseSection } from "./RangedEditors";
 import { BlockStatesSection } from "./BlockStatesSection";
+import { ContainerLayoutEditor } from "./ContainerLayoutEditor";
 import { TagField } from "../TagField";
 import { ArmorPreview, ItemModelPreview } from "../ItemPreviews";
 
@@ -640,8 +641,9 @@ function BlockFunctionSection({ el, patch }: { el: BlockElement; patch: Patch<Bl
           </Grid>
           <p className="field-help">Right-click opens a chest screen. Uses Bedrock's built-in block containers.</p>
           <TexturePicker label="Screen background (optional)" kind="other" value={el.containerBackground || undefined} suggestedName={`${el.name}_screen`} onChange={(containerBackground) => patch({ containerBackground })}
-            help="Drawn behind the title and slots in the top half of its screen (about 176 × 80 pixels for 27 slots). Each block needs its own title for this to work." />
+            help="Drawn behind the title and slots in the top half of its screen (about 176 × 80 pixels for 27 slots). Each block with its own screen needs its own title." />
           {el.containerBackground && <button type="button" className="btn ghost small" onClick={() => patch({ containerBackground: "" })}>Use the normal background</button>}
+          <ContainerLayoutEditor el={el} patch={patch} />
           <ChestLidFields el={el} patch={patch} />
         </>
       )}

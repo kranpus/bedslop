@@ -602,3 +602,13 @@ table.vars td:nth-child(5) { min-width: 0; }
 .template-tags .chip { padding: 1px 8px; font-size: 11px; }
 .sidebar-actions { flex-wrap: wrap; }
 .home-grid .span-2 { grid-column: 1 / -1; }
+
+/* Container slot layout editor */
+.slot-canvas-wrap { overflow-x: auto; max-width: 100%; }
+.slot-canvas { position: relative; background: #c6c6c6; border: 2px solid #1e1e1e; box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #555; touch-action: none; user-select: none; }
+.slot-top { position: absolute; left: 0; right: 0; }
+.slot-bg { position: absolute; image-rendering: pixelated; }
+.slot-title { position: absolute; font-family: var(--font-mono); font-size: 14px; line-height: 1; cursor: move; white-space: nowrap; z-index: 3; }
+.slot-cell { position: absolute; box-sizing: border-box; display: grid; place-items: center; background: #8b8b8b; border: 2px solid; border-color: #373737 #fff #fff #373737; color: #fff; font: 600 11px var(--font-mono); text-shadow: 1px 1px 0 #3f3f3f; cursor: move; z-index: 2; }
+.slot-cell.on { outline: 2px solid var(--accent, #3c7a2e); }
+.slot-inventory { position: absolute; left: 14px; right: 14px; bottom: 6px; border-top: 2px dashed #8b8b8b; color: #555; font: 12px var(--font-mono); padding-top: 4px; opacity: 0.8; }

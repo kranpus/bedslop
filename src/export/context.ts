@@ -47,7 +47,8 @@ export class GenContext {
   /** Our JSON UI files, listed in RP/ui/_ui_defs.json. */
   readonly uiDefs: string[] = [];
   /** Storage blocks with a themed screen: container title -> background texture path. */
-  readonly containerThemes: { title: string; texture: string }[] = [];
+  /** Storage blocks with their own screen (background and/or slot layout), matched by container title. */
+  readonly containerScreens: { title: string; texture: string; slotCount: number; layout?: import("../model/types").ContainerLayout }[] = [];
   /** Storage blocks that open like a chest: block id -> sounds. Their "opened" state is <ns>:opened. */
   readonly chestLids: { id: string; open: string; close: string }[] = [];
   readonly terrain: Record<string, { textures: string }> = {};

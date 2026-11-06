@@ -108,14 +108,17 @@ export function genBlock(ctx: GenContext, b: BlockElement) {
     const tags = (b.craftingTags?.length ? b.craftingTags : [id]).slice(0, 64);
     components["minecraft:crafting_table"] = { crafting_tags: tags, table_name: b.tableName || b.displayName };
   } else if (fn === "storage") {
-    // Straight quotes can't be matched by the themed screen, so they become curly ones there.
-    const title = (b.containerTitle || b.displayName).slice(0, 256).replace(/'/g, b.containerBackground ? "’" : "'");
-    components["minecraft:block_entity"] = { container: { slot_count: clampInt(b.slotCount ?? 27, 1, 54), title } };
-    if (b.containerBackground) {
-      const tex = ctx.writeTexture(b.containerBackground, "ui");
-      if (!tex) ctx.warn(b, "has a screen background that no longer exists.");
-      else if (ctx.containerThemes.some((t) => t.title === title && t.texture !== tex)) ctx.warn(b, `shares the screen title “${title}” with another storage block, so they show the same background. Give it its own title.`);
-      else if (!ctx.containerThemes.some((t) => t.title === title)) ctx.containerThemes.push({ title, texture: tex });
+    // Straight quotes can't be matched by the custom screen, so they become curly ones there.
+    const layout = b.containerLayout?.enabled ? b.containerLayout : undefined;
+    const own = !!(b.containerBackground || layout);
+    const slotCount = clampInt(b.slotCount ?? 27, 1, 54);
+    const title = (b.containerTitle || b.displayName).slice(0, 256).replace(/'/g, own ? "’" : "'");
+    components["minecraft:block_entity"] = { container: { slot_count: slotCount, title } };
+    if (own) {
+      const tex = b.containerBackground ? ctx.writeTexture(b.containerBackground, "ui") : "";
+      if (b.containerBackground && !tex) ctx.warn(b, "has a screen background that no longer exists.");
+      if (ctx.containerScreens.some((t) => t.title === title)) ctx.warn(b, `shares the screen title “${title}” with another storage block that has its own screen, so they look the same. Give it its own title.`);
+      else if (tex || layout) ctx.containerScreens.push({ title, texture: tex, slotCount, layout });
     }
     need("1.26.20", "storage blocks", "1.26.60");
     if (b.lid?.enabled) {

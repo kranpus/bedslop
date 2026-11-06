@@ -19,10 +19,16 @@ describe("form layouts, container screens and the effect list", () => {
   fancy.layout = { style: "grid", columns: 2, tileWidth: 90, tileHeight: 40, iconSize: 16, width: 200, height: 160, showBody: false, background: "bg", titleColor: "#ffaa00" };
   const box = createElement("block", "crate", "Crate");
   Object.assign(box, { function: "storage", containerTitle: "Crate's Stuff", containerBackground: "chestbg" });
+  // Like a hand-made "basic crafter" screen: 9 slots in a 3×3 grid, white title.
+  const crafter = createElement("block", "basic_crafter", "Basic Crafter");
+  Object.assign(crafter, { function: "storage", slotCount: 9, containerLayout: {
+    enabled: true, showTitle: true, titleX: 47, titleY: -2, titleColor: "#ffffff",
+    slots: [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => ({ x: 45 + (i % 3) * 18, y: Math.floor(i / 3) * 18 })),
+  } });
   const fx = createElement("effect", "glow", "Glow");
   const bar = createElement("effect", "zap", "Zap");
   bar.timerPlace = "actionbar";
-  p.elements.push(plain, shop, fancy, box, fx, bar);
+  p.elements.push(plain, shop, fancy, box, crafter, fx, bar);
   const { files, warnings } = generateAddon(p);
   const json = (f: string) => JSON.parse(files.get(f) as string);
   const js = files.get("BP/scripts/main.js") as string;
@@ -81,14 +87,35 @@ describe("form layouts, container screens and the effect list", () => {
     expect(ui.content_1.controls).toHaveLength(1);
   });
 
-  it("draws a storage block's background in its container screen", () => {
-    expect(json("RP/ui/data_driven_container_screen.json").panel_top_half.modifications[0]).toEqual({
-      array_name: "controls", operation: "insert_front", value: [{ "bc_scr_screens_theme@bc_scr_screens.container_theme": {} }],
-    });
-    const theme = ui.container_theme.controls[0].theme_0;
-    expect(theme).toMatchObject({ type: "image", texture: "textures/ui/scr_chest_bg", visible: "$bc_show" });
+  it("gives storage blocks with a background or layout their own screen, picked by title", () => {
+    const screen = json("RP/ui/data_driven_container_screen.json")["screen@common.inventory_screen_common"];
+    expect(screen.variables.slice(0, 2).map((v: { requires: string }) => v.requires)).toEqual(["$desktop_screen", "$pocket_screen"]);
+    expect(screen.variables[2]).toMatchObject({ requires: "($container_title = 'Crate’s Stuff')", $screen_content: "bc_scr_screens.container_0" });
+    expect(screen.variables[3]).toMatchObject({ requires: "($container_title = 'Basic Crafter')", $screen_content: "bc_scr_screens.container_1" });
     expect(json("BP/blocks/crate.json")["minecraft:block"].components["minecraft:block_entity"].container.title).toBe("Crate’s Stuff");
-    expect(theme.variables[0]).toEqual({ requires: "($container_title = 'Crate’s Stuff')", $bc_show: true });
+  });
+
+  it("draws the background behind a chest-style grid when there's no layout", () => {
+    const top = ui.container_top_0;
+    expect(top.size).toEqual(["100%", 78]);
+    expect(top.controls[0].bg.texture).toBe("textures/ui/scr_chest_bg");
+    const slots = top.controls.at(-1).slots;
+    expect(slots).toMatchObject({ type: "collection_panel", collection_name: "container_items" });
+    expect(slots.controls).toHaveLength(27);
+    expect(slots.controls[10]["slot_10@chest.chest_grid_item"]).toMatchObject({ collection_index: 10, offset: [18, 18] });
+    expect(ui.container_0.controls.at(-1)["root_panel@common.root_panel"].size).toEqual([176, 166]);
+  });
+
+  it("places each slot of a custom layout, with the title moved and recoloured", () => {
+    const top = ui.container_top_1;
+    expect(top.size).toEqual(["100%", 78]);
+    const slots = top.controls.at(-1).slots.controls;
+    expect(slots).toHaveLength(9);
+    expect(slots[4]["slot_4@chest.chest_grid_item"]).toEqual({ collection_index: 4, offset: [63, 18], anchor_from: "top_left", anchor_to: "top_left" });
+    expect(top.controls[0]["title@chest.chest_label"]).toMatchObject({ text: "$container_title", offset: [54, -3], color: [1, 1, 1] });
+    const root = ui.container_1.controls.at(-1)["root_panel@common.root_panel"];
+    const parts = root.controls[1].container_panel.controls.map((c: object) => Object.keys(c)[0]);
+    expect(parts).toEqual(["top@bc_scr_screens.container_top_1", "inventory_panel_bottom_half_with_label@common.inventory_panel_bottom_half_with_label", "hotbar_grid@common.hotbar_grid_template", "inventory_take_progress_icon_button@common.inventory_take_progress_icon_button", "flying_item_renderer@common.flying_item_renderer"]);
   });
 
   it("lists custom effects on the left by default", () => {

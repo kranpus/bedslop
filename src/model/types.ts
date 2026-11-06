@@ -82,6 +82,17 @@ export interface BlockStateRule {
   hideBones?: string[];
 }
 
+/** Your own slot positions for a storage block's screen (pixels from the slot area's top-left; a slot is 18×18). */
+export interface ContainerLayout {
+  enabled: boolean;
+  /** One position per slot, in slot order. Missing ones fall back to the chest grid. */
+  slots: { x: number; y: number }[];
+  showTitle: boolean;
+  titleX: number;
+  titleY: number;
+  titleColor: string;
+}
+
 /** A storage block that opens and closes like a chest. */
 export interface ChestLid {
   enabled: boolean;
@@ -101,6 +112,8 @@ export interface BlockElement extends BaseElement {
   stateRules?: BlockStateRule[];
   /** Storage blocks: background image for the container screen (JSON UI). */
   containerBackground?: string;
+  /** Storage blocks: your own slot positions and title (JSON UI). */
+  containerLayout?: ContainerLayout;
   /** Gives off this particle effect (own effect name or a vanilla id) every particleEvery seconds. */
   particle?: string;
   particleEvery?: number;
